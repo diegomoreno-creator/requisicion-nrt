@@ -108,9 +108,8 @@ const Requisicion = () => {
 
   const fetchAutorizadores = async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, email, full_name");
+      // Get only users with 'autorizador' role using the security definer function
+      const { data, error } = await supabase.rpc('get_autorizadores');
 
       if (error) throw error;
       setAutorizadores(data || []);

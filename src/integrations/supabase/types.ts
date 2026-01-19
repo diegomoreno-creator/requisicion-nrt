@@ -292,6 +292,14 @@ export type Database = {
         Args: { _requisicion_id: string; _user_id: string }
         Returns: boolean
       }
+      get_autorizadores: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
