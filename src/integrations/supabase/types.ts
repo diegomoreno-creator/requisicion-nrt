@@ -96,6 +96,7 @@ export type Database = {
         Row: {
           activo: boolean | null
           created_at: string
+          empresa_id: string | null
           id: string
           nombre: string
           orden: number | null
@@ -103,6 +104,7 @@ export type Database = {
         Insert: {
           activo?: boolean | null
           created_at?: string
+          empresa_id?: string | null
           id?: string
           nombre: string
           orden?: number | null
@@ -110,11 +112,20 @@ export type Database = {
         Update: {
           activo?: boolean | null
           created_at?: string
+          empresa_id?: string | null
           id?: string
           nombre?: string
           orden?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_unidades_negocio_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo_empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
