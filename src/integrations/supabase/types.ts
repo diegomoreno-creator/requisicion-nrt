@@ -466,6 +466,8 @@ export type Database = {
         | "solicitador"
         | "inactivo"
         | "autorizador"
+        | "presupuestos"
+        | "tesoreria"
       requisition_status:
         | "borrador"
         | "pendiente"
@@ -473,6 +475,9 @@ export type Database = {
         | "rechazado"
         | "en_licitacion"
         | "completado"
+        | "pedido_colocado"
+        | "pedido_autorizado"
+        | "pedido_pagado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -607,6 +612,8 @@ export const Constants = {
         "solicitador",
         "inactivo",
         "autorizador",
+        "presupuestos",
+        "tesoreria",
       ],
       requisition_status: [
         "borrador",
@@ -615,6 +622,9 @@ export const Constants = {
         "rechazado",
         "en_licitacion",
         "completado",
+        "pedido_colocado",
+        "pedido_autorizado",
+        "pedido_pagado",
       ],
     },
   },
