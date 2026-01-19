@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotificationPreferences } from "@/hooks/useRealtimeNotifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Camera, Loader2, Save, User } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, Bell, Camera, Loader2, Save, User } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -33,6 +34,7 @@ interface ProfileData {
 
 const Perfil = () => {
   const { user, loading: authLoading } = useAuth();
+  const { preferences, loading: prefsLoading, updatePreferences } = useNotificationPreferences();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,6 +43,7 @@ const Perfil = () => {
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [savingPrefs, setSavingPrefs] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -224,6 +227,18 @@ const Perfil = () => {
     return email?.charAt(0).toUpperCase() || "U";
   };
 
+  const handleToggleNotification = async (type: "requisiciones" | "reposiciones", value: boolean) => {
+    setSavingPrefs(true);
+    const key = type === "requisiciones" ? "notify_requisiciones" : "notify_reposiciones";
+    const success = await updatePreferences({ [key]: value });
+    if (success) {
+      toast.success(`Notificaciones de ${type} ${value ? "activadas" : "desactivadas"}`);
+    } else {
+      toast.error("Error al actualizar preferencias");
+    }
+    setSavingPrefs(false);
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -394,6 +409,53 @@ const Perfil = () => {
               ) : null}
               Cambiar Contraseña
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Notification Preferences Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-primary" />
+              <CardTitle>Preferencias de Notificaciones</CardTitle>
+            </div>
+            <CardDescription>
+              Configura qué notificaciones deseas recibir en tiempo real
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="notify-requisiciones" className="text-base">
+                  Requisiciones
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Recibe notificaciones cuando cambie el estado de una requisición
+                </p>
+              </div>
+              <Switch
+                id="notify-requisiciones"
+                checked={preferences.notify_requisiciones}
+                onCheckedChange={(checked) => handleToggleNotification("requisiciones", checked)}
+                disabled={prefsLoading || savingPrefs}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="notify-reposiciones" className="text-base">
+                  Reposiciones
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Recibe notificaciones cuando cambie el estado de una reposición
+                </p>
+              </div>
+              <Switch
+                id="notify-reposiciones"
+                checked={preferences.notify_reposiciones}
+                onCheckedChange={(checked) => handleToggleNotification("reposiciones", checked)}
+                disabled={prefsLoading || savingPrefs}
+              />
+            </div>
           </CardContent>
         </Card>
       </main>
