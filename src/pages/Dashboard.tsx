@@ -1,10 +1,18 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Rocket, 
   FilePlus, 
@@ -14,7 +22,8 @@ import {
   Users,
   Settings,
   LogOut,
-  Loader2
+  Loader2,
+  User
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,12 +32,35 @@ const roleLabels: Record<string, string> = {
   admin: "Administrador",
   comprador: "Comprador",
   solicitador: "Solicitador",
+  autorizador: "Autorizador",
   inactivo: "Inactivo",
 };
+
+interface ProfileData {
+  full_name: string | null;
+  avatar_url: string | null;
+}
 
 const Dashboard = () => {
   const { user, role, loading, signOut, isSuperadmin, canAccessApp } = useAuth();
   const navigate = useNavigate();
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("user_id", user.id)
+        .single();
+      
+      if (data) setProfile(data);
+    };
+
+    fetchProfile();
+  }, [user]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -45,12 +77,20 @@ const Dashboard = () => {
     toast.success("Sesión cerrada");
   };
 
-  const getInitials = (email: string) => {
-    return email.charAt(0).toUpperCase();
+  const getInitials = () => {
+    if (profile?.full_name) {
+      return profile.full_name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return user?.email?.charAt(0).toUpperCase() || "U";
   };
 
   const getUserName = () => {
-    return user?.email?.split("@")[0] || "Usuario";
+    return profile?.full_name || user?.email?.split("@")[0] || "Usuario";
   };
 
   const menuItems = [
@@ -131,20 +171,27 @@ const Dashboard = () => {
                 {roleLabels[role]}
               </Badge>
             )}
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full border-border bg-secondary hover:bg-secondary/80"
-              onClick={handleLogout}
-              title="Cerrar sesión"
-            >
-              <LogOut className="w-4 h-4 text-foreground" />
-            </Button>
-            <Avatar className="w-8 h-8">
-              <AvatarFallback className="bg-secondary text-foreground text-sm">
-                {getInitials(user.email || "U")}
-              </AvatarFallback>
-            </Avatar>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Avatar className="w-8 h-8 cursor-pointer hover:opacity-80 transition-opacity">
+                  <AvatarImage src={profile?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-secondary text-foreground text-sm">
+                    {getInitials()}
+                  </AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => navigate("/perfil")}>
+                  <User className="w-4 h-4 mr-2" />
+                  Mi Perfil
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Cerrar Sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
