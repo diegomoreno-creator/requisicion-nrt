@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { tiposRequisicion } from "@/lib/requisicionTypes";
 
 interface Partida {
   id: string;
@@ -50,14 +51,6 @@ interface UserOption {
   email: string;
   full_name: string | null;
 }
-
-const tiposRequisicion = [
-  "Compra de materiales",
-  "Servicios",
-  "Equipos",
-  "Suministros de oficina",
-  "Otro",
-];
 
 const unidadesNegocio = [
   "Corporativo",
@@ -264,6 +257,7 @@ const Requisicion = () => {
           <Card className="border-border bg-card mb-6">
             <CardContent className="p-6 space-y-6">
               {/* Tipo de requisición */}
+              {/* Tipo de requisición */}
               <div className="space-y-2">
                 <Label className="text-foreground">Tipo de requisición</Label>
                 <Select value={tipoRequisicion} onValueChange={setTipoRequisicion}>
@@ -272,8 +266,11 @@ const Requisicion = () => {
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border z-50">
                     {tiposRequisicion.map((tipo) => (
-                      <SelectItem key={tipo} value={tipo}>
-                        {tipo}
+                      <SelectItem key={tipo.id} value={tipo.id}>
+                        <div className="flex items-center gap-2">
+                          <span className={cn("w-2 h-2 rounded-full", tipo.colorClass)} />
+                          {tipo.nombre}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
