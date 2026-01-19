@@ -4,10 +4,10 @@ import { toast } from "sonner";
 import { useAuth } from "./useAuth";
 
 const estadoLabels: Record<string, string> = {
-  borrador: "Borrador",
   pendiente: "Pendiente",
   aprobado: "Aprobado",
   rechazado: "Rechazado",
+  cancelado: "Cancelado",
   en_licitacion: "En Licitación",
   pedido_colocado: "Pedido Colocado",
   pedido_autorizado: "Pedido Autorizado",

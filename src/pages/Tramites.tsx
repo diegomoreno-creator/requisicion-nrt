@@ -40,10 +40,10 @@ interface Tramite {
 }
 
 const estadoColors: Record<string, string> = {
-  borrador: "bg-muted text-muted-foreground",
   pendiente: "bg-yellow-500/20 text-yellow-500",
   aprobado: "bg-green-500/20 text-green-500",
   rechazado: "bg-red-500/20 text-red-500",
+  cancelado: "bg-muted text-muted-foreground",
   en_licitacion: "bg-blue-500/20 text-blue-500",
   pedido_colocado: "bg-purple-500/20 text-purple-500",
   pedido_autorizado: "bg-orange-500/20 text-orange-500",
@@ -51,10 +51,10 @@ const estadoColors: Record<string, string> = {
 };
 
 const estadoLabels: Record<string, string> = {
-  borrador: "Borrador",
   pendiente: "Pendiente",
   aprobado: "Aprobado",
   rechazado: "Rechazado",
+  cancelado: "Cancelado",
   en_licitacion: "En Licitación",
   pedido_colocado: "Pedido Colocado",
   pedido_autorizado: "Pedido Autorizado",

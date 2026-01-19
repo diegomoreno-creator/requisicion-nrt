@@ -244,7 +244,7 @@ const Requisicion = () => {
           datos_banco: datosBanco,
           nombre_proyecto: nombreProyecto,
           justificacion,
-          estado: "borrador",
+          estado: "pendiente",
         });
 
         return { error };
