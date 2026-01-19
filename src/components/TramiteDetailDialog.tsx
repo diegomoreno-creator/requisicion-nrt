@@ -112,7 +112,7 @@ const TramiteDetailDialog = ({
   onUpdated,
 }: TramiteDetailDialogProps) => {
   const { user, isAutorizador, isSuperadmin, isAdmin } = useAuth();
-  const { empresas, unidadesNegocio } = useCatalogos();
+  const { empresas, unidadesNegocio, sucursales } = useCatalogos();
   const [loading, setLoading] = useState(true);
   const [requisicion, setRequisicion] = useState<RequisicionDetail | null>(null);
   const [reposicion, setReposicion] = useState<ReposicionDetail | null>(null);
@@ -189,22 +189,35 @@ const TramiteDetailDialog = ({
   };
 
   const fetchUserEmails = async (solicitadoPor: string, autorizadorId: string | null) => {
-    const userIds = [solicitadoPor];
-    if (autorizadorId) userIds.push(autorizadorId);
-
-    const { data: profiles } = await supabase
+    // Fetch solicitante from profiles (RLS allows viewing own profile)
+    const { data: solicitanteProfile } = await supabase
       .from("profiles")
       .select("user_id, email, full_name")
-      .in("user_id", userIds);
+      .eq("user_id", solicitadoPor)
+      .single();
 
-    profiles?.forEach((p) => {
-      if (p.user_id === solicitadoPor) {
-        setSolicitanteEmail(p.email || p.full_name || "Usuario");
+    if (solicitanteProfile) {
+      setSolicitanteEmail(solicitanteProfile.full_name || solicitanteProfile.email || "Usuario");
+    }
+
+    // Fetch autorizador using the get_autorizadores function (bypasses RLS)
+    if (autorizadorId) {
+      const { data: autorizadores } = await supabase.rpc("get_autorizadores");
+      const autorizador = autorizadores?.find((a: any) => a.user_id === autorizadorId);
+      if (autorizador) {
+        setAutorizadorEmail(autorizador.full_name || autorizador.email || "");
+      } else {
+        // If not in autorizadores, try profiles directly (might be admin/superadmin)
+        const { data: authProfile } = await supabase
+          .from("profiles")
+          .select("user_id, email, full_name")
+          .eq("user_id", autorizadorId)
+          .single();
+        if (authProfile) {
+          setAutorizadorEmail(authProfile.full_name || authProfile.email || "");
+        }
       }
-      if (p.user_id === autorizadorId) {
-        setAutorizadorEmail(p.email || p.full_name || "");
-      }
-    });
+    }
   };
 
   const canAuthorize = () => {
@@ -369,6 +382,12 @@ const TramiteDetailDialog = ({
     return unidad?.nombre || id;
   };
 
+  const getSucursalNombre = (id: string | null) => {
+    if (!id) return "-";
+    const sucursal = sucursales.find((s) => s.id === id);
+    return sucursal?.nombre || id;
+  };
+
   const tramite = reposicion || requisicion;
   const currentStep = tramite ? getStepIndex(tramite.estado) : 0;
 
@@ -509,17 +528,17 @@ const TramiteDetailDialog = ({
                   <>
                     <div>
                       <p className="text-muted-foreground text-sm">Empresa:</p>
-                      <p className="text-foreground">{requisicion.empresa || "-"}</p>
+                      <p className="text-foreground">{getEmpresaNombre(requisicion.empresa)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-sm">Unidad de Negocio:</p>
                       <p className="text-foreground">
-                        {requisicion.unidad_negocio || "-"}
+                        {getUnidadNombre(requisicion.unidad_negocio)}
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-sm">Sucursal:</p>
-                      <p className="text-foreground">{requisicion.sucursal || "-"}</p>
+                      <p className="text-foreground">{getSucursalNombre(requisicion.sucursal)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-sm">Departamento:</p>
