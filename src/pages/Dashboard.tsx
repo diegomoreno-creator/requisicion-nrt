@@ -26,7 +26,7 @@ import {
   User
 } from "lucide-react";
 import { toast } from "sonner";
-
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const roleLabels: Record<string, string> = {
   superadmin: "Super Admin",
@@ -170,6 +170,7 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             {role && (
               <Badge variant="outline" className="border-primary text-primary">
                 {roleLabels[role]}
