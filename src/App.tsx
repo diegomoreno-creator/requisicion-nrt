@@ -28,8 +28,22 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/perfil" element={<Perfil />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/perfil" 
+              element={
+                <ProtectedRoute>
+                  <Perfil />
+                </ProtectedRoute>
+              } 
+            />
             <Route 
               path="/requisicion" 
               element={
@@ -54,7 +68,14 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            <Route path="/tramites" element={<Tramites />} />
+            <Route 
+              path="/tramites" 
+              element={
+                <ProtectedRoute>
+                  <Tramites />
+                </ProtectedRoute>
+              } 
+            />
             <Route 
               path="/gestion-usuarios" 
               element={
