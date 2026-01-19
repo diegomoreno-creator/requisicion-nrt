@@ -15,17 +15,46 @@ const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
 
+  const checkUserRole = async (userId: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.rpc('get_user_role', { _user_id: userId });
+      if (error) {
+        console.error('Error checking role:', error);
+        return null;
+      }
+      return data;
+    } catch (err) {
+      console.error('Error:', err);
+      return null;
+    }
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (session?.user) {
+          const role = await checkUserRole(session.user.id);
+          
+          if (role === 'inactivo') {
+            await supabase.auth.signOut();
+            toast.error("Tu cuenta está inactiva. Contacta al administrador para activarla.");
+            return;
+          }
+          
           navigate("/dashboard");
         }
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
+        const role = await checkUserRole(session.user.id);
+        
+        if (role === 'inactivo') {
+          await supabase.auth.signOut();
+          return;
+        }
+        
         navigate("/dashboard");
       }
     });
@@ -39,7 +68,7 @@ const Login = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -47,14 +76,30 @@ const Login = () => {
           },
         });
         if (error) throw error;
-        toast.success("Cuenta creada exitosamente");
+        
+        toast.success("Cuenta creada. Tu cuenta está inactiva hasta que un administrador la active.");
+        setIsSignUp(false);
+        setEmail("");
+        setPassword("");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
-        toast.success("Bienvenido de vuelta");
+
+        // Check role after login
+        if (data.user) {
+          const role = await checkUserRole(data.user.id);
+          
+          if (role === 'inactivo') {
+            await supabase.auth.signOut();
+            toast.error("Tu cuenta está inactiva. Contacta al administrador para activarla.");
+            return;
+          }
+          
+          toast.success("Bienvenido de vuelta");
+        }
       }
     } catch (error: any) {
       if (error.message === "User already registered") {
@@ -80,9 +125,9 @@ const Login = () => {
             <h1 className="text-2xl font-bold text-foreground mb-2">
               {isSignUp ? "Crear Cuenta" : "Bienvenido de Vuelta"}
             </h1>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-sm text-center">
               {isSignUp
-                ? "Ingresa tus datos para registrarte"
+                ? "Ingresa tus datos para registrarte (tu cuenta quedará inactiva hasta aprobación)"
                 : "Ingresa tus credenciales para acceder a tu panel"}
             </p>
           </div>
