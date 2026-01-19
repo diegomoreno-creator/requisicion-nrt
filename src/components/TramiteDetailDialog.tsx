@@ -92,14 +92,16 @@ interface Partida {
 
 const timelineSteps = [
   { key: "borrador", label: "Requisición" },
-  { key: "pendiente", label: "Requisición\nAutorizada" },
+  { key: "aprobado", label: "Requisición\nAutorizada" },
   { key: "en_licitacion", label: "Requisición\nLicitada" },
-  { key: "aprobado", label: "Pedido\nColocado" },
-  { key: "completado", label: "Pedido\nAutorizado" },
+  { key: "completado", label: "Pedido\nColocado" },
+  { key: "pedido_autorizado", label: "Pedido\nAutorizado" },
   { key: "pagado", label: "Pedido\nPagado" },
 ];
 
 const getStepIndex = (estado: string): number => {
+  // "pendiente" is still at the "Requisición" step (waiting for authorization)
+  if (estado === "pendiente") return 0;
   const index = timelineSteps.findIndex((s) => s.key === estado);
   return index >= 0 ? index : 0;
 };
