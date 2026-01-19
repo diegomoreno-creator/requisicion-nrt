@@ -32,6 +32,8 @@ const roleLabels: Record<string, string> = {
   superadmin: "Super Admin",
   admin: "Administrador",
   comprador: "Comprador",
+  presupuestos: "Presupuestos",
+  tesoreria: "Tesorería",
   solicitador: "Solicitador",
   autorizador: "Autorizador",
   inactivo: "Inactivo",
@@ -43,7 +45,7 @@ interface ProfileData {
 }
 
 const Dashboard = () => {
-  const { user, role, loading, signOut, isSuperadmin, canAccessApp } = useAuth();
+  const { user, role, loading, signOut, isSuperadmin, isSolicitador, isAdmin, canAccessApp } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData | null>(null);
 
@@ -97,27 +99,30 @@ const Dashboard = () => {
     return profile?.full_name || user?.email?.split("@")[0] || "Usuario";
   };
 
+  // Only solicitador, admin, and superadmin can create requisitions
+  const canCreateRequisitions = isSolicitador || isAdmin || isSuperadmin;
+
   const menuItems = [
     {
       title: "Requisición",
       description: "Gestiona tus requisiciones.",
       icon: FilePlus,
       path: "/requisicion",
-      visible: true,
+      visible: canCreateRequisitions,
     },
     {
       title: "Reposición",
       description: "Solicita la reposición de tus gastos.",
       icon: RefreshCw,
       path: "/reposicion",
-      visible: true,
+      visible: canCreateRequisitions,
     },
     {
       title: "Pago Sin Orden De Compra",
       description: "Realiza pagos que no requieren orden de compra.",
       icon: FileText,
       path: "/pago-sin-oc",
-      visible: true,
+      visible: canCreateRequisitions,
     },
     {
       title: "Ver Trámites",
