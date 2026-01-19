@@ -154,6 +154,110 @@ export type Database = {
         }
         Relationships: []
       }
+      reposicion_gastos: {
+        Row: {
+          created_at: string
+          departamento: string | null
+          descripcion: string | null
+          empresa_id: string | null
+          factura_no: string | null
+          fecha_gasto: string | null
+          id: string
+          importe: number | null
+          proveedor_negocio: string | null
+          reposicion_id: string
+          unidad_negocio_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          departamento?: string | null
+          descripcion?: string | null
+          empresa_id?: string | null
+          factura_no?: string | null
+          fecha_gasto?: string | null
+          id?: string
+          importe?: number | null
+          proveedor_negocio?: string | null
+          reposicion_id: string
+          unidad_negocio_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          departamento?: string | null
+          descripcion?: string | null
+          empresa_id?: string | null
+          factura_no?: string | null
+          fecha_gasto?: string | null
+          id?: string
+          importe?: number | null
+          proveedor_negocio?: string | null
+          reposicion_id?: string
+          unidad_negocio_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reposicion_gastos_reposicion_id_fkey"
+            columns: ["reposicion_id"]
+            isOneToOne: false
+            referencedRelation: "reposiciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reposiciones: {
+        Row: {
+          autorizador_id: string | null
+          banco: string | null
+          created_at: string
+          cuenta_clabe: string | null
+          estado: string
+          fecha_solicitud: string
+          folio: string
+          gastos_semana: number | null
+          id: string
+          justificacion: string | null
+          monto_total: number | null
+          reponer_a: string | null
+          solicitado_por: string
+          tipo_reposicion: string
+          updated_at: string
+        }
+        Insert: {
+          autorizador_id?: string | null
+          banco?: string | null
+          created_at?: string
+          cuenta_clabe?: string | null
+          estado?: string
+          fecha_solicitud?: string
+          folio: string
+          gastos_semana?: number | null
+          id?: string
+          justificacion?: string | null
+          monto_total?: number | null
+          reponer_a?: string | null
+          solicitado_por: string
+          tipo_reposicion?: string
+          updated_at?: string
+        }
+        Update: {
+          autorizador_id?: string | null
+          banco?: string | null
+          created_at?: string
+          cuenta_clabe?: string | null
+          estado?: string
+          fecha_solicitud?: string
+          folio?: string
+          gastos_semana?: number | null
+          id?: string
+          justificacion?: string | null
+          monto_total?: number | null
+          reponer_a?: string | null
+          solicitado_por?: string
+          tipo_reposicion?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       requisicion_partidas: {
         Row: {
           cantidad: number | null
