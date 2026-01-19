@@ -50,6 +50,7 @@ interface RequisicionDetail {
   presupuesto_aproximado: number | null;
   datos_proveedor: string | null;
   datos_banco: string | null;
+  deleted_at: string | null;
 }
 
 interface ReposicionDetail {
@@ -113,7 +114,7 @@ const TramiteDetailDialog = ({
   tramiteTipo,
   onUpdated,
 }: TramiteDetailDialogProps) => {
-  const { user, isAutorizador, isSuperadmin, isAdmin, isComprador, isPresupuestos, isTesoreria } = useAuth();
+  const { user, isAutorizador, isSuperadmin, isAdmin, isComprador, isPresupuestos, isTesoreria, isSolicitador } = useAuth();
   const { empresas, unidadesNegocio, sucursales } = useCatalogos();
   const [loading, setLoading] = useState(true);
   const [requisicion, setRequisicion] = useState<RequisicionDetail | null>(null);
@@ -125,6 +126,7 @@ const TramiteDetailDialog = ({
   const [actionLoading, setActionLoading] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
@@ -277,6 +279,38 @@ const TramiteDetailDialog = ({
   const canPayPedido = () => {
     if (!requisicion || !user) return false;
     return requisicion.estado === "pedido_autorizado" && (isTesoreria || isSuperadmin);
+  };
+
+  // Solicitador can delete their own draft requisitions
+  const canDelete = () => {
+    if (!requisicion || !user) return false;
+    // Can only delete if: user is owner, is draft, and not deleted already
+    const isOwner = requisicion.solicitado_por === user.id;
+    const isDraft = requisicion.estado === "borrador";
+    const notDeleted = !requisicion.deleted_at;
+    return isOwner && isDraft && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
+  };
+
+  const handleDelete = async () => {
+    if (!tramiteId) return;
+    setDeleteLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Requisición eliminada exitosamente");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error deleting:", error);
+      toast.error("Error al eliminar la requisición");
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const handleApprove = async () => {
@@ -879,6 +913,15 @@ const TramiteDetailDialog = ({
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cerrar
               </Button>
+              {canDelete() && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={deleteLoading}
+                >
+                  {deleteLoading ? "Eliminando..." : "Eliminar"}
+                </Button>
+              )}
               {canCancel() && (
                 <Button
                   variant="secondary"

@@ -19,7 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, FolderSearch, Search } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, FolderSearch, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
@@ -35,6 +36,7 @@ interface Tramite {
   fecha: string;
   solicitante: string;
   estado: string;
+  deleted_at?: string | null;
 }
 
 const estadoColors: Record<string, string> = {
@@ -61,9 +63,10 @@ const estadoLabels: Record<string, string> = {
 
 const Tramites = () => {
   const navigate = useNavigate();
-  const { user, isSuperadmin, isAdmin, isComprador, isAutorizador, isPresupuestos, isTesoreria, loading: authLoading } = useAuth();
+  const { user, isSuperadmin, isAdmin, isComprador, isAutorizador, isPresupuestos, isTesoreria, isSolicitador, loading: authLoading } = useAuth();
   const { tiposRequisicion, getTipoColor, getTipoNombre } = useCatalogos();
   const [tramites, setTramites] = useState<Tramite[]>([]);
+  const [deletedTramites, setDeletedTramites] = useState<Tramite[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("todos");
@@ -72,6 +75,7 @@ const Tramites = () => {
     tipo: "Requisición" | "Reposición";
   } | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("activos");
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -87,7 +91,7 @@ const Tramites = () => {
       // Fetch requisiciones - RLS policies will handle visibility
       const { data: requisiciones, error: reqError } = await supabase
         .from("requisiciones")
-        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion")
+        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion, deleted_at")
         .order("created_at", { ascending: false });
 
       if (reqError) {
@@ -120,31 +124,45 @@ const Tramites = () => {
         userMap.set(p.user_id, p.full_name || p.email || "Usuario");
       });
 
-      // Combine and format tramites
-      const allTramites: Tramite[] = [
-        ...(requisiciones?.map((r) => ({
+      // Combine and format tramites - separate active and deleted
+      const activeTramites: Tramite[] = [];
+      const deleted: Tramite[] = [];
+
+      requisiciones?.forEach((r) => {
+        const tramite: Tramite = {
           id: r.id,
           folio: r.folio,
-          tipo: "Requisición" as const,
+          tipo: "Requisición",
           tipoRequisicionId: r.tipo_requisicion,
           fecha: r.created_at,
           solicitante: userMap.get(r.solicitado_por) || "Usuario",
           estado: r.estado || "borrador",
-        })) || []),
-        ...(reposiciones?.map((r) => ({
+          deleted_at: r.deleted_at,
+        };
+        if (r.deleted_at) {
+          deleted.push(tramite);
+        } else {
+          activeTramites.push(tramite);
+        }
+      });
+
+      reposiciones?.forEach((r) => {
+        activeTramites.push({
           id: r.id,
           folio: r.folio,
-          tipo: "Reposición" as const,
+          tipo: "Reposición",
           fecha: r.fecha_solicitud,
           solicitante: userMap.get(r.solicitado_por) || "Usuario",
           estado: r.estado || "borrador",
-        })) || []),
-      ];
+        });
+      });
 
       // Sort by date descending
-      allTramites.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+      activeTramites.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+      deleted.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
-      setTramites(allTramites);
+      setTramites(activeTramites);
+      setDeletedTramites(deleted);
     } catch (error) {
       console.error("Error fetching tramites:", error);
     } finally {
@@ -172,6 +190,108 @@ const Tramites = () => {
     } catch {
       return fecha;
     }
+  };
+
+  const renderTramitesTable = (tramitesList: Tramite[], showDeleted = false) => {
+    if (loading) {
+      return (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>Cargando trámites...</p>
+        </div>
+      );
+    }
+
+    if (tramitesList.length === 0) {
+      return (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>{showDeleted ? "No hay trámites borrados" : "No se encontraron trámites"}</p>
+          {!showDeleted && (
+            <p className="text-sm mt-2">
+              {searchTerm || filterTipo !== "todos"
+                ? "Intenta ajustar los filtros de búsqueda"
+                : "Aún no tienes trámites registrados"}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="rounded-md border border-border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableHead className="text-muted-foreground font-medium w-4"></TableHead>
+              <TableHead className="text-muted-foreground font-medium">Folio</TableHead>
+              <TableHead className="text-muted-foreground font-medium">Tipo de Trámite</TableHead>
+              <TableHead className="text-muted-foreground font-medium">Fecha</TableHead>
+              <TableHead className="text-muted-foreground font-medium">Solicitante</TableHead>
+              <TableHead className="text-muted-foreground font-medium">Estado</TableHead>
+              {showDeleted && (
+                <TableHead className="text-muted-foreground font-medium">Borrado</TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tramitesList.map((tramite) => (
+              <TableRow
+                key={`${tramite.tipo}-${tramite.id}`}
+                className="hover:bg-muted/20 cursor-pointer"
+                onClick={() => {
+                  setSelectedTramite({ id: tramite.id, tipo: tramite.tipo });
+                  setDetailOpen(true);
+                }}
+              >
+                <TableCell className="w-4 p-2">
+                  {tramite.tipo === "Requisición" && tramite.tipoRequisicionId ? (
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{
+                        backgroundColor: `hsl(${getTipoColor(tramite.tipoRequisicionId)})`,
+                      }}
+                      title={getTipoNombre(tramite.tipoRequisicionId)}
+                    />
+                  ) : tramite.tipo === "Reposición" ? (
+                    <div
+                      className="w-3 h-3 rounded-full bg-blue-500"
+                      title="Reposición"
+                    />
+                  ) : (
+                    <div className="w-3 h-3 rounded-full bg-muted" />
+                  )}
+                </TableCell>
+                <TableCell className="text-primary font-medium">
+                  {tramite.folio}
+                </TableCell>
+                <TableCell className="text-foreground">
+                  {tramite.tipo}
+                </TableCell>
+                <TableCell className="text-foreground">
+                  {formatFecha(tramite.fecha)}
+                </TableCell>
+                <TableCell className="text-foreground">
+                  {tramite.solicitante}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    className={`${
+                      estadoColors[tramite.estado] || estadoColors.borrador
+                    } border-0`}
+                  >
+                    {estadoLabels[tramite.estado] || tramite.estado}
+                  </Badge>
+                </TableCell>
+                {showDeleted && tramite.deleted_at && (
+                  <TableCell className="text-muted-foreground text-sm">
+                    {formatFecha(tramite.deleted_at)}
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
   };
 
   return (
@@ -235,87 +355,25 @@ const Tramites = () => {
               </Select>
             </div>
 
-            {/* Table */}
-            {loading ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>Cargando trámites...</p>
-              </div>
-            ) : filteredTramites.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>No se encontraron trámites</p>
-                <p className="text-sm mt-2">
-                  {searchTerm || filterTipo !== "todos"
-                    ? "Intenta ajustar los filtros de búsqueda"
-                    : "Aún no tienes trámites registrados"}
-                </p>
-              </div>
+            {/* Tabs for superadmin to see deleted */}
+            {isSuperadmin ? (
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="activos">Activos</TabsTrigger>
+                  <TabsTrigger value="borrados" className="flex items-center gap-2">
+                    <Trash2 className="w-4 h-4" />
+                    Borrados ({deletedTramites.length})
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="activos">
+                  {renderTramitesTable(filteredTramites)}
+                </TabsContent>
+                <TabsContent value="borrados">
+                  {renderTramitesTable(deletedTramites, true)}
+                </TabsContent>
+              </Tabs>
             ) : (
-              <div className="rounded-md border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/30 hover:bg-muted/30">
-                      <TableHead className="text-muted-foreground font-medium w-4"></TableHead>
-                      <TableHead className="text-muted-foreground font-medium">Folio</TableHead>
-                      <TableHead className="text-muted-foreground font-medium">Tipo de Trámite</TableHead>
-                      <TableHead className="text-muted-foreground font-medium">Fecha</TableHead>
-                      <TableHead className="text-muted-foreground font-medium">Solicitante</TableHead>
-                      <TableHead className="text-muted-foreground font-medium">Estado</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                      {filteredTramites.map((tramite) => (
-                      <TableRow
-                        key={`${tramite.tipo}-${tramite.id}`}
-                        className="hover:bg-muted/20 cursor-pointer"
-                        onClick={() => {
-                          setSelectedTramite({ id: tramite.id, tipo: tramite.tipo });
-                          setDetailOpen(true);
-                        }}
-                      >
-                        <TableCell className="w-4 p-2">
-                          {tramite.tipo === "Requisición" && tramite.tipoRequisicionId ? (
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{
-                                backgroundColor: `hsl(${getTipoColor(tramite.tipoRequisicionId)})`,
-                              }}
-                              title={getTipoNombre(tramite.tipoRequisicionId)}
-                            />
-                          ) : tramite.tipo === "Reposición" ? (
-                            <div
-                              className="w-3 h-3 rounded-full bg-blue-500"
-                              title="Reposición"
-                            />
-                          ) : (
-                            <div className="w-3 h-3 rounded-full bg-muted" />
-                          )}
-                        </TableCell>
-                        <TableCell className="text-primary font-medium">
-                          {tramite.folio}
-                        </TableCell>
-                        <TableCell className="text-foreground">
-                          {tramite.tipo}
-                        </TableCell>
-                        <TableCell className="text-foreground">
-                          {formatFecha(tramite.fecha)}
-                        </TableCell>
-                        <TableCell className="text-foreground">
-                          {tramite.solicitante}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={`${
-                              estadoColors[tramite.estado] || estadoColors.borrador
-                            } border-0`}
-                          >
-                            {estadoLabels[tramite.estado] || tramite.estado}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              renderTramitesTable(filteredTramites)
             )}
           </CardContent>
         </Card>
