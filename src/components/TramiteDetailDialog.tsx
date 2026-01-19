@@ -92,10 +92,10 @@ interface Partida {
 
 const timelineSteps = [
   { key: "borrador", label: "Requisición" },
-  { key: "pendiente", label: "Requisición\nAutorizada" },
+  { key: "pendiente", label: "Pendiente\nde Autorizar" },
+  { key: "aprobado", label: "Requisición\nAutorizada" },
   { key: "en_licitacion", label: "Requisición\nLicitada" },
-  { key: "aprobado", label: "Pedido\nColocado" },
-  { key: "completado", label: "Pedido\nAutorizado" },
+  { key: "completado", label: "Pedido\nColocado" },
   { key: "pagado", label: "Pedido\nPagado" },
 ];
 
