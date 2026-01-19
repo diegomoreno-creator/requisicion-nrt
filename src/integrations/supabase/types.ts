@@ -338,6 +338,7 @@ export type Database = {
           created_at: string
           datos_banco: string | null
           datos_proveedor: string | null
+          deleted_at: string | null
           departamento_solicitante: string | null
           empresa: string | null
           estado: Database["public"]["Enums"]["requisition_status"] | null
@@ -361,6 +362,7 @@ export type Database = {
           created_at?: string
           datos_banco?: string | null
           datos_proveedor?: string | null
+          deleted_at?: string | null
           departamento_solicitante?: string | null
           empresa?: string | null
           estado?: Database["public"]["Enums"]["requisition_status"] | null
@@ -384,6 +386,7 @@ export type Database = {
           created_at?: string
           datos_banco?: string | null
           datos_proveedor?: string | null
+          deleted_at?: string | null
           departamento_solicitante?: string | null
           empresa?: string | null
           estado?: Database["public"]["Enums"]["requisition_status"] | null
