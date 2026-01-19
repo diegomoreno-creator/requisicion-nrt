@@ -177,7 +177,7 @@ const Reposicion = () => {
           cuenta_clabe: tipoReposicion === "colaborador" ? cuentaClabe : null,
           reponer_a: reponerA,
           justificacion,
-          estado: "borrador",
+          estado: "pendiente",
         })
         .select()
         .single();

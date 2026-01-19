@@ -102,7 +102,7 @@ interface Partida {
 }
 
 const timelineSteps = [
-  { key: "borrador", label: "Requisición" },
+  { key: "pendiente", label: "Requisición\nPendiente" },
   { key: "aprobado", label: "Requisición\nAutorizada" },
   { key: "en_licitacion", label: "Requisición\nLicitada" },
   { key: "pedido_colocado", label: "Pedido\nColocado" },
@@ -111,8 +111,6 @@ const timelineSteps = [
 ];
 
 const getStepIndex = (estado: string): number => {
-  // "pendiente" is still at the "Requisición" step (waiting for authorization)
-  if (estado === "pendiente") return 0;
   const index = timelineSteps.findIndex((s) => s.key === estado);
   return index >= 0 ? index : 0;
 };
@@ -254,7 +252,7 @@ const TramiteDetailDialog = ({
     
     // Only the owner can cancel their own trámite (solicitador)
     const isOwner = tramite.solicitado_por === user.id;
-    const isCancellable = tramite.estado === "borrador" || tramite.estado === "pendiente";
+    const isCancellable = tramite.estado === "pendiente";
     
     return isOwner && isCancellable && !isSuperadmin && !isAdmin && !isAutorizador;
   };
@@ -294,29 +292,20 @@ const TramiteDetailDialog = ({
     return requisicion.estado === "pedido_autorizado" && (isTesoreria || isSuperadmin);
   };
 
-  // Solicitador can delete their own draft requisitions
+  // Solicitador can delete their own pending requisitions
   const canDelete = () => {
     if (!requisicion || !user) return false;
-    // Can only delete if: user is owner, is draft, and not deleted already
+    // Can only delete if: user is owner, is pending, and not deleted already
     const isOwner = requisicion.solicitado_por === user.id;
-    const isDraft = requisicion.estado === "borrador";
+    const isPending = requisicion.estado === "pendiente";
     const notDeleted = !requisicion.deleted_at;
-    return isOwner && isDraft && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
+    return isOwner && isPending && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
   };
 
   // Superadmin can restore deleted requisitions
   const canRestore = () => {
     if (!requisicion || !user) return false;
     return requisicion.deleted_at !== null && isSuperadmin;
-  };
-
-  // Owner can submit draft to pending (send to autorizador)
-  const canSubmitToAuthorization = () => {
-    const tramite = reposicion || requisicion;
-    if (!tramite || !user) return false;
-    const isOwner = tramite.solicitado_por === user.id;
-    const isDraft = tramite.estado === "borrador";
-    return isOwner && isDraft;
   };
 
   const handleDelete = async () => {
@@ -538,29 +527,6 @@ const TramiteDetailDialog = ({
     } catch (error) {
       console.error("Error paying pedido:", error);
       toast.error("Error al marcar como pagado");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleSubmitToAuthorization = async () => {
-    if (!tramiteId || !tramiteTipo) return;
-    setActionLoading(true);
-
-    try {
-      const table = tramiteTipo === "Reposición" ? "reposiciones" : "requisiciones";
-      const { error } = await supabase
-        .from(table)
-        .update({ estado: "pendiente" })
-        .eq("id", tramiteId);
-
-      if (error) throw error;
-      toast.success("Trámite enviado a autorización");
-      onUpdated?.();
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Error submitting to authorization:", error);
-      toast.error("Error al enviar a autorización");
     } finally {
       setActionLoading(false);
     }
@@ -1003,15 +969,6 @@ const TramiteDetailDialog = ({
                   disabled={deleteLoading}
                 >
                   {deleteLoading ? "Eliminando..." : "Eliminar"}
-                </Button>
-              )}
-              {canSubmitToAuthorization() && (
-                <Button
-                  className="bg-blue-600 hover:bg-blue-700"
-                  onClick={handleSubmitToAuthorization}
-                  disabled={actionLoading}
-                >
-                  {actionLoading ? "Enviando..." : "Enviar a Autorización"}
                 </Button>
               )}
               {canCancel() && (
