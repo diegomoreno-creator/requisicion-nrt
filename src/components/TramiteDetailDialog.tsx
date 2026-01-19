@@ -16,13 +16,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCatalogos } from "@/hooks/useCatalogos";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { Lightbulb, X } from "lucide-react";
+import { Lightbulb, Loader2 } from "lucide-react";
 
 interface TramiteDetailDialogProps {
   open: boolean;
@@ -120,10 +121,13 @@ const TramiteDetailDialog = ({
   const [solicitanteEmail, setSolicitanteEmail] = useState("");
   const [autorizadorEmail, setAutorizadorEmail] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
       fetchDetails();
+      setAiAnalysis(null);
     }
   }, [open, tramiteId, tramiteTipo]);
 
@@ -257,6 +261,82 @@ const TramiteDetailDialog = ({
       toast.error("Error al rechazar el trámite");
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleAnalyzeWithAI = async () => {
+    if (!tramite) return;
+    setAiLoading(true);
+    setAiAnalysis(null);
+
+    try {
+      const tramiteData = reposicion
+        ? {
+            tipo: "Reposición",
+            folio: reposicion.folio,
+            estado: reposicion.estado,
+            fecha: reposicion.fecha_solicitud,
+            solicitante: solicitanteEmail,
+            autorizador: autorizadorEmail,
+            tipoReposicion: reposicion.tipo_reposicion,
+            gastosSemana: formatCurrency(reposicion.gastos_semana),
+            montoTotal: formatCurrency(reposicion.monto_total),
+            reponerA: reposicion.reponer_a,
+            banco: reposicion.banco,
+            cuentaClabe: reposicion.cuenta_clabe,
+            justificacion: reposicion.justificacion,
+            gastos: gastos.map((g) => ({
+              descripcion: g.descripcion,
+              importe: formatCurrency(g.importe),
+              proveedor: g.proveedor_negocio,
+              factura: g.factura_no,
+            })),
+          }
+        : {
+            tipo: "Requisición",
+            folio: requisicion!.folio,
+            estado: requisicion!.estado,
+            fecha: requisicion!.created_at,
+            solicitante: solicitanteEmail,
+            autorizador: autorizadorEmail,
+            empresa: requisicion!.empresa,
+            unidadNegocio: requisicion!.unidad_negocio,
+            sucursal: requisicion!.sucursal,
+            departamento: requisicion!.departamento_solicitante,
+            presupuesto: formatCurrency(requisicion!.presupuesto_aproximado),
+            proyecto: requisicion!.nombre_proyecto,
+            justificacion: requisicion!.justificacion,
+            partidas: partidas.map((p) => ({
+              descripcion: p.descripcion,
+              cantidad: p.cantidad,
+              unidad: p.unidad_medida,
+            })),
+          };
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-tramite`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ tramiteData }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al analizar el trámite");
+      }
+
+      const data = await response.json();
+      setAiAnalysis(data.analysis);
+    } catch (error) {
+      console.error("Error analyzing with AI:", error);
+      toast.error(error instanceof Error ? error.message : "Error al analizar con IA");
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -551,9 +631,40 @@ const TramiteDetailDialog = ({
               <p className="text-muted-foreground text-sm mb-3">
                 Obtén una recomendación basada en IA para este trámite.
               </p>
-              <Button variant="outline" size="sm">
-                Analizar Trámite
-              </Button>
+              
+              {aiAnalysis ? (
+                <div className="bg-background/50 rounded-lg p-4 mt-3">
+                  <ScrollArea className="max-h-64">
+                    <div className="text-foreground text-sm whitespace-pre-wrap prose prose-invert prose-sm max-w-none">
+                      {aiAnalysis}
+                    </div>
+                  </ScrollArea>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => setAiAnalysis(null)}
+                  >
+                    Limpiar análisis
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAnalyzeWithAI}
+                  disabled={aiLoading}
+                >
+                  {aiLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analizando...
+                    </>
+                  ) : (
+                    "Analizar Trámite"
+                  )}
+                </Button>
+              )}
             </div>
 
             <Separator />

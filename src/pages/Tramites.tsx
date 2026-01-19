@@ -25,11 +25,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import TramiteDetailDialog from "@/components/TramiteDetailDialog";
+import { useCatalogos } from "@/hooks/useCatalogos";
 
 interface Tramite {
   id: string;
   folio: string;
   tipo: "Requisición" | "Reposición";
+  tipoRequisicionId?: string | null;
   fecha: string;
   solicitante: string;
   estado: string;
@@ -56,6 +58,7 @@ const estadoLabels: Record<string, string> = {
 const Tramites = () => {
   const navigate = useNavigate();
   const { user, isSuperadmin, isAdmin, isComprador, isAutorizador, loading: authLoading } = useAuth();
+  const { tiposRequisicion, getTipoColor, getTipoNombre } = useCatalogos();
   const [tramites, setTramites] = useState<Tramite[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -80,7 +83,7 @@ const Tramites = () => {
       // Fetch requisiciones - RLS policies will handle visibility
       const { data: requisiciones, error: reqError } = await supabase
         .from("requisiciones")
-        .select("id, folio, created_at, solicitado_por, estado")
+        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion")
         .order("created_at", { ascending: false });
 
       if (reqError) {
@@ -119,6 +122,7 @@ const Tramites = () => {
           id: r.id,
           folio: r.folio,
           tipo: "Requisición" as const,
+          tipoRequisicionId: r.tipo_requisicion,
           fecha: r.created_at,
           solicitante: userMap.get(r.solicitado_por) || "Usuario",
           estado: r.estado || "borrador",
@@ -242,6 +246,7 @@ const Tramites = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="text-muted-foreground font-medium w-4"></TableHead>
                       <TableHead className="text-muted-foreground font-medium">Folio</TableHead>
                       <TableHead className="text-muted-foreground font-medium">Tipo de Trámite</TableHead>
                       <TableHead className="text-muted-foreground font-medium">Fecha</TableHead>
@@ -259,6 +264,24 @@ const Tramites = () => {
                           setDetailOpen(true);
                         }}
                       >
+                        <TableCell className="w-4 p-2">
+                          {tramite.tipo === "Requisición" && tramite.tipoRequisicionId ? (
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor: `hsl(${getTipoColor(tramite.tipoRequisicionId)})`,
+                              }}
+                              title={getTipoNombre(tramite.tipoRequisicionId)}
+                            />
+                          ) : tramite.tipo === "Reposición" ? (
+                            <div
+                              className="w-3 h-3 rounded-full bg-blue-500"
+                              title="Reposición"
+                            />
+                          ) : (
+                            <div className="w-3 h-3 rounded-full bg-muted" />
+                          )}
+                        </TableCell>
                         <TableCell className="text-primary font-medium">
                           {tramite.folio}
                         </TableCell>
