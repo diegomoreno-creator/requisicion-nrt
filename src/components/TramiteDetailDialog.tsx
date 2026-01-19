@@ -94,9 +94,9 @@ const timelineSteps = [
   { key: "borrador", label: "Requisición" },
   { key: "aprobado", label: "Requisición\nAutorizada" },
   { key: "en_licitacion", label: "Requisición\nLicitada" },
-  { key: "completado", label: "Pedido\nColocado" },
+  { key: "pedido_colocado", label: "Pedido\nColocado" },
   { key: "pedido_autorizado", label: "Pedido\nAutorizado" },
-  { key: "pagado", label: "Pedido\nPagado" },
+  { key: "pedido_pagado", label: "Pedido\nPagado" },
 ];
 
 const getStepIndex = (estado: string): number => {
@@ -113,7 +113,7 @@ const TramiteDetailDialog = ({
   tramiteTipo,
   onUpdated,
 }: TramiteDetailDialogProps) => {
-  const { user, isAutorizador, isSuperadmin, isAdmin } = useAuth();
+  const { user, isAutorizador, isSuperadmin, isAdmin, isComprador, isPresupuestos, isTesoreria } = useAuth();
   const { empresas, unidadesNegocio, sucursales } = useCatalogos();
   const [loading, setLoading] = useState(true);
   const [requisicion, setRequisicion] = useState<RequisicionDetail | null>(null);
@@ -255,6 +255,30 @@ const TramiteDetailDialog = ({
     return isRevertible && (isAssignedAutorizador || isSuperadmin || isAdmin || isAutorizador);
   };
 
+  // Comprador: can move from aprobado to en_licitacion
+  const canMoveToLicitacion = () => {
+    if (!requisicion || !user) return false;
+    return requisicion.estado === "aprobado" && (isComprador || isSuperadmin);
+  };
+
+  // Comprador: can move from en_licitacion to pedido_colocado
+  const canMoveToPedidoColocado = () => {
+    if (!requisicion || !user) return false;
+    return requisicion.estado === "en_licitacion" && (isComprador || isSuperadmin);
+  };
+
+  // Presupuestos: can move from pedido_colocado to pedido_autorizado
+  const canAuthorizePedido = () => {
+    if (!requisicion || !user) return false;
+    return requisicion.estado === "pedido_colocado" && (isPresupuestos || isSuperadmin);
+  };
+
+  // Tesoreria: can move from pedido_autorizado to pedido_pagado
+  const canPayPedido = () => {
+    if (!requisicion || !user) return false;
+    return requisicion.estado === "pedido_autorizado" && (isTesoreria || isSuperadmin);
+  };
+
   const handleApprove = async () => {
     if (!tramiteId || !tramiteTipo) return;
     setActionLoading(true);
@@ -342,6 +366,94 @@ const TramiteDetailDialog = ({
     } catch (error) {
       console.error("Error reverting:", error);
       toast.error("Error al revertir el trámite");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleMoveToLicitacion = async () => {
+    if (!tramiteId) return;
+    setActionLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ estado: "en_licitacion" })
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Requisición movida a Licitación");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error moving to licitacion:", error);
+      toast.error("Error al mover a licitación");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleMoveToPedidoColocado = async () => {
+    if (!tramiteId) return;
+    setActionLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ estado: "pedido_colocado" })
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Pedido colocado exitosamente");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error moving to pedido colocado:", error);
+      toast.error("Error al colocar pedido");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAuthorizePedido = async () => {
+    if (!tramiteId) return;
+    setActionLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ estado: "pedido_autorizado" })
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Pedido autorizado exitosamente");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error authorizing pedido:", error);
+      toast.error("Error al autorizar pedido");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePayPedido = async () => {
+    if (!tramiteId) return;
+    setActionLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ estado: "pedido_pagado" })
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Pedido marcado como pagado");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error paying pedido:", error);
+      toast.error("Error al marcar como pagado");
     } finally {
       setActionLoading(false);
     }
@@ -802,6 +914,42 @@ const TramiteDetailDialog = ({
                     Aprobar
                   </Button>
                 </>
+              )}
+              {canMoveToLicitacion() && (
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={handleMoveToLicitacion}
+                  disabled={actionLoading}
+                >
+                  Pasar a Licitación
+                </Button>
+              )}
+              {canMoveToPedidoColocado() && (
+                <Button
+                  className="bg-purple-600 hover:bg-purple-700"
+                  onClick={handleMoveToPedidoColocado}
+                  disabled={actionLoading}
+                >
+                  Colocar Pedido
+                </Button>
+              )}
+              {canAuthorizePedido() && (
+                <Button
+                  className="bg-orange-600 hover:bg-orange-700"
+                  onClick={handleAuthorizePedido}
+                  disabled={actionLoading}
+                >
+                  Autorizar Pedido
+                </Button>
+              )}
+              {canPayPedido() && (
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  onClick={handlePayPedido}
+                  disabled={actionLoading}
+                >
+                  Marcar como Pagado
+                </Button>
               )}
             </div>
           </div>

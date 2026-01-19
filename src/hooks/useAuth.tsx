@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 
-export type AppRole = 'superadmin' | 'admin' | 'comprador' | 'solicitador' | 'autorizador' | 'inactivo';
+export type AppRole = 'superadmin' | 'admin' | 'comprador' | 'solicitador' | 'autorizador' | 'presupuestos' | 'tesoreria' | 'inactivo';
 
 interface AuthState {
   user: User | null;
@@ -106,6 +106,8 @@ export const useAuth = () => {
   const isComprador = hasRole('comprador');
   const isSolicitador = hasRole('solicitador');
   const isAutorizador = hasRole('autorizador');
+  const isPresupuestos = hasRole('presupuestos');
+  const isTesoreria = hasRole('tesoreria');
   const isInactivo = authState.roles.length === 0 || (authState.roles.length === 1 && hasRole('inactivo'));
   const canAccessApp = authState.roles.length > 0 && !isInactivo;
 
@@ -122,6 +124,8 @@ export const useAuth = () => {
     isComprador,
     isSolicitador,
     isAutorizador,
+    isPresupuestos,
+    isTesoreria,
     isInactivo,
     canAccessApp,
     fetchUserRoles,

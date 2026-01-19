@@ -43,7 +43,9 @@ const estadoColors: Record<string, string> = {
   aprobado: "bg-green-500/20 text-green-500",
   rechazado: "bg-red-500/20 text-red-500",
   en_licitacion: "bg-blue-500/20 text-blue-500",
-  completado: "bg-emerald-500/20 text-emerald-500",
+  pedido_colocado: "bg-purple-500/20 text-purple-500",
+  pedido_autorizado: "bg-orange-500/20 text-orange-500",
+  pedido_pagado: "bg-emerald-500/20 text-emerald-500",
 };
 
 const estadoLabels: Record<string, string> = {
@@ -52,12 +54,14 @@ const estadoLabels: Record<string, string> = {
   aprobado: "Aprobado",
   rechazado: "Rechazado",
   en_licitacion: "En Licitación",
-  completado: "Completado",
+  pedido_colocado: "Pedido Colocado",
+  pedido_autorizado: "Pedido Autorizado",
+  pedido_pagado: "Pedido Pagado",
 };
 
 const Tramites = () => {
   const navigate = useNavigate();
-  const { user, isSuperadmin, isAdmin, isComprador, isAutorizador, loading: authLoading } = useAuth();
+  const { user, isSuperadmin, isAdmin, isComprador, isAutorizador, isPresupuestos, isTesoreria, loading: authLoading } = useAuth();
   const { tiposRequisicion, getTipoColor, getTipoNombre } = useCatalogos();
   const [tramites, setTramites] = useState<Tramite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -187,9 +191,13 @@ const Tramites = () => {
                     : isAdmin
                     ? "Trámites asignados y creados"
                     : isComprador
-                    ? "Trámites creados y aprobados"
+                    ? "Requisiciones aprobadas y en licitación"
                     : isAutorizador
                     ? "Trámites pendientes de autorización"
+                    : isPresupuestos
+                    ? "Pedidos colocados para autorizar"
+                    : isTesoreria
+                    ? "Pedidos autorizados para pagar"
                     : "Mis trámites"}
                 </p>
               </div>

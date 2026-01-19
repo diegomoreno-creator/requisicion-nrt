@@ -9,7 +9,9 @@ const estadoLabels: Record<string, string> = {
   aprobado: "Aprobado",
   rechazado: "Rechazado",
   en_licitacion: "En Licitación",
-  completado: "Completado",
+  pedido_colocado: "Pedido Colocado",
+  pedido_autorizado: "Pedido Autorizado",
+  pedido_pagado: "Pedido Pagado",
 };
 
 interface NotificationPreferences {
