@@ -310,6 +310,15 @@ const TramiteDetailDialog = ({
     return requisicion.deleted_at !== null && isSuperadmin;
   };
 
+  // Owner can submit draft to pending (send to autorizador)
+  const canSubmitToAuthorization = () => {
+    const tramite = reposicion || requisicion;
+    if (!tramite || !user) return false;
+    const isOwner = tramite.solicitado_por === user.id;
+    const isDraft = tramite.estado === "borrador";
+    return isOwner && isDraft;
+  };
+
   const handleDelete = async () => {
     if (!tramiteId) return;
     setDeleteLoading(true);
@@ -529,6 +538,29 @@ const TramiteDetailDialog = ({
     } catch (error) {
       console.error("Error paying pedido:", error);
       toast.error("Error al marcar como pagado");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSubmitToAuthorization = async () => {
+    if (!tramiteId || !tramiteTipo) return;
+    setActionLoading(true);
+
+    try {
+      const table = tramiteTipo === "Reposición" ? "reposiciones" : "requisiciones";
+      const { error } = await supabase
+        .from(table)
+        .update({ estado: "pendiente" })
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Trámite enviado a autorización");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error submitting to authorization:", error);
+      toast.error("Error al enviar a autorización");
     } finally {
       setActionLoading(false);
     }
@@ -971,6 +1003,15 @@ const TramiteDetailDialog = ({
                   disabled={deleteLoading}
                 >
                   {deleteLoading ? "Eliminando..." : "Eliminar"}
+                </Button>
+              )}
+              {canSubmitToAuthorization() && (
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={handleSubmitToAuthorization}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? "Enviando..." : "Enviar a Autorización"}
                 </Button>
               )}
               {canCancel() && (
