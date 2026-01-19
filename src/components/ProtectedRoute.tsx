@@ -1,8 +1,7 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import AccessDenied from "@/pages/AccessDenied";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -16,36 +15,38 @@ const ProtectedRoute = ({
   requiresSuperadmin = false 
 }: ProtectedRouteProps) => {
   const { user, loading, isSuperadmin, isAdmin, isSolicitador, canAccessApp } = useAuth();
-  const navigate = useNavigate();
+  const [deniedType, setDeniedType] = useState<"unauthenticated" | "unauthorized" | "inactive" | null>(null);
 
   const canAccessForms = isSolicitador || isAdmin || isSuperadmin;
 
   useEffect(() => {
-    if (loading) return;
+    if (loading) {
+      setDeniedType(null);
+      return;
+    }
 
     if (!user) {
-      navigate("/");
+      setDeniedType("unauthenticated");
       return;
     }
 
     if (!canAccessApp) {
-      toast.error("Tu cuenta está inactiva");
-      navigate("/");
+      setDeniedType("inactive");
       return;
     }
 
     if (requiresSuperadmin && !isSuperadmin) {
-      toast.error("No tienes permisos para acceder a esta sección");
-      navigate("/dashboard");
+      setDeniedType("unauthorized");
       return;
     }
 
     if (requiresFormAccess && !canAccessForms) {
-      toast.error("No tienes permisos para crear trámites");
-      navigate("/tramites");
+      setDeniedType("unauthorized");
       return;
     }
-  }, [loading, user, canAccessApp, isSuperadmin, canAccessForms, requiresFormAccess, requiresSuperadmin, navigate]);
+
+    setDeniedType(null);
+  }, [loading, user, canAccessApp, isSuperadmin, canAccessForms, requiresFormAccess, requiresSuperadmin]);
 
   if (loading) {
     return (
@@ -55,9 +56,9 @@ const ProtectedRoute = ({
     );
   }
 
-  if (!user || !canAccessApp) return null;
-  if (requiresSuperadmin && !isSuperadmin) return null;
-  if (requiresFormAccess && !canAccessForms) return null;
+  if (deniedType) {
+    return <AccessDenied type={deniedType} />;
+  }
 
   return <>{children}</>;
 };
