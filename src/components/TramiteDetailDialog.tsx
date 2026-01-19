@@ -5,6 +5,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -128,6 +138,8 @@ const TramiteDetailDialog = ({
   const [aiLoading, setAiLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
@@ -946,7 +958,7 @@ const TramiteDetailDialog = ({
                 <Button
                   variant="outline"
                   className="border-green-600 text-green-600 hover:bg-green-600/10"
-                  onClick={handleRestore}
+                  onClick={() => setShowRestoreConfirm(true)}
                   disabled={restoreLoading}
                 >
                   {restoreLoading ? "Restaurando..." : "Restaurar"}
@@ -955,7 +967,7 @@ const TramiteDetailDialog = ({
               {canDelete() && (
                 <Button
                   variant="destructive"
-                  onClick={handleDelete}
+                  onClick={() => setShowDeleteConfirm(true)}
                   disabled={deleteLoading}
                 >
                   {deleteLoading ? "Eliminando..." : "Eliminar"}
@@ -1037,6 +1049,56 @@ const TramiteDetailDialog = ({
           </div>
         )}
       </DialogContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar requisición?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará la requisición <strong>{requisicion?.folio}</strong>. 
+              Solo el superadmin podrá restaurarla posteriormente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                setShowDeleteConfirm(false);
+                handleDelete();
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore Confirmation Dialog */}
+      <AlertDialog open={showRestoreConfirm} onOpenChange={setShowRestoreConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Restaurar requisición?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La requisición <strong>{requisicion?.folio}</strong> será restaurada 
+              y volverá a aparecer en la lista de trámites activos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-green-600 text-white hover:bg-green-700"
+              onClick={() => {
+                setShowRestoreConfirm(false);
+                handleRestore();
+              }}
+            >
+              Restaurar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };
