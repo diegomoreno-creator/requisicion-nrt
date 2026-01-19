@@ -12,6 +12,7 @@ import {
   FileText, 
   FolderSearch,
   Users,
+  Settings,
   LogOut,
   Loader2
 } from "lucide-react";
@@ -86,6 +87,13 @@ const Dashboard = () => {
       description: "Administra usuarios y roles del sistema.",
       icon: Users,
       path: "/gestion-usuarios",
+      visible: isSuperadmin,
+    },
+    {
+      title: "Gestión de Catálogos",
+      description: "Administra tipos, empresas, sucursales y más.",
+      icon: Settings,
+      path: "/gestion-catalogos",
       visible: isSuperadmin,
     },
   ];

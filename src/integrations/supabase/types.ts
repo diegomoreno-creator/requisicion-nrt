@@ -14,6 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalogo_empresas: {
+        Row: {
+          activo: boolean | null
+          created_at: string
+          id: string
+          nombre: string
+          orden: number | null
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number | null
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number | null
+        }
+        Relationships: []
+      }
+      catalogo_sucursales: {
+        Row: {
+          activo: boolean | null
+          created_at: string
+          id: string
+          nombre: string
+          orden: number | null
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number | null
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number | null
+        }
+        Relationships: []
+      }
+      catalogo_tipos_requisicion: {
+        Row: {
+          activo: boolean | null
+          color_class: string
+          color_hsl: string
+          created_at: string
+          id: string
+          nombre: string
+          orden: number | null
+        }
+        Insert: {
+          activo?: boolean | null
+          color_class?: string
+          color_hsl?: string
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number | null
+        }
+        Update: {
+          activo?: boolean | null
+          color_class?: string
+          color_hsl?: string
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number | null
+        }
+        Relationships: []
+      }
+      catalogo_unidades_negocio: {
+        Row: {
+          activo: boolean | null
+          created_at: string
+          id: string
+          nombre: string
+          orden: number | null
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number | null
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
