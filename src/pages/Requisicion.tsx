@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCatalogos } from "@/hooks/useCatalogos";
@@ -158,10 +159,14 @@ const Requisicion = () => {
 
     setIsSubmitting(true);
 
+    // Generamos el ID en cliente para evitar necesitar SELECT/RLS al pedir "returning" tras el INSERT
+    const requisicionId = crypto.randomUUID();
+
     const insertRequisicion = async () => {
-      return await supabase
+      const { error } = await supabase
         .from("requisiciones")
         .insert({
+          id: requisicionId,
           folio,
           tipo_requisicion: tipoRequisicion,
           unidad_negocio: unidadNegocio,
@@ -182,9 +187,9 @@ const Requisicion = () => {
           nombre_proyecto: nombreProyecto,
           justificacion,
           estado: "borrador",
-        })
-        .select()
-        .single();
+        });
+
+      return { error };
     };
 
     try {
@@ -199,17 +204,61 @@ const Requisicion = () => {
       // Fuerza refresh para evitar tokens vencidos / desincronizados
       await supabase.auth.refreshSession();
 
-      // Insert requisicion (con un reintento si la sesión aún no se adjuntó)
-      let { data: requisicion, error: reqError } = await insertRequisicion();
+      // Toma el access token vigente y lo fuerza en un cliente por-request (evita requests que salen como anon)
+      const { data: refreshed } = await supabase.auth.getSession();
+      const accessToken = refreshed.session?.access_token;
+      if (!accessToken) {
+        toast.error("No se encontró token de sesión. Inicia sesión nuevamente.");
+        navigate("/");
+        return;
+      }
+
+      const supabaseAuthed = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        {
+          global: { headers: { Authorization: `Bearer ${accessToken}` } },
+          auth: { persistSession: false, autoRefreshToken: false },
+        }
+      );
+
+      const insertRequisicion = async () => {
+        const { error } = await supabaseAuthed.from("requisiciones").insert({
+          id: requisicionId,
+          folio,
+          tipo_requisicion: tipoRequisicion,
+          unidad_negocio: unidadNegocio,
+          empresa,
+          fecha_autorizacion: fechaAutorizacion.toISOString().split("T")[0],
+          sucursal,
+          autorizador_id: autorizadorId || null,
+          departamento_solicitante: departamentoSolicitante,
+          solicitado_por: user.id,
+          presupuesto_aproximado: presupuestoAproximado
+            ? parseFloat(presupuestoAproximado)
+            : null,
+          se_dividira_gasto: seDividiraGasto,
+          un_division_gasto: seDividiraGasto ? unDivisionGasto : null,
+          porcentaje_cada_un: seDividiraGasto ? porcentajeCadaUn : null,
+          datos_proveedor: datosProveedor,
+          datos_banco: datosBanco,
+          nombre_proyecto: nombreProyecto,
+          justificacion,
+          estado: "borrador",
+        });
+
+        return { error };
+      };
+
+      // Insert requisicion (reintenta si la sesión aún no se adjuntó)
+      let { error: reqError } = await insertRequisicion();
 
       if (
         reqError &&
         (reqError.code === "42501" ||
           /row-level security/i.test(reqError.message ?? ""))
       ) {
-        await supabase.auth.refreshSession();
         const retry = await insertRequisicion();
-        requisicion = retry.data;
         reqError = retry.error;
       }
 
@@ -217,7 +266,7 @@ const Requisicion = () => {
 
       // Insert partidas
       const partidasToInsert = partidas.map((p) => ({
-        requisicion_id: requisicion.id,
+        requisicion_id: requisicionId,
         numero_partida: p.numero_partida,
         descripcion: p.descripcion,
         modelo_parte: p.modelo_parte,
@@ -226,7 +275,7 @@ const Requisicion = () => {
         fecha_necesidad: p.fecha_necesidad?.toISOString().split("T")[0],
       }));
 
-      const { error: partidasError } = await supabase
+      const { error: partidasError } = await supabaseAuthed
         .from("requisicion_partidas")
         .insert(partidasToInsert);
 
