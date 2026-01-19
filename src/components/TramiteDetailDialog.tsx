@@ -226,9 +226,31 @@ const TramiteDetailDialog = ({
     
     // Check if user is the assigned autorizador or is superadmin/admin
     const isAssignedAutorizador = tramite.autorizador_id === user.id;
-    const isPending = tramite.estado === "pendiente" || tramite.estado === "borrador";
+    const isPending = tramite.estado === "pendiente";
     
-    return isPending && (isAssignedAutorizador || isSuperadmin || isAdmin);
+    return isPending && (isAssignedAutorizador || isSuperadmin || isAdmin || isAutorizador);
+  };
+
+  const canCancel = () => {
+    const tramite = reposicion || requisicion;
+    if (!tramite || !user) return false;
+    
+    // Only the owner can cancel their own trámite (solicitador)
+    const isOwner = tramite.solicitado_por === user.id;
+    const isCancellable = tramite.estado === "borrador" || tramite.estado === "pendiente";
+    
+    return isOwner && isCancellable && !isSuperadmin && !isAdmin && !isAutorizador;
+  };
+
+  const canRevert = () => {
+    const tramite = reposicion || requisicion;
+    if (!tramite || !user) return false;
+    
+    // Autorizador/admin/superadmin can revert approved/rejected to pendiente
+    const isAssignedAutorizador = tramite.autorizador_id === user.id;
+    const isRevertible = tramite.estado === "aprobado" || tramite.estado === "rechazado";
+    
+    return isRevertible && (isAssignedAutorizador || isSuperadmin || isAdmin || isAutorizador);
   };
 
   const handleApprove = async () => {
@@ -272,6 +294,52 @@ const TramiteDetailDialog = ({
     } catch (error) {
       console.error("Error rejecting:", error);
       toast.error("Error al rechazar el trámite");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!tramiteId || !tramiteTipo) return;
+    setActionLoading(true);
+
+    try {
+      const table = tramiteTipo === "Reposición" ? "reposiciones" : "requisiciones";
+      const { error } = await supabase
+        .from(table)
+        .update({ estado: "cancelado" })
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Trámite cancelado");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error canceling:", error);
+      toast.error("Error al cancelar el trámite");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRevert = async () => {
+    if (!tramiteId || !tramiteTipo) return;
+    setActionLoading(true);
+
+    try {
+      const table = tramiteTipo === "Reposición" ? "reposiciones" : "requisiciones";
+      const { error } = await supabase
+        .from(table)
+        .update({ estado: "pendiente" })
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Trámite revertido a pendiente");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error reverting:", error);
+      toast.error("Error al revertir el trámite");
     } finally {
       setActionLoading(false);
     }
@@ -693,6 +761,24 @@ const TramiteDetailDialog = ({
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cerrar
               </Button>
+              {canCancel() && (
+                <Button
+                  variant="secondary"
+                  onClick={handleCancel}
+                  disabled={actionLoading}
+                >
+                  Cancelar Trámite
+                </Button>
+              )}
+              {canRevert() && (
+                <Button
+                  variant="secondary"
+                  onClick={handleRevert}
+                  disabled={actionLoading}
+                >
+                  Revertir a Pendiente
+                </Button>
+              )}
               {canAuthorize() && (
                 <>
                   <Button
