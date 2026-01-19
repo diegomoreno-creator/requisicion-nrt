@@ -53,7 +53,8 @@ interface CatalogoItem {
 }
 
 const colorOptions = [
-  { value: "bg-primary", label: "Rojo/Coral", preview: "bg-primary" },
+  { value: "bg-black", label: "Negro", preview: "bg-black" },
+  { value: "bg-red-500", label: "Rojo", preview: "bg-red-500" },
   { value: "bg-orange-500", label: "Naranja", preview: "bg-orange-500" },
   { value: "bg-yellow-500", label: "Amarillo", preview: "bg-yellow-500" },
   { value: "bg-green-500", label: "Verde", preview: "bg-green-500" },
