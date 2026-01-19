@@ -14,6 +14,7 @@ import GestionUsuarios from "./pages/GestionUsuarios";
 import GestionCatalogos from "./pages/GestionCatalogos";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -27,12 +28,47 @@ const App = () => (
           <Route path="/" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/perfil" element={<Perfil />} />
-          <Route path="/requisicion" element={<Requisicion />} />
-          <Route path="/reposicion" element={<Reposicion />} />
-          <Route path="/pago-sin-oc" element={<PagoSinOC />} />
+          <Route 
+            path="/requisicion" 
+            element={
+              <ProtectedRoute requiresFormAccess>
+                <Requisicion />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/reposicion" 
+            element={
+              <ProtectedRoute requiresFormAccess>
+                <Reposicion />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/pago-sin-oc" 
+            element={
+              <ProtectedRoute requiresFormAccess>
+                <PagoSinOC />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="/tramites" element={<Tramites />} />
-          <Route path="/gestion-usuarios" element={<GestionUsuarios />} />
-          <Route path="/gestion-catalogos" element={<GestionCatalogos />} />
+          <Route 
+            path="/gestion-usuarios" 
+            element={
+              <ProtectedRoute requiresSuperadmin>
+                <GestionUsuarios />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/gestion-catalogos" 
+            element={
+              <ProtectedRoute requiresSuperadmin>
+                <GestionCatalogos />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="/install" element={<Install />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
