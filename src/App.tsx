@@ -10,6 +10,7 @@ import Reposicion from "./pages/Reposicion";
 import PagoSinOC from "./pages/PagoSinOC";
 import Tramites from "./pages/Tramites";
 import GestionUsuarios from "./pages/GestionUsuarios";
+import GestionCatalogos from "./pages/GestionCatalogos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/pago-sin-oc" element={<PagoSinOC />} />
           <Route path="/tramites" element={<Tramites />} />
           <Route path="/gestion-usuarios" element={<GestionUsuarios />} />
+          <Route path="/gestion-catalogos" element={<GestionCatalogos />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

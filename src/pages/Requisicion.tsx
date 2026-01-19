@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useCatalogos } from "@/hooks/useCatalogos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +35,6 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { tiposRequisicion } from "@/lib/requisicionTypes";
 
 interface Partida {
   id: string;
@@ -52,29 +52,16 @@ interface UserOption {
   full_name: string | null;
 }
 
-const unidadesNegocio = [
-  "Corporativo",
-  "Comercial",
-  "Industrial",
-  "Residencial",
-];
-
-const empresas = [
-  "NRT México",
-  "NRT Servicios",
-  "NRT Comercial",
-];
-
-const sucursales = [
-  "CDMX",
-  "Monterrey",
-  "Guadalajara",
-  "Querétaro",
-];
-
 const Requisicion = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, canAccessApp } = useAuth();
+  const { 
+    tiposRequisicion, 
+    unidadesNegocio, 
+    empresas, 
+    sucursales, 
+    loading: catalogosLoading 
+  } = useCatalogos();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autorizadores, setAutorizadores] = useState<UserOption[]>([]);
 
@@ -268,7 +255,7 @@ const Requisicion = () => {
                     {tiposRequisicion.map((tipo) => (
                       <SelectItem key={tipo.id} value={tipo.id}>
                         <div className="flex items-center gap-2">
-                          <span className={cn("w-2 h-2 rounded-full", tipo.colorClass)} />
+                          <span className={cn("w-2 h-2 rounded-full", tipo.color_class)} />
                           {tipo.nombre}
                         </div>
                       </SelectItem>
@@ -287,8 +274,8 @@ const Requisicion = () => {
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border z-50">
                       {unidadesNegocio.map((unidad) => (
-                        <SelectItem key={unidad} value={unidad}>
-                          {unidad}
+                        <SelectItem key={unidad.id} value={unidad.nombre}>
+                          {unidad.nombre}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -312,8 +299,8 @@ const Requisicion = () => {
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border z-50">
                       {empresas.map((emp) => (
-                        <SelectItem key={emp} value={emp}>
-                          {emp}
+                        <SelectItem key={emp.id} value={emp.nombre}>
+                          {emp.nombre}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -360,8 +347,8 @@ const Requisicion = () => {
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border z-50">
                       {sucursales.map((suc) => (
-                        <SelectItem key={suc} value={suc}>
-                          {suc}
+                        <SelectItem key={suc.id} value={suc.nombre}>
+                          {suc.nombre}
                         </SelectItem>
                       ))}
                     </SelectContent>
