@@ -47,13 +47,15 @@ interface UserWithRoles {
   roles: AppRole[];
 }
 
-const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'comprador', 'solicitador', 'inactivo'];
+const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo'];
 
 const roleLabels: Record<AppRole, string> = {
   superadmin: "Super Admin",
   admin: "Administrador",
   autorizador: "Autorizador",
   comprador: "Comprador",
+  presupuestos: "Presupuestos",
+  tesoreria: "Tesorería",
   solicitador: "Solicitador",
   inactivo: "Inactivo",
 };
@@ -63,6 +65,8 @@ const roleColors: Record<AppRole, string> = {
   admin: "bg-blue-600 text-white",
   autorizador: "bg-purple-600 text-white",
   comprador: "bg-green-600 text-white",
+  presupuestos: "bg-orange-600 text-white",
+  tesoreria: "bg-teal-600 text-white",
   solicitador: "bg-yellow-600 text-white",
   inactivo: "bg-muted text-muted-foreground",
 };
