@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Rocket } from "lucide-react";
+
 import { toast } from "sonner";
 
 const Login = () => {
@@ -118,9 +118,9 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md border-border bg-card">
         <CardContent className="pt-8 pb-8 px-8">
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mb-6">
-              <Rocket className="w-7 h-7 text-primary-foreground" />
+          <div className="flex flex-col items-center mb-8 font-barlow">
+            <div className="text-3xl font-black text-foreground mb-6">
+              NRT <span className="text-[0.75em]">MÉXICO</span>
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-2">
               {isSignUp ? "Crear Cuenta" : "Bienvenido de Vuelta"}
