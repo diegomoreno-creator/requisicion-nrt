@@ -15,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { 
-  Rocket, 
   FilePlus, 
   RefreshCw, 
   FileText, 
@@ -27,6 +26,7 @@ import {
   User
 } from "lucide-react";
 import { toast } from "sonner";
+import nrtLogo from "@/assets/nrt-logo.png";
 
 const roleLabels: Record<string, string> = {
   superadmin: "Super Admin",
@@ -163,15 +163,8 @@ const Dashboard = () => {
       <header className="border-b border-border px-6 py-4 font-barlow">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <Rocket className="w-4 h-4 text-primary-foreground" />
-            </div>
+            <img src={nrtLogo} alt="NRT México" className="h-10 w-auto" />
             <span className="text-foreground font-black text-lg">Panel de Control</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="text-primary font-black tracking-wide text-lg">NRT</span>
-            <span className="text-foreground font-black text-lg">MÉXICO</span>
           </div>
 
           <div className="flex items-center gap-4">
