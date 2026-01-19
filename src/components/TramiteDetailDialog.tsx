@@ -146,6 +146,38 @@ const TramiteDetailDialog = ({
     }
   }, [open, tramiteId, tramiteTipo]);
 
+  // Real-time subscription for status updates
+  useEffect(() => {
+    if (!open || !tramiteId || !tramiteTipo) return;
+
+    const table = tramiteTipo === "Reposición" ? "reposiciones" : "requisiciones";
+    
+    const channel = supabase
+      .channel(`tramite-detail-${tramiteId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: table,
+          filter: `id=eq.${tramiteId}`,
+        },
+        (payload) => {
+          // Update the local state with new data
+          if (tramiteTipo === "Reposición") {
+            setReposicion(prev => prev ? { ...prev, ...payload.new } : null);
+          } else {
+            setRequisicion(prev => prev ? { ...prev, ...payload.new } : null);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open, tramiteId, tramiteTipo]);
+
   const fetchDetails = async () => {
     if (!tramiteId || !tramiteTipo) return;
     setLoading(true);
