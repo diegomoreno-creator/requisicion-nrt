@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Perfil from "./pages/Perfil";
@@ -20,60 +21,62 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/perfil" element={<Perfil />} />
-          <Route 
-            path="/requisicion" 
-            element={
-              <ProtectedRoute requiresFormAccess>
-                <Requisicion />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/reposicion" 
-            element={
-              <ProtectedRoute requiresFormAccess>
-                <Reposicion />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/pago-sin-oc" 
-            element={
-              <ProtectedRoute requiresFormAccess>
-                <PagoSinOC />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="/tramites" element={<Tramites />} />
-          <Route 
-            path="/gestion-usuarios" 
-            element={
-              <ProtectedRoute requiresSuperadmin>
-                <GestionUsuarios />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/gestion-catalogos" 
-            element={
-              <ProtectedRoute requiresSuperadmin>
-                <GestionCatalogos />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="/install" element={<Install />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/perfil" element={<Perfil />} />
+            <Route 
+              path="/requisicion" 
+              element={
+                <ProtectedRoute requiresFormAccess>
+                  <Requisicion />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/reposicion" 
+              element={
+                <ProtectedRoute requiresFormAccess>
+                  <Reposicion />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/pago-sin-oc" 
+              element={
+                <ProtectedRoute requiresFormAccess>
+                  <PagoSinOC />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="/tramites" element={<Tramites />} />
+            <Route 
+              path="/gestion-usuarios" 
+              element={
+                <ProtectedRoute requiresSuperadmin>
+                  <GestionUsuarios />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/gestion-catalogos" 
+              element={
+                <ProtectedRoute requiresSuperadmin>
+                  <GestionCatalogos />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="/install" element={<Install />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
