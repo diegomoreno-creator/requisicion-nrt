@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "./useAuth";
@@ -12,9 +12,88 @@ const estadoLabels: Record<string, string> = {
   completado: "Completado",
 };
 
+interface NotificationPreferences {
+  notify_requisiciones: boolean;
+  notify_reposiciones: boolean;
+}
+
+export const useNotificationPreferences = () => {
+  const { user } = useAuth();
+  const [preferences, setPreferences] = useState<NotificationPreferences>({
+    notify_requisiciones: true,
+    notify_reposiciones: true,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchPreferences = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("notification_preferences")
+          .select("notify_requisiciones, notify_reposiciones")
+          .eq("user_id", user.id)
+          .single();
+
+        if (error) {
+          // If no preferences exist, create them
+          if (error.code === "PGRST116") {
+            const { data: newData, error: insertError } = await supabase
+              .from("notification_preferences")
+              .insert({ user_id: user.id })
+              .select("notify_requisiciones, notify_reposiciones")
+              .single();
+
+            if (!insertError && newData) {
+              setPreferences(newData);
+            }
+          }
+        } else if (data) {
+          setPreferences(data);
+        }
+      } catch (err) {
+        console.error("Error fetching notification preferences:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPreferences();
+  }, [user]);
+
+  const updatePreferences = async (updates: Partial<NotificationPreferences>) => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from("notification_preferences")
+        .update(updates)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setPreferences((prev) => ({ ...prev, ...updates }));
+      return true;
+    } catch (err) {
+      console.error("Error updating notification preferences:", err);
+      return false;
+    }
+  };
+
+  return { preferences, loading, updatePreferences };
+};
+
 export const useRealtimeNotifications = () => {
   const { user } = useAuth();
+  const { preferences } = useNotificationPreferences();
   const previousStatesRef = useRef<Map<string, string>>(new Map());
+  const preferencesRef = useRef(preferences);
+
+  // Keep preferences ref updated
+  useEffect(() => {
+    preferencesRef.current = preferences;
+  }, [preferences]);
 
   useEffect(() => {
     if (!user) return;
@@ -51,10 +130,13 @@ export const useRealtimeNotifications = () => {
           table: "requisiciones",
         },
         async (payload) => {
+          // Check if notifications are enabled for requisiciones
+          if (!preferencesRef.current.notify_requisiciones) return;
+
           const newData = payload.new as { id: string; estado: string; folio: string; solicitado_por: string };
           const previousEstado = previousStatesRef.current.get(`req-${newData.id}`);
 
-          // Only notify if estado changed and it's relevant to the current user
+          // Only notify if estado changed
           if (previousEstado && previousEstado !== newData.estado) {
             const newEstadoLabel = estadoLabels[newData.estado] || newData.estado;
             
@@ -81,6 +163,9 @@ export const useRealtimeNotifications = () => {
           table: "reposiciones",
         },
         async (payload) => {
+          // Check if notifications are enabled for reposiciones
+          if (!preferencesRef.current.notify_reposiciones) return;
+
           const newData = payload.new as { id: string; estado: string; folio: string; solicitado_por: string };
           const previousEstado = previousStatesRef.current.get(`repo-${newData.id}`);
 
