@@ -44,15 +44,15 @@ Deno.serve(async (req) => {
 
     const userId = claims.claims.sub;
 
-    // Check if user is superadmin
+    // Check if user is superadmin - now checking for any superadmin role
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
-      .single();
+      .eq('role', 'superadmin');
 
-    if (roleError || roleData?.role !== 'superadmin') {
-      console.log('User is not superadmin:', userId, roleData?.role);
+    if (roleError || !roleData || roleData.length === 0) {
+      console.log('User is not superadmin:', userId);
       return new Response(
         JSON.stringify({ error: 'Acceso denegado. Solo superadmin puede gestionar usuarios.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     console.log('Action:', action);
 
     if (action === 'list') {
-      // Get all users with their roles
+      // Get all users with their roles (now multiple roles per user)
       const { data: users, error: usersError } = await supabaseAdmin
         .from('profiles')
         .select(`
@@ -89,11 +89,17 @@ Deno.serve(async (req) => {
         throw rolesError;
       }
 
-      const rolesMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
+      // Group roles by user_id
+      const rolesMap = new Map<string, string[]>();
+      roles?.forEach(r => {
+        const existing = rolesMap.get(r.user_id) || [];
+        existing.push(r.role);
+        rolesMap.set(r.user_id, existing);
+      });
       
       const usersWithRoles = users?.map(u => ({
         ...u,
-        role: rolesMap.get(u.user_id) || 'inactivo'
+        roles: rolesMap.get(u.user_id) || ['inactivo']
       })) || [];
 
       return new Response(
@@ -103,7 +109,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'createUser') {
-      const { email, password, fullName, role } = body;
+      const { email, password, fullName, roles } = body;
       
       if (!email || !password) {
         return new Response(
@@ -112,7 +118,8 @@ Deno.serve(async (req) => {
         );
       }
 
-      console.log('Creating user:', email, 'with role:', role);
+      const userRoles = Array.isArray(roles) ? roles : (roles ? [roles] : ['inactivo']);
+      console.log('Creating user:', email, 'with roles:', userRoles);
 
       // Create user with admin API
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -137,26 +144,24 @@ Deno.serve(async (req) => {
 
       console.log('User created:', newUser.user?.id);
 
-      // The trigger should have created profile and role, but let's update the role if needed
-      if (newUser.user && role && role !== 'inactivo') {
+      if (newUser.user) {
         // Wait a bit for the trigger to complete
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        const { error: updateRoleError } = await supabaseAdmin
+        // Delete the default role created by trigger
+        await supabaseAdmin
           .from('user_roles')
-          .update({ role, updated_at: new Date().toISOString() })
+          .delete()
           .eq('user_id', newUser.user.id);
 
-        if (updateRoleError) {
-          console.error('Update role error:', updateRoleError);
-          // Try to insert if update failed (in case trigger didn't create it)
+        // Insert all specified roles
+        for (const role of userRoles) {
           await supabaseAdmin
             .from('user_roles')
-            .upsert({ 
+            .insert({ 
               user_id: newUser.user.id, 
-              role,
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'user_id' });
+              role
+            });
         }
 
         // Also update full_name in profile if provided
@@ -174,7 +179,119 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (action === 'updateUser') {
+      const { targetUserId, fullName, email } = body;
+      
+      if (!targetUserId) {
+        return new Response(
+          JSON.stringify({ error: 'ID de usuario requerido' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Update profile
+      if (fullName !== undefined) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({ full_name: fullName })
+          .eq('user_id', targetUserId);
+      }
+
+      // Update email if provided
+      if (email) {
+        const { error: updateEmailError } = await supabaseAdmin.auth.admin.updateUserById(
+          targetUserId,
+          { email }
+        );
+        if (updateEmailError) {
+          console.error('Update email error:', updateEmailError);
+          throw updateEmailError;
+        }
+        
+        // Also update in profiles
+        await supabaseAdmin
+          .from('profiles')
+          .update({ email })
+          .eq('user_id', targetUserId);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Usuario actualizado correctamente' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'updatePassword') {
+      const { targetUserId, newPassword } = body;
+      
+      if (!targetUserId || !newPassword) {
+        return new Response(
+          JSON.stringify({ error: 'ID de usuario y nueva contraseña son requeridos' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (newPassword.length < 6) {
+        return new Response(
+          JSON.stringify({ error: 'La contraseña debe tener al menos 6 caracteres' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        targetUserId,
+        { password: newPassword }
+      );
+
+      if (updateError) {
+        console.error('Update password error:', updateError);
+        throw updateError;
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Contraseña actualizada correctamente' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'setRoles') {
+      const { targetUserId, roles } = body;
+      
+      if (!targetUserId || !Array.isArray(roles) || roles.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'ID de usuario y roles son requeridos' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Delete all existing roles
+      await supabaseAdmin
+        .from('user_roles')
+        .delete()
+        .eq('user_id', targetUserId);
+
+      // Insert new roles
+      for (const role of roles) {
+        const { error: insertError } = await supabaseAdmin
+          .from('user_roles')
+          .insert({ 
+            user_id: targetUserId, 
+            role
+          });
+        
+        if (insertError) {
+          console.error('Insert role error:', insertError);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Roles actualizados correctamente' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (action === 'updateRole') {
+      // Legacy support - now updates all roles at once
       const { targetUserId, newRole } = body;
       
       if (!targetUserId || !newRole) {
@@ -184,21 +301,18 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Update or insert role
-      const { error: upsertError } = await supabaseAdmin
+      // Delete existing roles and insert new one
+      await supabaseAdmin
         .from('user_roles')
-        .upsert({
-          user_id: targetUserId,
-          role: newRole,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        });
+        .delete()
+        .eq('user_id', targetUserId);
 
-      if (upsertError) {
-        console.error('Upsert error:', upsertError);
-        throw upsertError;
-      }
+      await supabaseAdmin
+        .from('user_roles')
+        .insert({
+          user_id: targetUserId,
+          role: newRole
+        });
 
       return new Response(
         JSON.stringify({ success: true, message: 'Rol actualizado correctamente' }),

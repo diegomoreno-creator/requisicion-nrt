@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 
-export type AppRole = 'superadmin' | 'admin' | 'comprador' | 'solicitador' | 'inactivo';
+export type AppRole = 'superadmin' | 'admin' | 'comprador' | 'solicitador' | 'autorizador' | 'inactivo';
 
 interface AuthState {
   user: User | null;
   session: Session | null;
-  role: AppRole | null;
+  roles: AppRole[];
   loading: boolean;
 }
 
@@ -16,22 +16,27 @@ export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     session: null,
-    role: null,
+    roles: [],
     loading: true,
   });
   const navigate = useNavigate();
 
-  const fetchUserRole = async (userId: string): Promise<AppRole | null> => {
+  const fetchUserRoles = async (userId: string): Promise<AppRole[]> => {
     try {
-      const { data, error } = await supabase.rpc('get_user_role', { _user_id: userId });
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+      
       if (error) {
-        console.error('Error fetching role:', error);
-        return null;
+        console.error('Error fetching roles:', error);
+        return [];
       }
-      return data as AppRole;
+      
+      return (data?.map(r => r.role as AppRole)) || [];
     } catch (err) {
-      console.error('Error in fetchUserRole:', err);
-      return null;
+      console.error('Error in fetchUserRoles:', err);
+      return [];
     }
   };
 
@@ -46,17 +51,17 @@ export const useAuth = () => {
 
         if (session?.user) {
           setTimeout(async () => {
-            const role = await fetchUserRole(session.user.id);
+            const roles = await fetchUserRoles(session.user.id);
             setAuthState(prev => ({
               ...prev,
-              role,
+              roles,
               loading: false,
             }));
           }, 0);
         } else {
           setAuthState(prev => ({
             ...prev,
-            role: null,
+            roles: [],
             loading: false,
           }));
         }
@@ -71,10 +76,10 @@ export const useAuth = () => {
       }));
 
       if (session?.user) {
-        const role = await fetchUserRole(session.user.id);
+        const roles = await fetchUserRoles(session.user.id);
         setAuthState(prev => ({
           ...prev,
-          role,
+          roles,
           loading: false,
         }));
       } else {
@@ -93,22 +98,32 @@ export const useAuth = () => {
     navigate("/");
   };
 
-  const isSuperadmin = authState.role === 'superadmin';
-  const isAdmin = authState.role === 'admin' || isSuperadmin;
-  const isComprador = authState.role === 'comprador';
-  const isSolicitador = authState.role === 'solicitador';
-  const isInactivo = authState.role === 'inactivo';
-  const canAccessApp = authState.role && authState.role !== 'inactivo';
+  // Helper functions for role checks
+  const hasRole = (role: AppRole) => authState.roles.includes(role);
+  
+  const isSuperadmin = hasRole('superadmin');
+  const isAdmin = hasRole('admin') || isSuperadmin;
+  const isComprador = hasRole('comprador');
+  const isSolicitador = hasRole('solicitador');
+  const isAutorizador = hasRole('autorizador');
+  const isInactivo = authState.roles.length === 0 || (authState.roles.length === 1 && hasRole('inactivo'));
+  const canAccessApp = authState.roles.length > 0 && !isInactivo;
+
+  // Legacy compatibility - return first role
+  const role = authState.roles.length > 0 ? authState.roles[0] : null;
 
   return {
     ...authState,
+    role, // Legacy single role
     signOut,
+    hasRole,
     isSuperadmin,
     isAdmin,
     isComprador,
     isSolicitador,
+    isAutorizador,
     isInactivo,
     canAccessApp,
-    fetchUserRole,
+    fetchUserRoles,
   };
 };
