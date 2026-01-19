@@ -119,8 +119,8 @@ const Login = () => {
       <Card className="w-full max-w-md border-border bg-card">
         <CardContent className="pt-8 pb-8 px-8">
           <div className="flex flex-col items-center mb-8 font-barlow">
-            <div className="text-3xl font-black text-foreground mb-6">
-              NRT <span className="text-[0.75em]">MÉXICO</span>
+            <div className="text-3xl font-black mb-6">
+              <span className="text-primary">NRT</span> <span className="text-foreground text-[0.75em]">MÉXICO</span>
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-2">
               {isSignUp ? "Crear Cuenta" : "Bienvenido de Vuelta"}
