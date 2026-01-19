@@ -6,13 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -41,21 +35,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Shield, Loader2, UserPlus, Trash2 } from "lucide-react";
+import { ArrowLeft, Users, Shield, Loader2, UserPlus, Trash2, Pencil, Key } from "lucide-react";
 import { toast } from "sonner";
 
-interface UserWithRole {
+interface UserWithRoles {
   id: string;
   user_id: string;
   email: string;
   full_name: string | null;
   created_at: string;
-  role: AppRole;
+  roles: AppRole[];
 }
+
+const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'comprador', 'solicitador', 'inactivo'];
 
 const roleLabels: Record<AppRole, string> = {
   superadmin: "Super Admin",
   admin: "Administrador",
+  autorizador: "Autorizador",
   comprador: "Comprador",
   solicitador: "Solicitador",
   inactivo: "Inactivo",
@@ -64,25 +61,38 @@ const roleLabels: Record<AppRole, string> = {
 const roleColors: Record<AppRole, string> = {
   superadmin: "bg-primary text-primary-foreground",
   admin: "bg-blue-600 text-white",
+  autorizador: "bg-purple-600 text-white",
   comprador: "bg-green-600 text-white",
   solicitador: "bg-yellow-600 text-white",
   inactivo: "bg-muted text-muted-foreground",
 };
 
 const GestionUsuarios = () => {
-  const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
+  // Edit user state
+  const [editingUser, setEditingUser] = useState<UserWithRoles | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editFullName, setEditFullName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editRoles, setEditRoles] = useState<AppRole[]>([]);
+  
+  // Password change state
+  const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  
   // Form state for new user
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserFullName, setNewUserFullName] = useState("");
-  const [newUserRole, setNewUserRole] = useState<AppRole>("solicitador");
+  const [newUserRoles, setNewUserRoles] = useState<AppRole[]>(["solicitador"]);
 
   const { user, isSuperadmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -140,6 +150,11 @@ const GestionUsuarios = () => {
       return;
     }
 
+    if (newUserRoles.length === 0) {
+      toast.error("Debe seleccionar al menos un rol");
+      return;
+    }
+
     setIsCreating(true);
     try {
       const response = await supabase.functions.invoke('manage-users', {
@@ -148,7 +163,7 @@ const GestionUsuarios = () => {
           email: newUserEmail,
           password: newUserPassword,
           fullName: newUserFullName,
-          role: newUserRole
+          roles: newUserRoles
         }
       });
 
@@ -176,17 +191,89 @@ const GestionUsuarios = () => {
     setNewUserEmail("");
     setNewUserPassword("");
     setNewUserFullName("");
-    setNewUserRole("solicitador");
+    setNewUserRoles(["solicitador"]);
   };
 
-  const handleRoleChange = async (targetUserId: string, newRole: AppRole) => {
-    setUpdating(targetUserId);
+  const handleEditUser = (u: UserWithRoles) => {
+    setEditingUser(u);
+    setEditFullName(u.full_name || "");
+    setEditEmail(u.email);
+    setEditRoles([...u.roles]);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveUser = async () => {
+    if (!editingUser) return;
+
+    if (editRoles.length === 0) {
+      toast.error("Debe seleccionar al menos un rol");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Update user info
+      const updateResponse = await supabase.functions.invoke('manage-users', {
+        body: { 
+          action: 'updateUser',
+          targetUserId: editingUser.user_id,
+          fullName: editFullName,
+          email: editEmail !== editingUser.email ? editEmail : undefined
+        }
+      });
+
+      if (updateResponse.error) {
+        throw new Error(updateResponse.error.message);
+      }
+
+      if (updateResponse.data?.error) {
+        throw new Error(updateResponse.data.error);
+      }
+
+      // Update roles
+      const rolesResponse = await supabase.functions.invoke('manage-users', {
+        body: { 
+          action: 'setRoles',
+          targetUserId: editingUser.user_id,
+          roles: editRoles
+        }
+      });
+
+      if (rolesResponse.error) {
+        throw new Error(rolesResponse.error.message);
+      }
+
+      if (rolesResponse.data?.error) {
+        throw new Error(rolesResponse.data.error);
+      }
+
+      toast.success("Usuario actualizado correctamente");
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      toast.error(error.message || "Error al actualizar usuario");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordUserId || !newPassword) return;
+
+    if (newPassword.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
+    setIsChangingPassword(true);
     try {
       const response = await supabase.functions.invoke('manage-users', {
         body: { 
-          action: 'updateRole',
-          targetUserId,
-          newRole
+          action: 'updatePassword',
+          targetUserId: passwordUserId,
+          newPassword
         }
       });
 
@@ -198,16 +285,14 @@ const GestionUsuarios = () => {
         throw new Error(response.data.error);
       }
 
-      toast.success("Rol actualizado correctamente");
-      
-      setUsers(prev => prev.map(u => 
-        u.user_id === targetUserId ? { ...u, role: newRole } : u
-      ));
+      toast.success("Contraseña actualizada correctamente");
+      setPasswordUserId(null);
+      setNewPassword("");
     } catch (error: any) {
-      console.error('Error updating role:', error);
-      toast.error(error.message || "Error al actualizar rol");
+      console.error('Error changing password:', error);
+      toast.error(error.message || "Error al cambiar contraseña");
     } finally {
-      setUpdating(null);
+      setIsChangingPassword(false);
     }
   };
 
@@ -242,6 +327,25 @@ const GestionUsuarios = () => {
     }
   };
 
+  const toggleRole = (role: AppRole, currentRoles: AppRole[], setRoles: (roles: AppRole[]) => void) => {
+    if (currentRoles.includes(role)) {
+      // Don't allow removing the last role
+      if (currentRoles.length > 1) {
+        setRoles(currentRoles.filter(r => r !== role));
+      }
+    } else {
+      // If adding a role other than inactivo, remove inactivo
+      let newRoles = [...currentRoles, role];
+      if (role !== 'inactivo') {
+        newRoles = newRoles.filter(r => r !== 'inactivo');
+      } else {
+        // If adding inactivo, remove all other roles
+        newRoles = ['inactivo'];
+      }
+      setRoles(newRoles);
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -256,7 +360,7 @@ const GestionUsuarios = () => {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <Button
           variant="ghost"
           onClick={() => navigate("/dashboard")}
@@ -290,7 +394,7 @@ const GestionUsuarios = () => {
                   Crear Usuario
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-card border-border">
+              <DialogContent className="bg-card border-border max-w-md">
                 <DialogHeader>
                   <DialogTitle className="text-foreground">Crear Nuevo Usuario</DialogTitle>
                   <DialogDescription className="text-muted-foreground">
@@ -342,24 +446,24 @@ const GestionUsuarios = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="role" className="text-foreground">
-                      Rol
-                    </Label>
-                    <Select
-                      value={newUserRole}
-                      onValueChange={(value) => setNewUserRole(value as AppRole)}
-                    >
-                      <SelectTrigger className="bg-input border-border">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        <SelectItem value="superadmin">Super Admin</SelectItem>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="comprador">Comprador</SelectItem>
-                        <SelectItem value="solicitador">Solicitador</SelectItem>
-                        <SelectItem value="inactivo">Inactivo</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-foreground">Roles</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {allRoles.map(role => (
+                        <div key={role} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`new-${role}`}
+                            checked={newUserRoles.includes(role)}
+                            onCheckedChange={() => toggleRole(role, newUserRoles, setNewUserRoles)}
+                          />
+                          <label
+                            htmlFor={`new-${role}`}
+                            className="text-sm text-foreground cursor-pointer"
+                          >
+                            {roleLabels[role]}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -394,14 +498,13 @@ const GestionUsuarios = () => {
           </CardHeader>
 
           <CardContent>
-            <div className="rounded-md border border-border">
+            <div className="rounded-md border border-border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
                     <TableHead className="text-muted-foreground">Email</TableHead>
                     <TableHead className="text-muted-foreground">Nombre</TableHead>
-                    <TableHead className="text-muted-foreground">Rol Actual</TableHead>
-                    <TableHead className="text-muted-foreground">Cambiar Rol</TableHead>
+                    <TableHead className="text-muted-foreground">Roles</TableHead>
                     <TableHead className="text-muted-foreground">Fecha Registro</TableHead>
                     <TableHead className="text-muted-foreground text-right">Acciones</TableHead>
                   </TableRow>
@@ -409,7 +512,7 @@ const GestionUsuarios = () => {
                 <TableBody>
                   {users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                         No hay usuarios registrados
                       </TableCell>
                     </TableRow>
@@ -423,52 +526,56 @@ const GestionUsuarios = () => {
                           {u.full_name || "-"}
                         </TableCell>
                         <TableCell>
-                          <Badge className={roleColors[u.role]}>
-                            {roleLabels[u.role]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {u.user_id === user?.id ? (
-                            <span className="text-muted-foreground text-sm">
-                              (Tu cuenta)
-                            </span>
-                          ) : (
-                            <Select
-                              value={u.role}
-                              onValueChange={(value) => handleRoleChange(u.user_id, value as AppRole)}
-                              disabled={updating === u.user_id}
-                            >
-                              <SelectTrigger className="w-40 bg-input border-border">
-                                {updating === u.user_id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <SelectValue />
-                                )}
-                              </SelectTrigger>
-                              <SelectContent className="bg-card border-border">
-                                <SelectItem value="superadmin">Super Admin</SelectItem>
-                                <SelectItem value="admin">Administrador</SelectItem>
-                                <SelectItem value="comprador">Comprador</SelectItem>
-                                <SelectItem value="solicitador">Solicitador</SelectItem>
-                                <SelectItem value="inactivo">Inactivo</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
+                          <div className="flex flex-wrap gap-1">
+                            {u.roles.map(role => (
+                              <Badge key={role} className={roleColors[role]}>
+                                {roleLabels[role]}
+                              </Badge>
+                            ))}
+                          </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {new Date(u.created_at).toLocaleDateString('es-MX')}
                         </TableCell>
                         <TableCell className="text-right">
-                          {u.user_id !== user?.id && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setDeleteUserId(u.user_id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
+                          <div className="flex justify-end gap-1">
+                            {u.user_id !== user?.id && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-muted-foreground hover:text-foreground"
+                                  onClick={() => handleEditUser(u)}
+                                  title="Editar usuario"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-muted-foreground hover:text-foreground"
+                                  onClick={() => setPasswordUserId(u.user_id)}
+                                  title="Cambiar contraseña"
+                                >
+                                  <Key className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setDeleteUserId(u.user_id)}
+                                  title="Eliminar usuario"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                            {u.user_id === user?.id && (
+                              <span className="text-muted-foreground text-sm">
+                                (Tu cuenta)
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -479,6 +586,146 @@ const GestionUsuarios = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Editar Usuario</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Modifica los datos y roles del usuario.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="editEmail" className="text-foreground">
+                Correo Electrónico
+              </Label>
+              <Input
+                id="editEmail"
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                className="bg-input border-border"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="editFullName" className="text-foreground">
+                Nombre Completo
+              </Label>
+              <Input
+                id="editFullName"
+                type="text"
+                value={editFullName}
+                onChange={(e) => setEditFullName(e.target.value)}
+                className="bg-input border-border"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-foreground">Roles</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {allRoles.map(role => (
+                  <div key={role} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`edit-${role}`}
+                      checked={editRoles.includes(role)}
+                      onCheckedChange={() => toggleRole(role, editRoles, setEditRoles)}
+                    />
+                    <label
+                      htmlFor={`edit-${role}`}
+                      className="text-sm text-foreground cursor-pointer"
+                    >
+                      {roleLabels[role]}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsEditDialogOpen(false);
+                setEditingUser(null);
+              }}
+              className="border-border"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveUser}
+              disabled={isSaving}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar Cambios"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={!!passwordUserId} onOpenChange={() => { setPasswordUserId(null); setNewPassword(""); }}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Cambiar Contraseña</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Ingresa la nueva contraseña para el usuario.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword" className="text-foreground">
+                Nueva Contraseña
+              </Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="Mínimo 6 caracteres"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="bg-input border-border"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setPasswordUserId(null); setNewPassword(""); }}
+              className="border-border"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleChangePassword}
+              disabled={isChangingPassword || newPassword.length < 6}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isChangingPassword ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Cambiando...
+                </>
+              ) : (
+                "Cambiar Contraseña"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
@@ -495,7 +742,7 @@ const GestionUsuarios = () => {
             <AlertDialogAction
               onClick={handleDeleteUser}
               disabled={isDeleting}
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               {isDeleting ? (
                 <>
