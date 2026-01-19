@@ -57,9 +57,9 @@ const Requisicion = () => {
   const { user, loading: authLoading, canAccessApp } = useAuth();
   const { 
     tiposRequisicion, 
-    unidadesNegocio, 
     empresas, 
     sucursales, 
+    getUnidadesByEmpresa,
     loading: catalogosLoading 
   } = useCatalogos();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -263,17 +263,43 @@ const Requisicion = () => {
                 </Select>
               </div>
 
-              {/* Row: Unidad, Folio, Empresa, Fecha */}
+              {/* Row: Empresa, Unidad de Negocio, Folio, Fecha */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-foreground">Unidad de negocio</Label>
-                  <Select value={unidadNegocio} onValueChange={setUnidadNegocio}>
+                  <Label className="text-foreground">Empresa</Label>
+                  <Select 
+                    value={empresa} 
+                    onValueChange={(value) => {
+                      setEmpresa(value);
+                      setUnidadNegocio(""); // Reset unidad when empresa changes
+                    }}
+                  >
                     <SelectTrigger className="bg-input border-border">
-                      <SelectValue placeholder="Seleccione una unidad" />
+                      <SelectValue placeholder="Seleccione una empresa" />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border z-50">
-                      {unidadesNegocio.map((unidad) => (
-                        <SelectItem key={unidad.id} value={unidad.nombre}>
+                      {empresas.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-foreground">Unidad de negocio</Label>
+                  <Select 
+                    value={unidadNegocio} 
+                    onValueChange={setUnidadNegocio}
+                    disabled={!empresa}
+                  >
+                    <SelectTrigger className="bg-input border-border">
+                      <SelectValue placeholder={empresa ? "Seleccione una unidad" : "Primero seleccione empresa"} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border z-50">
+                      {getUnidadesByEmpresa(empresa).map((unidad) => (
+                        <SelectItem key={unidad.id} value={unidad.id}>
                           {unidad.nombre}
                         </SelectItem>
                       ))}
@@ -288,22 +314,6 @@ const Requisicion = () => {
                     disabled
                     className="bg-muted border-border text-muted-foreground"
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-foreground">Empresa</Label>
-                  <Select value={empresa} onValueChange={setEmpresa}>
-                    <SelectTrigger className="bg-input border-border">
-                      <SelectValue placeholder="Seleccione una empresa" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border z-50">
-                      {empresas.map((emp) => (
-                        <SelectItem key={emp.id} value={emp.nombre}>
-                          {emp.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <div className="space-y-2">

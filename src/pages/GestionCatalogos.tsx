@@ -38,7 +38,8 @@ import {
   Pencil, 
   Trash2, 
   Loader2,
-  Palette
+  Palette,
+  Building2
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,14 @@ interface CatalogoItem {
   activo: boolean;
   color_class?: string;
   color_hsl?: string;
+  empresa_id?: string;
+}
+
+interface EmpresaItem {
+  id: string;
+  nombre: string;
+  orden: number;
+  activo: boolean;
 }
 
 const colorOptions = [
@@ -75,7 +84,7 @@ const GestionCatalogos = () => {
   // Data states
   const [tiposRequisicion, setTiposRequisicion] = useState<CatalogoItem[]>([]);
   const [unidadesNegocio, setUnidadesNegocio] = useState<CatalogoItem[]>([]);
-  const [empresas, setEmpresas] = useState<CatalogoItem[]>([]);
+  const [empresas, setEmpresas] = useState<EmpresaItem[]>([]);
   const [sucursales, setSucursales] = useState<CatalogoItem[]>([]);
   
   // Dialog states
@@ -84,6 +93,7 @@ const GestionCatalogos = () => {
   const [formNombre, setFormNombre] = useState("");
   const [formColor, setFormColor] = useState("bg-yellow-500");
   const [formActivo, setFormActivo] = useState(true);
+  const [formEmpresaId, setFormEmpresaId] = useState<string>("");
 
   useEffect(() => {
     if (!authLoading && !isSuperadmin) {
@@ -140,11 +150,18 @@ const GestionCatalogos = () => {
     }
   };
 
+  const getEmpresaNombre = (empresaId: string | undefined): string => {
+    if (!empresaId) return "-";
+    const empresa = empresas.find(e => e.id === empresaId);
+    return empresa?.nombre || "-";
+  };
+
   const openAddDialog = () => {
     setEditingItem(null);
     setFormNombre("");
     setFormColor("bg-yellow-500");
     setFormActivo(true);
+    setFormEmpresaId("");
     setDialogOpen(true);
   };
 
@@ -153,12 +170,18 @@ const GestionCatalogos = () => {
     setFormNombre(item.nombre);
     setFormColor(item.color_class || "bg-yellow-500");
     setFormActivo(item.activo);
+    setFormEmpresaId(item.empresa_id || "");
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
     if (!formNombre.trim()) {
       toast.error("El nombre es requerido");
+      return;
+    }
+
+    if (activeTab === "unidades" && !formEmpresaId) {
+      toast.error("Debe seleccionar una empresa");
       return;
     }
 
@@ -171,6 +194,9 @@ const GestionCatalogos = () => {
         const updateData: any = { nombre: formNombre, activo: formActivo };
         if (activeTab === "tipos") {
           updateData.color_class = formColor;
+        }
+        if (activeTab === "unidades") {
+          updateData.empresa_id = formEmpresaId;
         }
 
         const { error } = await supabase
@@ -189,6 +215,9 @@ const GestionCatalogos = () => {
         };
         if (activeTab === "tipos") {
           insertData.color_class = formColor;
+        }
+        if (activeTab === "unidades") {
+          insertData.empresa_id = formEmpresaId;
         }
 
         const { error } = await supabase
@@ -256,13 +285,14 @@ const GestionCatalogos = () => {
 
   if (!isSuperadmin) return null;
 
-  const renderTable = (data: CatalogoItem[], showColor: boolean = false) => (
+  const renderTable = (data: CatalogoItem[], showColor: boolean = false, showEmpresa: boolean = false) => (
     <div className="rounded-md border border-border">
       <Table>
         <TableHeader>
           <TableRow className="border-border hover:bg-transparent">
             {showColor && <TableHead className="text-muted-foreground w-16">Color</TableHead>}
             <TableHead className="text-muted-foreground">Nombre</TableHead>
+            {showEmpresa && <TableHead className="text-muted-foreground">Empresa</TableHead>}
             <TableHead className="text-muted-foreground w-24">Activo</TableHead>
             <TableHead className="text-muted-foreground w-24 text-right">Acciones</TableHead>
           </TableRow>
@@ -270,7 +300,7 @@ const GestionCatalogos = () => {
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={showColor ? 4 : 3} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={showColor ? 4 : showEmpresa ? 4 : 3} className="text-center text-muted-foreground py-8">
                 No hay elementos
               </TableCell>
             </TableRow>
@@ -283,6 +313,11 @@ const GestionCatalogos = () => {
                   </TableCell>
                 )}
                 <TableCell className="text-foreground font-medium">{item.nombre}</TableCell>
+                {showEmpresa && (
+                  <TableCell className="text-muted-foreground text-sm">
+                    {getEmpresaNombre(item.empresa_id)}
+                  </TableCell>
+                )}
                 <TableCell>
                   <Switch
                     checked={item.activo}
@@ -316,6 +351,89 @@ const GestionCatalogos = () => {
       </Table>
     </div>
   );
+
+  // Group unidades by empresa for better visualization
+  const renderUnidadesGrouped = () => {
+    const grouped = empresas.map(empresa => ({
+      empresa,
+      unidades: unidadesNegocio.filter(u => u.empresa_id === empresa.id)
+    })).filter(g => g.unidades.length > 0);
+
+    const sinEmpresa = unidadesNegocio.filter(u => !u.empresa_id);
+
+    return (
+      <div className="space-y-6">
+        {grouped.map(group => (
+          <div key={group.empresa.id} className="space-y-2">
+            <div className="flex items-center gap-2 text-primary font-semibold">
+              <Building2 className="w-4 h-4" />
+              {group.empresa.nombre}
+            </div>
+            <div className="rounded-md border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="text-muted-foreground">Unidad de Negocio</TableHead>
+                    <TableHead className="text-muted-foreground w-24">Activo</TableHead>
+                    <TableHead className="text-muted-foreground w-24 text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {group.unidades.map((item) => (
+                    <TableRow key={item.id} className="border-border">
+                      <TableCell className="text-foreground">{item.nombre}</TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={item.activo}
+                          onCheckedChange={() => toggleActivo(item)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(item)}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(item.id)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ))}
+        
+        {sinEmpresa.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground font-semibold">
+              <Building2 className="w-4 h-4" />
+              Sin empresa asignada
+            </div>
+            {renderTable(sinEmpresa)}
+          </div>
+        )}
+
+        {grouped.length === 0 && sinEmpresa.length === 0 && (
+          <div className="text-center text-muted-foreground py-8">
+            No hay unidades de negocio
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -355,11 +473,11 @@ const GestionCatalogos = () => {
                   <Palette className="w-4 h-4 mr-2" />
                   Tipos
                 </TabsTrigger>
-                <TabsTrigger value="unidades" className="data-[state=active]:bg-background">
-                  Unidades
-                </TabsTrigger>
                 <TabsTrigger value="empresas" className="data-[state=active]:bg-background">
                   Empresas
+                </TabsTrigger>
+                <TabsTrigger value="unidades" className="data-[state=active]:bg-background">
+                  Unidades
                 </TabsTrigger>
                 <TabsTrigger value="sucursales" className="data-[state=active]:bg-background">
                   Sucursales
@@ -369,11 +487,11 @@ const GestionCatalogos = () => {
               <TabsContent value="tipos">
                 {renderTable(tiposRequisicion, true)}
               </TabsContent>
-              <TabsContent value="unidades">
-                {renderTable(unidadesNegocio)}
-              </TabsContent>
               <TabsContent value="empresas">
                 {renderTable(empresas)}
+              </TabsContent>
+              <TabsContent value="unidades">
+                {renderUnidadesGrouped()}
               </TabsContent>
               <TabsContent value="sucursales">
                 {renderTable(sucursales)}
@@ -422,6 +540,24 @@ const GestionCatalogos = () => {
                           <span className={cn("w-4 h-4 rounded-full", color.preview)} />
                           {color.label}
                         </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {activeTab === "unidades" && (
+              <div className="space-y-2">
+                <Label className="text-foreground">Empresa *</Label>
+                <Select value={formEmpresaId} onValueChange={setFormEmpresaId}>
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue placeholder="Seleccione una empresa" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border z-50">
+                    {empresas.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.nombre}
                       </SelectItem>
                     ))}
                   </SelectContent>

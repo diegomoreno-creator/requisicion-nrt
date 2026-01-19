@@ -15,9 +15,16 @@ export interface CatalogoSimple {
   activo: boolean;
 }
 
+export interface UnidadNegocio {
+  id: string;
+  nombre: string;
+  empresa_id: string | null;
+  activo: boolean;
+}
+
 export const useCatalogos = () => {
   const [tiposRequisicion, setTiposRequisicion] = useState<TipoRequisicion[]>([]);
-  const [unidadesNegocio, setUnidadesNegocio] = useState<CatalogoSimple[]>([]);
+  const [unidadesNegocio, setUnidadesNegocio] = useState<UnidadNegocio[]>([]);
   const [empresas, setEmpresas] = useState<CatalogoSimple[]>([]);
   const [sucursales, setSucursales] = useState<CatalogoSimple[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +43,7 @@ export const useCatalogos = () => {
           .order("orden"),
         supabase
           .from("catalogo_unidades_negocio")
-          .select("id, nombre, activo")
+          .select("id, nombre, empresa_id, activo")
           .eq("activo", true)
           .order("orden"),
         supabase
@@ -72,6 +79,11 @@ export const useCatalogos = () => {
     return tipo?.nombre || "";
   };
 
+  // Get unidades de negocio filtered by empresa
+  const getUnidadesByEmpresa = (empresaId: string): UnidadNegocio[] => {
+    return unidadesNegocio.filter(u => u.empresa_id === empresaId);
+  };
+
   return {
     tiposRequisicion,
     unidadesNegocio,
@@ -80,6 +92,7 @@ export const useCatalogos = () => {
     loading,
     getTipoColor,
     getTipoNombre,
+    getUnidadesByEmpresa,
     refetch: fetchCatalogos,
   };
 };
