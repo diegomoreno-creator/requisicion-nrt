@@ -30,23 +30,33 @@ const Login = () => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          const role = await checkUserRole(session.user.id);
-          
-          if (role === 'inactivo') {
-            await supabase.auth.signOut();
-            toast.error("Tu cuenta está inactiva. Contacta al administrador para activarla.");
-            return;
-          }
-          
-          navigate("/dashboard");
+      (event, session) => {
+        // CRITICAL: Never use async directly in onAuthStateChange callback
+        // Defer any Supabase calls with setTimeout to prevent deadlock
+        if (session?.user && isMounted) {
+          setTimeout(async () => {
+            if (!isMounted) return;
+            const role = await checkUserRole(session.user.id);
+            
+            if (role === 'inactivo') {
+              await supabase.auth.signOut();
+              toast.error("Tu cuenta está inactiva. Contacta al administrador para activarla.");
+              return;
+            }
+            
+            navigate("/dashboard");
+          }, 0);
         }
       }
     );
 
+    // Check for existing session on mount
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return;
+      
       if (session?.user) {
         const role = await checkUserRole(session.user.id);
         
@@ -59,7 +69,10 @@ const Login = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
