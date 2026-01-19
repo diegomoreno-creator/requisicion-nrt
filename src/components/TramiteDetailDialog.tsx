@@ -127,6 +127,7 @@ const TramiteDetailDialog = ({
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
@@ -291,6 +292,12 @@ const TramiteDetailDialog = ({
     return isOwner && isDraft && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
   };
 
+  // Superadmin can restore deleted requisitions
+  const canRestore = () => {
+    if (!requisicion || !user) return false;
+    return requisicion.deleted_at !== null && isSuperadmin;
+  };
+
   const handleDelete = async () => {
     if (!tramiteId) return;
     setDeleteLoading(true);
@@ -310,6 +317,28 @@ const TramiteDetailDialog = ({
       toast.error("Error al eliminar la requisición");
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!tramiteId) return;
+    setRestoreLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ deleted_at: null })
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Requisición restaurada exitosamente");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error restoring:", error);
+      toast.error("Error al restaurar la requisición");
+    } finally {
+      setRestoreLoading(false);
     }
   };
 
@@ -913,6 +942,16 @@ const TramiteDetailDialog = ({
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cerrar
               </Button>
+              {canRestore() && (
+                <Button
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-600/10"
+                  onClick={handleRestore}
+                  disabled={restoreLoading}
+                >
+                  {restoreLoading ? "Restaurando..." : "Restaurar"}
+                </Button>
+              )}
               {canDelete() && (
                 <Button
                   variant="destructive"
