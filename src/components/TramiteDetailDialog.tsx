@@ -23,7 +23,7 @@ import { useCatalogos } from "@/hooks/useCatalogos";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { Lightbulb, Loader2 } from "lucide-react";
+import { ChevronRight, Lightbulb, Loader2 } from "lucide-react";
 
 interface TramiteDetailDialogProps {
   open: boolean;
@@ -92,10 +92,10 @@ interface Partida {
 
 const timelineSteps = [
   { key: "borrador", label: "Requisición" },
-  { key: "pendiente", label: "Pendiente\nde Autorizar" },
-  { key: "aprobado", label: "Requisición\nAutorizada" },
+  { key: "pendiente", label: "Requisición\nAutorizada" },
   { key: "en_licitacion", label: "Requisición\nLicitada" },
-  { key: "completado", label: "Pedido\nColocado" },
+  { key: "aprobado", label: "Pedido\nColocado" },
+  { key: "completado", label: "Pedido\nAutorizado" },
   { key: "pagado", label: "Pedido\nPagado" },
 ];
 
@@ -495,19 +495,21 @@ const TramiteDetailDialog = ({
                     <div className="flex flex-col items-center min-w-[80px]">
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                          index <= currentStep
-                            ? "bg-primary border-primary"
+                          index < currentStep
+                            ? "bg-muted border-muted-foreground/50"
+                            : index === currentStep
+                            ? "bg-transparent border-red-500"
                             : "bg-muted border-muted-foreground/30"
                         }`}
                       >
-                        {index <= currentStep && (
-                          <div className="w-3 h-3 rounded-full bg-primary-foreground" />
+                        {index === currentStep && (
+                          <div className="w-3 h-3 rounded-full bg-red-500" />
                         )}
                       </div>
                       <span
                         className={`text-xs mt-2 text-center whitespace-pre-line ${
-                          index <= currentStep
-                            ? "text-foreground"
+                          index === currentStep
+                            ? "text-foreground font-medium"
                             : "text-muted-foreground"
                         }`}
                       >
@@ -515,9 +517,11 @@ const TramiteDetailDialog = ({
                       </span>
                     </div>
                     {index < timelineSteps.length - 1 && (
-                      <div
-                        className={`w-8 h-0.5 mx-1 ${
-                          index < currentStep ? "bg-primary" : "bg-muted-foreground/30"
+                      <ChevronRight
+                        className={`w-4 h-4 mx-1 flex-shrink-0 ${
+                          index < currentStep
+                            ? "text-muted-foreground"
+                            : "text-muted-foreground/30"
                         }`}
                       />
                     )}
