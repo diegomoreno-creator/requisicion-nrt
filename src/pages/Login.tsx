@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,22 +12,59 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          navigate("/dashboard");
+        }
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        navigate("/dashboard");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulación de login - En producción conectar con Lovable Cloud
-    if (email && password) {
-      setTimeout(() => {
-        localStorage.setItem("user", JSON.stringify({ email, name: email.split("@")[0] }));
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+          },
+        });
+        if (error) throw error;
+        toast.success("Cuenta creada exitosamente");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
         toast.success("Bienvenido de vuelta");
-        navigate("/dashboard");
-        setIsLoading(false);
-      }, 1000);
-    } else {
-      toast.error("Por favor completa todos los campos");
+      }
+    } catch (error: any) {
+      if (error.message === "User already registered") {
+        toast.error("Este correo ya está registrado");
+      } else if (error.message === "Invalid login credentials") {
+        toast.error("Credenciales inválidas");
+      } else {
+        toast.error(error.message || "Ocurrió un error");
+      }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -40,10 +78,12 @@ const Login = () => {
               <Rocket className="w-7 h-7 text-primary-foreground" />
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-2">
-              Bienvenido de Vuelta
+              {isSignUp ? "Crear Cuenta" : "Bienvenido de Vuelta"}
             </h1>
             <p className="text-muted-foreground text-sm">
-              Ingresa tus credenciales para acceder a tu panel
+              {isSignUp
+                ? "Ingresa tus datos para registrarte"
+                : "Ingresa tus credenciales para acceder a tu panel"}
             </p>
           </div>
 
@@ -75,6 +115,7 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 className="bg-input border-border text-foreground placeholder:text-muted-foreground"
                 required
+                minLength={6}
               />
             </div>
 
@@ -83,9 +124,25 @@ const Login = () => {
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
               disabled={isLoading}
             >
-              {isLoading ? "Iniciando..." : "Iniciar Sesión"}
+              {isLoading
+                ? "Cargando..."
+                : isSignUp
+                ? "Registrarse"
+                : "Iniciar Sesión"}
             </Button>
           </form>
+
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              {isSignUp
+                ? "¿Ya tienes cuenta? Inicia sesión"
+                : "¿No tienes cuenta? Regístrate"}
+            </button>
+          </div>
         </CardContent>
       </Card>
     </div>
