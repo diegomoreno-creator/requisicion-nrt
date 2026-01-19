@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,9 @@ const Dashboard = () => {
   const { user, role, loading, signOut, isSuperadmin, canAccessApp } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData | null>(null);
+
+  // Enable realtime notifications for status changes
+  useRealtimeNotifications();
 
   useEffect(() => {
     const fetchProfile = async () => {
