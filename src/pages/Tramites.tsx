@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import TramiteDetailDialog from "@/components/TramiteDetailDialog";
 
 interface Tramite {
   id: string;
@@ -59,6 +60,11 @@ const Tramites = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("todos");
+  const [selectedTramite, setSelectedTramite] = useState<{
+    id: string;
+    tipo: "Requisición" | "Reposición";
+  } | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -244,13 +250,13 @@ const Tramites = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTramites.map((tramite) => (
+                      {filteredTramites.map((tramite) => (
                       <TableRow
                         key={`${tramite.tipo}-${tramite.id}`}
                         className="hover:bg-muted/20 cursor-pointer"
                         onClick={() => {
-                          // Navigate to detail view (to be implemented)
-                          console.log("View tramite:", tramite);
+                          setSelectedTramite({ id: tramite.id, tipo: tramite.tipo });
+                          setDetailOpen(true);
                         }}
                       >
                         <TableCell className="text-primary font-medium">
@@ -282,6 +288,14 @@ const Tramites = () => {
             )}
           </CardContent>
         </Card>
+
+        <TramiteDetailDialog
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          tramiteId={selectedTramite?.id || null}
+          tramiteTipo={selectedTramite?.tipo || null}
+          onUpdated={fetchTramites}
+        />
       </div>
     </div>
   );
