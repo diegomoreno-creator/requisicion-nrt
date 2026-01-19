@@ -150,7 +150,7 @@ const Requisicion = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast.error("Debes iniciar sesión");
       return;
@@ -158,21 +158,22 @@ const Requisicion = () => {
 
     setIsSubmitting(true);
 
-    try {
-      // Insert requisicion
-      const { data: requisicion, error: reqError } = await supabase
+    const insertRequisicion = async () => {
+      return await supabase
         .from("requisiciones")
         .insert({
           folio,
           tipo_requisicion: tipoRequisicion,
           unidad_negocio: unidadNegocio,
           empresa,
-          fecha_autorizacion: fechaAutorizacion?.toISOString().split("T")[0],
+          fecha_autorizacion: fechaAutorizacion.toISOString().split("T")[0],
           sucursal,
           autorizador_id: autorizadorId || null,
           departamento_solicitante: departamentoSolicitante,
           solicitado_por: user.id,
-          presupuesto_aproximado: presupuestoAproximado ? parseFloat(presupuestoAproximado) : null,
+          presupuesto_aproximado: presupuestoAproximado
+            ? parseFloat(presupuestoAproximado)
+            : null,
           se_dividira_gasto: seDividiraGasto,
           un_division_gasto: seDividiraGasto ? unDivisionGasto : null,
           porcentaje_cada_un: seDividiraGasto ? porcentajeCadaUn : null,
@@ -184,6 +185,33 @@ const Requisicion = () => {
         })
         .select()
         .single();
+    };
+
+    try {
+      // Asegura una sesión válida antes de mutar (evita requests sin JWT → RLS 403)
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast.error("Tu sesión expiró. Inicia sesión nuevamente.");
+        navigate("/");
+        return;
+      }
+
+      // Fuerza refresh para evitar tokens vencidos / desincronizados
+      await supabase.auth.refreshSession();
+
+      // Insert requisicion (con un reintento si la sesión aún no se adjuntó)
+      let { data: requisicion, error: reqError } = await insertRequisicion();
+
+      if (
+        reqError &&
+        (reqError.code === "42501" ||
+          /row-level security/i.test(reqError.message ?? ""))
+      ) {
+        await supabase.auth.refreshSession();
+        const retry = await insertRequisicion();
+        requisicion = retry.data;
+        reqError = retry.error;
+      }
 
       if (reqError) throw reqError;
 
@@ -208,7 +236,11 @@ const Requisicion = () => {
       navigate("/tramites");
     } catch (error: any) {
       console.error("Error saving requisicion:", error);
-      toast.error(error.message || "Error al guardar la requisición");
+      const msg =
+        error?.code === "42501"
+          ? "No se pudo guardar: tu sesión no se está aplicando al backend (RLS). Cierra sesión e inicia nuevamente."
+          : error?.message || "Error al guardar la requisición";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
