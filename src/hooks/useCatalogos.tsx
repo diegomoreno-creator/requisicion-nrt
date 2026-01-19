@@ -71,6 +71,11 @@ export const useCatalogos = () => {
 
   const getTipoColor = (tipoId: string): string => {
     const tipo = tiposRequisicion.find(t => t.id === tipoId);
+    return tipo?.color_hsl || "0 0% 50%";
+  };
+
+  const getTipoColorClass = (tipoId: string): string => {
+    const tipo = tiposRequisicion.find(t => t.id === tipoId);
     return tipo?.color_class || "bg-muted";
   };
 
@@ -91,6 +96,7 @@ export const useCatalogos = () => {
     sucursales,
     loading,
     getTipoColor,
+    getTipoColorClass,
     getTipoNombre,
     getUnidadesByEmpresa,
     refetch: fetchCatalogos,
