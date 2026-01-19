@@ -160,18 +160,18 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border px-6 py-4">
+      <header className="border-b border-border px-6 py-4 font-barlow">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
               <Rocket className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="text-foreground font-medium">Panel de Control</span>
+            <span className="text-foreground font-black text-lg">Panel de Control</span>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-primary font-bold tracking-wide">NRT</span>
-            <span className="text-foreground font-medium">MÉXICO</span>
+            <span className="text-primary font-black tracking-wide text-lg">NRT</span>
+            <span className="text-foreground font-black text-lg">MÉXICO</span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -237,13 +237,13 @@ const Dashboard = () => {
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 border-t border-border py-4 bg-background">
+      <footer className="fixed bottom-0 left-0 right-0 border-t border-border py-4 bg-background font-barlow">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <p className="text-muted-foreground text-sm">
             Desarrollado por{" "}
-            <span className="text-foreground font-medium">Hub de Innovación</span> de{" "}
-            <span className="text-primary font-bold">NRT</span>{" "}
-            <span className="text-foreground font-medium">México</span>
+            <span className="text-foreground font-black">Hub de Innovación</span> de{" "}
+            <span className="text-primary font-black">NRT</span>{" "}
+            <span className="text-foreground font-black">México</span>
           </p>
         </div>
       </footer>
