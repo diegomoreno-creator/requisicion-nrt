@@ -59,8 +59,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { action, targetUserId, newRole } = await req.json();
-    console.log('Action:', action, 'Target:', targetUserId, 'New Role:', newRole);
+    const body = await req.json();
+    const { action } = body;
+    console.log('Action:', action);
 
     if (action === 'list') {
       // Get all users with their roles
@@ -101,7 +102,81 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (action === 'createUser') {
+      const { email, password, fullName, role } = body;
+      
+      if (!email || !password) {
+        return new Response(
+          JSON.stringify({ error: 'Email y contraseña son requeridos' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('Creating user:', email, 'with role:', role);
+
+      // Create user with admin API
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: fullName || ''
+        }
+      });
+
+      if (createError) {
+        console.error('Create user error:', createError);
+        if (createError.message.includes('already been registered')) {
+          return new Response(
+            JSON.stringify({ error: 'Este correo ya está registrado' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        throw createError;
+      }
+
+      console.log('User created:', newUser.user?.id);
+
+      // The trigger should have created profile and role, but let's update the role if needed
+      if (newUser.user && role && role !== 'inactivo') {
+        // Wait a bit for the trigger to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const { error: updateRoleError } = await supabaseAdmin
+          .from('user_roles')
+          .update({ role, updated_at: new Date().toISOString() })
+          .eq('user_id', newUser.user.id);
+
+        if (updateRoleError) {
+          console.error('Update role error:', updateRoleError);
+          // Try to insert if update failed (in case trigger didn't create it)
+          await supabaseAdmin
+            .from('user_roles')
+            .upsert({ 
+              user_id: newUser.user.id, 
+              role,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id' });
+        }
+
+        // Also update full_name in profile if provided
+        if (fullName) {
+          await supabaseAdmin
+            .from('profiles')
+            .update({ full_name: fullName })
+            .eq('user_id', newUser.user.id);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Usuario creado correctamente', userId: newUser.user?.id }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (action === 'updateRole') {
+      const { targetUserId, newRole } = body;
+      
       if (!targetUserId || !newRole) {
         return new Response(
           JSON.stringify({ error: 'Faltan datos requeridos' }),
@@ -127,6 +202,38 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true, message: 'Rol actualizado correctamente' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'deleteUser') {
+      const { targetUserId } = body;
+      
+      if (!targetUserId) {
+        return new Response(
+          JSON.stringify({ error: 'ID de usuario requerido' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Prevent self-deletion
+      if (targetUserId === userId) {
+        return new Response(
+          JSON.stringify({ error: 'No puedes eliminar tu propia cuenta' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Delete user from auth (this will cascade to profiles and user_roles)
+      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(targetUserId);
+
+      if (deleteError) {
+        console.error('Delete user error:', deleteError);
+        throw deleteError;
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Usuario eliminado correctamente' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
