@@ -41,6 +41,122 @@ export type Database = {
         }
         Relationships: []
       }
+      requisicion_partidas: {
+        Row: {
+          cantidad: number | null
+          created_at: string
+          descripcion: string | null
+          fecha_necesidad: string | null
+          id: string
+          modelo_parte: string | null
+          numero_partida: number
+          requisicion_id: string
+          unidad_medida: string | null
+        }
+        Insert: {
+          cantidad?: number | null
+          created_at?: string
+          descripcion?: string | null
+          fecha_necesidad?: string | null
+          id?: string
+          modelo_parte?: string | null
+          numero_partida: number
+          requisicion_id: string
+          unidad_medida?: string | null
+        }
+        Update: {
+          cantidad?: number | null
+          created_at?: string
+          descripcion?: string | null
+          fecha_necesidad?: string | null
+          id?: string
+          modelo_parte?: string | null
+          numero_partida?: number
+          requisicion_id?: string
+          unidad_medida?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requisicion_partidas_requisicion_id_fkey"
+            columns: ["requisicion_id"]
+            isOneToOne: false
+            referencedRelation: "requisiciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requisiciones: {
+        Row: {
+          autorizador_id: string | null
+          created_at: string
+          datos_banco: string | null
+          datos_proveedor: string | null
+          departamento_solicitante: string | null
+          empresa: string | null
+          estado: Database["public"]["Enums"]["requisition_status"] | null
+          fecha_autorizacion: string | null
+          folio: string
+          id: string
+          justificacion: string | null
+          nombre_proyecto: string | null
+          porcentaje_cada_un: string | null
+          presupuesto_aproximado: number | null
+          se_dividira_gasto: boolean | null
+          solicitado_por: string
+          sucursal: string | null
+          tipo_requisicion: string | null
+          un_division_gasto: string | null
+          unidad_negocio: string | null
+          updated_at: string
+        }
+        Insert: {
+          autorizador_id?: string | null
+          created_at?: string
+          datos_banco?: string | null
+          datos_proveedor?: string | null
+          departamento_solicitante?: string | null
+          empresa?: string | null
+          estado?: Database["public"]["Enums"]["requisition_status"] | null
+          fecha_autorizacion?: string | null
+          folio: string
+          id?: string
+          justificacion?: string | null
+          nombre_proyecto?: string | null
+          porcentaje_cada_un?: string | null
+          presupuesto_aproximado?: number | null
+          se_dividira_gasto?: boolean | null
+          solicitado_por: string
+          sucursal?: string | null
+          tipo_requisicion?: string | null
+          un_division_gasto?: string | null
+          unidad_negocio?: string | null
+          updated_at?: string
+        }
+        Update: {
+          autorizador_id?: string | null
+          created_at?: string
+          datos_banco?: string | null
+          datos_proveedor?: string | null
+          departamento_solicitante?: string | null
+          empresa?: string | null
+          estado?: Database["public"]["Enums"]["requisition_status"] | null
+          fecha_autorizacion?: string | null
+          folio?: string
+          id?: string
+          justificacion?: string | null
+          nombre_proyecto?: string | null
+          porcentaje_cada_un?: string | null
+          presupuesto_aproximado?: number | null
+          se_dividira_gasto?: boolean | null
+          solicitado_por?: string
+          sucursal?: string | null
+          tipo_requisicion?: string | null
+          un_division_gasto?: string | null
+          unidad_negocio?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -70,6 +186,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_requisicion: {
+        Args: { _requisicion_id: string; _user_id: string }
+        Returns: boolean
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -90,6 +210,13 @@ export type Database = {
         | "comprador"
         | "solicitador"
         | "inactivo"
+      requisition_status:
+        | "borrador"
+        | "pendiente"
+        | "aprobado"
+        | "rechazado"
+        | "en_licitacion"
+        | "completado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -218,6 +345,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["superadmin", "admin", "comprador", "solicitador", "inactivo"],
+      requisition_status: [
+        "borrador",
+        "pendiente",
+        "aprobado",
+        "rechazado",
+        "en_licitacion",
+        "completado",
+      ],
     },
   },
 } as const
