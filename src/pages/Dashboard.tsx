@@ -163,8 +163,8 @@ const Dashboard = () => {
       <header className="border-b border-border px-6 py-4 font-barlow">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-foreground font-black text-xl">
-              NRT <span className="text-[0.75em]">MÉXICO</span>
+            <span className="font-black text-xl">
+              <span className="text-primary">NRT</span> <span className="text-foreground text-[0.75em]">MÉXICO</span>
             </span>
             <span className="text-foreground font-black text-lg">Panel de Control</span>
           </div>
