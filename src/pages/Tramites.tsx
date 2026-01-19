@@ -1,40 +1,285 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, FolderSearch } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, FolderSearch, Search } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+
+interface Tramite {
+  id: string;
+  folio: string;
+  tipo: "Requisición" | "Reposición";
+  fecha: string;
+  solicitante: string;
+  estado: string;
+}
+
+const estadoColors: Record<string, string> = {
+  borrador: "bg-muted text-muted-foreground",
+  pendiente: "bg-yellow-500/20 text-yellow-500",
+  aprobado: "bg-green-500/20 text-green-500",
+  rechazado: "bg-red-500/20 text-red-500",
+  en_licitacion: "bg-blue-500/20 text-blue-500",
+  completado: "bg-emerald-500/20 text-emerald-500",
+};
+
+const estadoLabels: Record<string, string> = {
+  borrador: "Borrador",
+  pendiente: "Pendiente",
+  aprobado: "Aprobado",
+  rechazado: "Rechazado",
+  en_licitacion: "En Licitación",
+  completado: "Completado",
+};
 
 const Tramites = () => {
   const navigate = useNavigate();
+  const { user, isSuperadmin, isAdmin, isComprador, isAutorizador, loading: authLoading } = useAuth();
+  const [tramites, setTramites] = useState<Tramite[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterTipo, setFilterTipo] = useState<string>("todos");
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      fetchTramites();
+    }
+  }, [user, authLoading]);
+
+  const fetchTramites = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Fetch requisiciones - RLS policies will handle visibility
+      const { data: requisiciones, error: reqError } = await supabase
+        .from("requisiciones")
+        .select("id, folio, created_at, solicitado_por, estado")
+        .order("created_at", { ascending: false });
+
+      if (reqError) {
+        console.error("Error fetching requisiciones:", reqError);
+      }
+
+      // Fetch reposiciones - RLS policies will handle visibility
+      const { data: reposiciones, error: repoError } = await supabase
+        .from("reposiciones")
+        .select("id, folio, fecha_solicitud, solicitado_por, estado")
+        .order("created_at", { ascending: false });
+
+      if (repoError) {
+        console.error("Error fetching reposiciones:", repoError);
+      }
+
+      // Get all unique user IDs to fetch their emails
+      const userIds = new Set<string>();
+      requisiciones?.forEach((r) => userIds.add(r.solicitado_por));
+      reposiciones?.forEach((r) => userIds.add(r.solicitado_por));
+
+      // Fetch user emails from profiles
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, email, full_name")
+        .in("user_id", Array.from(userIds));
+
+      const userMap = new Map<string, string>();
+      profiles?.forEach((p) => {
+        userMap.set(p.user_id, p.full_name || p.email || "Usuario");
+      });
+
+      // Combine and format tramites
+      const allTramites: Tramite[] = [
+        ...(requisiciones?.map((r) => ({
+          id: r.id,
+          folio: r.folio,
+          tipo: "Requisición" as const,
+          fecha: r.created_at,
+          solicitante: userMap.get(r.solicitado_por) || "Usuario",
+          estado: r.estado || "borrador",
+        })) || []),
+        ...(reposiciones?.map((r) => ({
+          id: r.id,
+          folio: r.folio,
+          tipo: "Reposición" as const,
+          fecha: r.fecha_solicitud,
+          solicitante: userMap.get(r.solicitado_por) || "Usuario",
+          estado: r.estado || "borrador",
+        })) || []),
+      ];
+
+      // Sort by date descending
+      allTramites.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+
+      setTramites(allTramites);
+    } catch (error) {
+      console.error("Error fetching tramites:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredTramites = tramites.filter((tramite) => {
+    const matchesSearch =
+      tramite.folio.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tramite.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tramite.solicitante.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesTipo =
+      filterTipo === "todos" ||
+      (filterTipo === "requisicion" && tramite.tipo === "Requisición") ||
+      (filterTipo === "reposicion" && tramite.tipo === "Reposición");
+
+    return matchesSearch && matchesTipo;
+  });
+
+  const formatFecha = (fecha: string) => {
+    try {
+      return format(new Date(fecha), "d/M/yyyy", { locale: es });
+    } catch {
+      return fecha;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-4xl mx-auto">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/dashboard")}
-          className="mb-6 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Volver al menú
-        </Button>
-
+      <div className="max-w-6xl mx-auto">
         <Card className="border-border bg-card">
-          <CardHeader className="flex flex-row items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-              <FolderSearch className="w-6 h-6 text-primary" />
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <FolderSearch className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-foreground">Consulta de Trámites</CardTitle>
+                <p className="text-muted-foreground text-sm">
+                  {isSuperadmin
+                    ? "Vista de todos los trámites"
+                    : isAdmin
+                    ? "Trámites asignados y creados"
+                    : isComprador
+                    ? "Trámites creados y aprobados"
+                    : isAutorizador
+                    ? "Trámites pendientes de autorización"
+                    : "Mis trámites"}
+                </p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-foreground">Ver Trámites</CardTitle>
-              <p className="text-muted-foreground text-sm">
-                Consulta el estado de todos tus trámites
-              </p>
-            </div>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/dashboard")}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver al Panel
+            </Button>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-12 text-muted-foreground">
-              <p>Vista de trámites próximamente...</p>
-              <p className="text-sm mt-2">Aquí podrás consultar el estado de tus trámites</p>
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por folio, tipo, solicitante..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-background border-border"
+                />
+              </div>
+              <Select value={filterTipo} onValueChange={setFilterTipo}>
+                <SelectTrigger className="w-full sm:w-[200px] bg-background border-border">
+                  <SelectValue placeholder="Todos los Trámites" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="todos">Todos los Trámites</SelectItem>
+                  <SelectItem value="requisicion">Requisiciones</SelectItem>
+                  <SelectItem value="reposicion">Reposiciones</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Table */}
+            {loading ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>Cargando trámites...</p>
+              </div>
+            ) : filteredTramites.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>No se encontraron trámites</p>
+                <p className="text-sm mt-2">
+                  {searchTerm || filterTipo !== "todos"
+                    ? "Intenta ajustar los filtros de búsqueda"
+                    : "Aún no tienes trámites registrados"}
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-md border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="text-muted-foreground font-medium">Folio</TableHead>
+                      <TableHead className="text-muted-foreground font-medium">Tipo de Trámite</TableHead>
+                      <TableHead className="text-muted-foreground font-medium">Fecha</TableHead>
+                      <TableHead className="text-muted-foreground font-medium">Solicitante</TableHead>
+                      <TableHead className="text-muted-foreground font-medium">Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTramites.map((tramite) => (
+                      <TableRow
+                        key={`${tramite.tipo}-${tramite.id}`}
+                        className="hover:bg-muted/20 cursor-pointer"
+                        onClick={() => {
+                          // Navigate to detail view (to be implemented)
+                          console.log("View tramite:", tramite);
+                        }}
+                      >
+                        <TableCell className="text-primary font-medium">
+                          {tramite.folio}
+                        </TableCell>
+                        <TableCell className="text-foreground">
+                          {tramite.tipo}
+                        </TableCell>
+                        <TableCell className="text-foreground">
+                          {formatFecha(tramite.fecha)}
+                        </TableCell>
+                        <TableCell className="text-foreground">
+                          {tramite.solicitante}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={`${
+                              estadoColors[tramite.estado] || estadoColors.borrador
+                            } border-0`}
+                          >
+                            {estadoLabels[tramite.estado] || tramite.estado}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
