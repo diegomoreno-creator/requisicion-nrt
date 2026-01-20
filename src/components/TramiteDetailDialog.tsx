@@ -1352,10 +1352,10 @@ const TramiteDetailDialog = ({
               </div>
             )}
 
-            {/* Texto de Compras - editable por cualquier usuario con historial */}
+            {/* Información Relevante - editable por cualquier usuario con historial */}
             {requisicion && (
               <div className="bg-accent/20 border border-accent/30 rounded-lg p-4">
-                <h3 className="text-accent-foreground font-semibold mb-3">Texto de Compras</h3>
+                <h3 className="text-accent-foreground font-semibold mb-3">Información Relevante</h3>
                 
                 {/* Historial de cambios */}
                 {textoComprasHistorial.length > 0 && (
@@ -1376,7 +1376,7 @@ const TramiteDetailDialog = ({
                   <Textarea
                     value={textoCompras}
                     onChange={(e) => setTextoCompras(e.target.value)}
-                    placeholder="Escriba aquí notas, comentarios o información relevante para el área de compras..."
+                    placeholder="Escriba aquí notas, comentarios o información relevante..."
                     className="min-h-[80px] bg-background/50"
                   />
                   <Button
