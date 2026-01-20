@@ -384,6 +384,7 @@ export type Database = {
       }
       requisiciones: {
         Row: {
+          apuntes_compras: string | null
           apuntes_licitacion: string | null
           apuntes_presupuesto: string | null
           apuntes_tesoreria: string | null
@@ -427,6 +428,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          apuntes_compras?: string | null
           apuntes_licitacion?: string | null
           apuntes_presupuesto?: string | null
           apuntes_tesoreria?: string | null
@@ -470,6 +472,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          apuntes_compras?: string | null
           apuntes_licitacion?: string | null
           apuntes_presupuesto?: string | null
           apuntes_tesoreria?: string | null
