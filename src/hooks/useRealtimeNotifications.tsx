@@ -135,10 +135,36 @@ export const useRealtimeNotifications = () => {
           // Check if notifications are enabled for requisiciones
           if (!preferencesRef.current.notify_requisiciones) return;
 
-          const newData = payload.new as { id: string; estado: string; folio: string; solicitado_por: string };
+          const newData = payload.new as { 
+            id: string; 
+            estado: string; 
+            folio: string; 
+            solicitado_por: string;
+            justificacion_rechazo: string | null;
+          };
+          const oldData = payload.old as { 
+            justificacion_rechazo: string | null;
+          } | null;
+          
           const previousEstado = previousStatesRef.current.get(`req-${newData.id}`);
 
-          // Only notify if estado changed
+          // Check if this is a rejection notification (justificacion_rechazo was added)
+          const isRejectionNotification = newData.justificacion_rechazo && 
+            (!oldData?.justificacion_rechazo || oldData.justificacion_rechazo !== newData.justificacion_rechazo);
+
+          // Rejection notifications only go to the owner
+          if (isRejectionNotification) {
+            if (newData.solicitado_por === user.id) {
+              toast.error(`Requisición ${newData.folio} Rechazada`, {
+                description: `Motivo: ${newData.justificacion_rechazo}`,
+                duration: 8000,
+              });
+            }
+            previousStatesRef.current.set(`req-${newData.id}`, newData.estado);
+            return;
+          }
+
+          // Only notify if estado changed (for non-rejection updates)
           if (previousEstado && previousEstado !== newData.estado) {
             const newEstadoLabel = estadoLabels[newData.estado] || newData.estado;
             
