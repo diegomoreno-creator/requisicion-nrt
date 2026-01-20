@@ -158,6 +158,11 @@ const Requisicion = () => {
       return;
     }
 
+    if (!asunto.trim()) {
+      toast.error("El campo Asunto es obligatorio");
+      return;
+    }
+
     setIsSubmitting(true);
 
     // Generamos el ID en cliente para evitar necesitar SELECT/RLS al pedir "returning" tras el INSERT
@@ -697,12 +702,15 @@ const Requisicion = () => {
 
               {/* Asunto */}
               <div className="space-y-2">
-                <Label className="text-foreground">Asunto</Label>
+                <Label className="text-foreground">
+                  Asunto <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   value={asunto}
                   onChange={(e) => setAsunto(e.target.value)}
                   className="bg-input border-border"
                   placeholder="Ej: viáticos, viaje a Monterrey..."
+                  required
                 />
               </div>
 
