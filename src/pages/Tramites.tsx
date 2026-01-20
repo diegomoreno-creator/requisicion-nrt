@@ -20,13 +20,20 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, CheckCircle, FolderSearch, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, Bell, CheckCircle, FolderSearch, Search, Trash2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import TramiteDetailDialog from "@/components/TramiteDetailDialog";
 import { useCatalogos } from "@/hooks/useCatalogos";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Tramite {
   id: string;
@@ -74,7 +81,11 @@ const Tramites = () => {
   const { tiposRequisicion, getTipoColor, getTipoNombre } = useCatalogos();
   const [tramites, setTramites] = useState<Tramite[]>([]);
   const [attendedTramites, setAttendedTramites] = useState<Tramite[]>([]);
+  const [rejectedTramites, setRejectedTramites] = useState<Tramite[]>([]);
   const [deletedTramites, setDeletedTramites] = useState<Tramite[]>([]);
+  
+  // Enable realtime notifications
+  useRealtimeNotifications();
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("todos");
@@ -108,7 +119,7 @@ const Tramites = () => {
       // Fetch requisiciones - RLS policies will handle visibility
       const { data: requisiciones, error: reqError } = await supabase
         .from("requisiciones")
-        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion, asunto, deleted_at, autorizado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
+        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion, asunto, justificacion, deleted_at, autorizado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
         .order("created_at", { ascending: false });
 
       if (reqError) {
@@ -141,9 +152,10 @@ const Tramites = () => {
         userMap.set(p.user_id, p.full_name || p.email || "Usuario");
       });
 
-      // Combine and format tramites - separate active, attended, and deleted
+      // Combine and format tramites - separate active, attended, rejected, and deleted
       const activeTramites: Tramite[] = [];
       const attended: Tramite[] = [];
+      const rejected: Tramite[] = [];
       const deleted: Tramite[] = [];
       
       const processorField = getProcessorField();
@@ -168,6 +180,9 @@ const Tramites = () => {
         
         if (r.deleted_at) {
           deleted.push(tramite);
+        } else if (isSolicitador && r.solicitado_por === user.id && r.estado === 'pendiente' && r.justificacion) {
+          // For solicitador: items returned with justification (rejected by comprador) go to rejected
+          rejected.push(tramite);
         } else if (processorField && (r as any)[processorField] === user.id) {
           // User processed this tramite - goes to Atendidos
           attended.push(tramite);
@@ -201,10 +216,12 @@ const Tramites = () => {
       // Sort by date descending
       activeTramites.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
       attended.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+      rejected.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
       deleted.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
       setTramites(activeTramites);
       setAttendedTramites(attended);
+      setRejectedTramites(rejected);
       setDeletedTramites(deleted);
     } catch (error) {
       console.error("Error fetching tramites:", error);
@@ -241,8 +258,24 @@ const Tramites = () => {
     return matchesSearch && matchesTipo;
   });
 
+  const filteredRejectedTramites = rejectedTramites.filter((tramite) => {
+    const matchesSearch =
+      tramite.folio.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tramite.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tramite.solicitante.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesTipo =
+      filterTipo === "todos" ||
+      (filterTipo === "requisicion" && tramite.tipo === "Requisición") ||
+      (filterTipo === "reposicion" && tramite.tipo === "Reposición");
+
+    return matchesSearch && matchesTipo;
+  });
+
   // Check if current user role shows attended tab (not for comprador, superadmin, admin, solicitador)
   const showAttendedTab = isAutorizador || isPresupuestos || isTesoreria;
+  // Solicitador shows rejected tab
+  const showRejectedTab = isSolicitador;
 
   const formatFecha = (fecha: string) => {
     try {
@@ -386,14 +419,85 @@ const Tramites = () => {
                 </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/dashboard")}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver al Panel
-            </Button>
+            <div className="flex items-center gap-3">
+              {/* Notifications Bell */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="relative text-muted-foreground hover:text-foreground"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {rejectedTramites.length > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
+                        {rejectedTramites.length}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="end">
+                  <div className="p-4 border-b border-border">
+                    <h4 className="font-semibold text-foreground">Notificaciones</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Trámites que requieren tu atención
+                    </p>
+                  </div>
+                  <ScrollArea className="max-h-80">
+                    {rejectedTramites.length === 0 ? (
+                      <div className="p-4 text-center text-muted-foreground text-sm">
+                        No hay notificaciones pendientes
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-border">
+                        {rejectedTramites.slice(0, 5).map((tramite) => (
+                          <div
+                            key={tramite.id}
+                            className="p-3 hover:bg-muted/50 cursor-pointer"
+                            onClick={() => {
+                              setSelectedTramite({ id: tramite.id, tipo: tramite.tipo });
+                              setDetailOpen(true);
+                            }}
+                          >
+                            <div className="flex items-start gap-2">
+                              <XCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium text-foreground">
+                                  {tramite.folio} rechazada
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Revisa la justificación del rechazo
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {rejectedTramites.length > 5 && (
+                          <div className="p-3 text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setActiveTab("rechazadas")}
+                            >
+                              Ver todas ({rejectedTramites.length})
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+              
+              <Button
+                variant="outline"
+                onClick={() => navigate("/dashboard")}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Volver al Panel
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {/* Filters */}
@@ -450,6 +554,22 @@ const Tramites = () => {
                 </TabsContent>
                 <TabsContent value="atendidos">
                   {renderTramitesTable(filteredAttendedTramites)}
+                </TabsContent>
+              </Tabs>
+            ) : showRejectedTab ? (
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="activos">Mis Trámites</TabsTrigger>
+                  <TabsTrigger value="rechazadas" className="flex items-center gap-2">
+                    <XCircle className="w-4 h-4" />
+                    Rechazadas ({rejectedTramites.length})
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="activos">
+                  {renderTramitesTable(filteredTramites)}
+                </TabsContent>
+                <TabsContent value="rechazadas">
+                  {renderTramitesTable(filteredRejectedTramites)}
                 </TabsContent>
               </Tabs>
             ) : (
