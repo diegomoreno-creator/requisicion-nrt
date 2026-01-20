@@ -34,6 +34,8 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { ChevronRight, Download, Lightbulb, Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { renderNRTHeader } from "@/lib/pdfFonts";
@@ -142,6 +144,8 @@ const TramiteDetailDialog = ({
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const [showRejectByCompradorConfirm, setShowRejectByCompradorConfirm] = useState(false);
+  const [rejectJustification, setRejectJustification] = useState("");
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
@@ -306,6 +310,12 @@ const TramiteDetailDialog = ({
 
   // Comprador: can move from aprobado to en_licitacion
   const canMoveToLicitacion = () => {
+    if (!requisicion || !user) return false;
+    return requisicion.estado === "aprobado" && (isComprador || isSuperadmin);
+  };
+
+  // Comprador: can reject before licitación (when status is aprobado)
+  const canRejectBeforeLicitacion = () => {
     if (!requisicion || !user) return false;
     return requisicion.estado === "aprobado" && (isComprador || isSuperadmin);
   };
@@ -505,6 +515,37 @@ const TramiteDetailDialog = ({
     } catch (error) {
       console.error("Error moving to licitacion:", error);
       toast.error("Error al mover a licitación");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectBeforeLicitacion = async () => {
+    if (!tramiteId || !user) return;
+    if (!rejectJustification.trim()) {
+      toast.error("Debe ingresar una justificación para el rechazo");
+      return;
+    }
+    setActionLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ 
+          estado: "pendiente",
+          justificacion: rejectJustification.trim()
+        })
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Requisición rechazada y devuelta al solicitador");
+      setShowRejectByCompradorConfirm(false);
+      setRejectJustification("");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error rejecting before licitacion:", error);
+      toast.error("Error al rechazar la requisición");
     } finally {
       setActionLoading(false);
     }
@@ -1221,6 +1262,15 @@ const TramiteDetailDialog = ({
                   </Button>
                 </>
               )}
+              {canRejectBeforeLicitacion() && (
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowRejectByCompradorConfirm(true)}
+                  disabled={actionLoading}
+                >
+                  Rechazar
+                </Button>
+              )}
               {canMoveToLicitacion() && (
                 <Button
                   className="bg-blue-600 hover:bg-blue-700"
@@ -1307,6 +1357,46 @@ const TramiteDetailDialog = ({
               }}
             >
               Restaurar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reject Before Licitación Confirmation Dialog */}
+      <AlertDialog open={showRejectByCompradorConfirm} onOpenChange={setShowRejectByCompradorConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Rechazar requisición?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La requisición <strong>{requisicion?.folio}</strong> será devuelta al solicitador
+              con la justificación del rechazo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="reject-justification" className="text-sm font-medium">
+              Justificación del rechazo <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="reject-justification"
+              value={rejectJustification}
+              onChange={(e) => setRejectJustification(e.target.value)}
+              placeholder="Ingrese el motivo del rechazo..."
+              className="mt-2"
+              rows={4}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setRejectJustification("");
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleRejectBeforeLicitacion}
+              disabled={actionLoading || !rejectJustification.trim()}
+            >
+              {actionLoading ? "Rechazando..." : "Confirmar Rechazo"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
