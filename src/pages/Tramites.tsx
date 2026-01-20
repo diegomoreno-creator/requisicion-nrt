@@ -186,8 +186,9 @@ const Tramites = () => {
           // For solicitador: their own items
           // For comprador: items they rejected (any item with justificacion_rechazo)
           rejected.push(tramite);
-        } else if (isComprador && (r.licitado_por === user.id || r.pedido_colocado_por === user.id)) {
-          // Comprador: items they processed (licitado or pedido colocado)
+        } else if (isComprador && r.pedido_colocado_por === user.id) {
+          // Comprador: only items where they completed both phases (pedido_colocado)
+          // Items in "en_licitacion" stay in Pendientes since comprador still needs to place the order
           attended.push(tramite);
         } else if (processorField && (r as any)[processorField] === user.id) {
           // User processed this tramite - goes to Atendidos
