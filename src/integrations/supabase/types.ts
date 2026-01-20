@@ -386,6 +386,7 @@ export type Database = {
         Row: {
           apuntes_licitacion: string | null
           apuntes_presupuesto: string | null
+          apuntes_tesoreria: string | null
           asunto: string | null
           autorizado_por: string | null
           autorizador_id: string | null
@@ -428,6 +429,7 @@ export type Database = {
         Insert: {
           apuntes_licitacion?: string | null
           apuntes_presupuesto?: string | null
+          apuntes_tesoreria?: string | null
           asunto?: string | null
           autorizado_por?: string | null
           autorizador_id?: string | null
@@ -470,6 +472,7 @@ export type Database = {
         Update: {
           apuntes_licitacion?: string | null
           apuntes_presupuesto?: string | null
+          apuntes_tesoreria?: string | null
           asunto?: string | null
           autorizado_por?: string | null
           autorizador_id?: string | null

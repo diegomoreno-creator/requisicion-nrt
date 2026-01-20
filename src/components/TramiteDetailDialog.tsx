@@ -159,6 +159,8 @@ const TramiteDetailDialog = ({
   const [savingApuntes, setSavingApuntes] = useState(false);
   const [apuntesPresupuesto, setApuntesPresupuesto] = useState("");
   const [savingApuntesPresupuesto, setSavingApuntesPresupuesto] = useState(false);
+  const [apuntesTesoreria, setApuntesTesoreria] = useState("");
+  const [savingApuntesTesoreria, setSavingApuntesTesoreria] = useState(false);
   const [textoCompras, setTextoCompras] = useState("");
   const [savingTextoCompras, setSavingTextoCompras] = useState(false);
   const [textoComprasHistorial, setTextoComprasHistorial] = useState<Array<{
@@ -248,6 +250,7 @@ const TramiteDetailDialog = ({
         setRequisicion(req);
         setApuntesLicitacion(req.apuntes_licitacion || "");
         setApuntesPresupuesto((req as any).apuntes_presupuesto || "");
+        setApuntesTesoreria((req as any).apuntes_tesoreria || "");
         setTextoCompras("");
         setMontoTotalCompra(req.monto_total_compra?.toString() || "");
         
@@ -761,6 +764,28 @@ const TramiteDetailDialog = ({
       toast.error("Error al guardar apuntes de presupuesto");
     } finally {
       setSavingApuntesPresupuesto(false);
+    }
+  };
+
+  const handleSaveApuntesTesoreria = async () => {
+    if (!tramiteId) return;
+    setSavingApuntesTesoreria(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ apuntes_tesoreria: apuntesTesoreria.trim() || null } as any)
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Apuntes de tesorería guardados");
+      // Update local state
+      setRequisicion(prev => prev ? { ...prev, ...(({ apuntes_tesoreria: apuntesTesoreria.trim() || null }) as any) } : null);
+    } catch (error) {
+      console.error("Error saving apuntes tesoreria:", error);
+      toast.error("Error al guardar apuntes de tesorería");
+    } finally {
+      setSavingApuntesTesoreria(false);
     }
   };
 
@@ -1425,6 +1450,42 @@ const TramiteDetailDialog = ({
                 ) : (
                   <p className="text-foreground whitespace-pre-wrap">
                     {(requisicion as any).apuntes_presupuesto || "Sin apuntes registrados"}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Apuntes de Tesorería - visible when in pedido_autorizado or later, editable only by tesoreria when pedido_autorizado */}
+            {requisicion && (requisicion.estado === 'pedido_autorizado' || (requisicion as any).apuntes_tesoreria) && (
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                <h3 className="text-orange-400 font-semibold mb-2">Apuntes de Tesorería</h3>
+                {requisicion.estado === 'pedido_autorizado' && (isTesoreria || isSuperadmin) ? (
+                  <div className="space-y-3">
+                    <Textarea
+                      value={apuntesTesoreria}
+                      onChange={(e) => setApuntesTesoreria(e.target.value)}
+                      placeholder="Escriba aquí cualquier suceso o nota relevante del proceso de pago..."
+                      className="min-h-[100px] bg-background/50"
+                    />
+                    <Button
+                      onClick={handleSaveApuntesTesoreria}
+                      disabled={savingApuntesTesoreria}
+                      size="sm"
+                      className="bg-orange-600 hover:bg-orange-700"
+                    >
+                      {savingApuntesTesoreria ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        "Guardar Apuntes"
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-foreground whitespace-pre-wrap">
+                    {(requisicion as any).apuntes_tesoreria || "Sin apuntes registrados"}
                   </p>
                 )}
               </div>
