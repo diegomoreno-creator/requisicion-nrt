@@ -330,25 +330,39 @@ const Requisicion = () => {
         <form onSubmit={handleSubmit}>
           <Card className="border-border bg-card mb-6">
             <CardContent className="p-6 space-y-6">
-              {/* Tipo de requisición */}
-              {/* Tipo de requisición */}
-              <div className="space-y-2">
-                <Label className="text-foreground">Tipo de requisición</Label>
-                <Select value={tipoRequisicion} onValueChange={setTipoRequisicion}>
-                  <SelectTrigger className="bg-input border-border">
-                    <SelectValue placeholder="Seleccione un tipo de requisición" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border z-50">
-                    {tiposRequisicion.map((tipo) => (
-                      <SelectItem key={tipo.id} value={tipo.id}>
-                        <div className="flex items-center gap-2">
-                          <span className={cn("w-2 h-2 rounded-full", tipo.color_class)} />
-                          {tipo.nombre}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Tipo de requisición y Asunto */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-foreground">Tipo de requisición</Label>
+                  <Select value={tipoRequisicion} onValueChange={setTipoRequisicion}>
+                    <SelectTrigger className="bg-input border-border">
+                      <SelectValue placeholder="Seleccione un tipo de requisición" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border z-50">
+                      {tiposRequisicion.map((tipo) => (
+                        <SelectItem key={tipo.id} value={tipo.id}>
+                          <div className="flex items-center gap-2">
+                            <span className={cn("w-2 h-2 rounded-full", tipo.color_class)} />
+                            {tipo.nombre}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-foreground">
+                    Asunto <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    value={asunto}
+                    onChange={(e) => setAsunto(e.target.value)}
+                    className="bg-input border-border"
+                    placeholder="Ej: viáticos, viaje a Monterrey..."
+                    required
+                  />
+                </div>
               </div>
 
               {/* Row: Empresa, Unidad de Negocio, Folio, Fecha */}
@@ -697,20 +711,6 @@ const Requisicion = () => {
                   value={nombreProyecto}
                   onChange={(e) => setNombreProyecto(e.target.value)}
                   className="bg-input border-border"
-                />
-              </div>
-
-              {/* Asunto */}
-              <div className="space-y-2">
-                <Label className="text-foreground">
-                  Asunto <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  value={asunto}
-                  onChange={(e) => setAsunto(e.target.value)}
-                  className="bg-input border-border"
-                  placeholder="Ej: viáticos, viaje a Monterrey..."
-                  required
                 />
               </div>
 
