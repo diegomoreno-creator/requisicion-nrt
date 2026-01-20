@@ -349,6 +349,7 @@ export type Database = {
           created_at: string
           editado_at: string
           editado_por: string
+          estado_al_comentar: string | null
           id: string
           requisicion_id: string
           texto: string
@@ -357,6 +358,7 @@ export type Database = {
           created_at?: string
           editado_at?: string
           editado_por: string
+          estado_al_comentar?: string | null
           id?: string
           requisicion_id: string
           texto: string
@@ -365,6 +367,7 @@ export type Database = {
           created_at?: string
           editado_at?: string
           editado_por?: string
+          estado_al_comentar?: string | null
           id?: string
           requisicion_id?: string
           texto?: string
@@ -559,6 +562,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_user_role_text: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
