@@ -33,6 +33,7 @@ interface Tramite {
   folio: string;
   tipo: "Requisición" | "Reposición";
   tipoRequisicionId?: string | null;
+  asunto?: string | null;
   fecha: string;
   solicitante: string;
   estado: string;
@@ -107,7 +108,7 @@ const Tramites = () => {
       // Fetch requisiciones - RLS policies will handle visibility
       const { data: requisiciones, error: reqError } = await supabase
         .from("requisiciones")
-        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion, deleted_at, autorizado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
+        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion, asunto, deleted_at, autorizado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
         .order("created_at", { ascending: false });
 
       if (reqError) {
@@ -153,6 +154,7 @@ const Tramites = () => {
           folio: r.folio,
           tipo: "Requisición",
           tipoRequisicionId: r.tipo_requisicion,
+          asunto: r.asunto,
           fecha: r.created_at,
           solicitante: userMap.get(r.solicitado_por) || "Usuario",
           estado: r.estado || "borrador",
@@ -282,6 +284,7 @@ const Tramites = () => {
               <TableHead className="text-muted-foreground font-medium w-4"></TableHead>
               <TableHead className="text-muted-foreground font-medium">Folio</TableHead>
               <TableHead className="text-muted-foreground font-medium">Tipo de Trámite</TableHead>
+              <TableHead className="text-muted-foreground font-medium">Asunto</TableHead>
               <TableHead className="text-muted-foreground font-medium">Fecha</TableHead>
               <TableHead className="text-muted-foreground font-medium">Solicitante</TableHead>
               <TableHead className="text-muted-foreground font-medium">Estado</TableHead>
@@ -323,6 +326,9 @@ const Tramites = () => {
                 </TableCell>
                 <TableCell className="text-foreground">
                   {tramite.tipo}
+                </TableCell>
+                <TableCell className="text-foreground text-sm">
+                  {tramite.asunto || "-"}
                 </TableCell>
                 <TableCell className="text-foreground">
                   {formatFecha(tramite.fecha)}

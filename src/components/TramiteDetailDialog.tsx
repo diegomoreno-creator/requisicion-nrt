@@ -59,6 +59,7 @@ interface RequisicionDetail {
   sucursal: string | null;
   departamento_solicitante: string | null;
   nombre_proyecto: string | null;
+  asunto: string | null;
   justificacion: string | null;
   presupuesto_aproximado: number | null;
   datos_proveedor: string | null;
@@ -1018,6 +1019,12 @@ const TramiteDetailDialog = ({
                       <p className="text-muted-foreground text-sm">Proyecto:</p>
                       <p className="text-foreground">
                         {requisicion.nombre_proyecto || "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-sm">Asunto:</p>
+                      <p className="text-foreground">
+                        {requisicion.asunto || "-"}
                       </p>
                     </div>
                   </>
