@@ -410,10 +410,12 @@ export type Database = {
           fecha_pago: string | null
           fecha_pedido_autorizado: string | null
           fecha_pedido_colocado: string | null
+          fecha_rechazo_presupuestos: string | null
           folio: string
           id: string
           justificacion: string | null
           justificacion_rechazo: string | null
+          justificacion_rechazo_presupuestos: string | null
           licitado_por: string | null
           monto_total_compra: number | null
           nombre_proyecto: string | null
@@ -422,6 +424,9 @@ export type Database = {
           pedido_colocado_por: string | null
           porcentaje_cada_un: string | null
           presupuesto_aproximado: number | null
+          rechazado_por_presupuestos_id: string | null
+          rechazado_por_presupuestos_nombre: string | null
+          rechazado_por_presupuestos_rol: string | null
           se_dividira_gasto: boolean | null
           solicitado_por: string
           sucursal: string | null
@@ -454,10 +459,12 @@ export type Database = {
           fecha_pago?: string | null
           fecha_pedido_autorizado?: string | null
           fecha_pedido_colocado?: string | null
+          fecha_rechazo_presupuestos?: string | null
           folio: string
           id?: string
           justificacion?: string | null
           justificacion_rechazo?: string | null
+          justificacion_rechazo_presupuestos?: string | null
           licitado_por?: string | null
           monto_total_compra?: number | null
           nombre_proyecto?: string | null
@@ -466,6 +473,9 @@ export type Database = {
           pedido_colocado_por?: string | null
           porcentaje_cada_un?: string | null
           presupuesto_aproximado?: number | null
+          rechazado_por_presupuestos_id?: string | null
+          rechazado_por_presupuestos_nombre?: string | null
+          rechazado_por_presupuestos_rol?: string | null
           se_dividira_gasto?: boolean | null
           solicitado_por: string
           sucursal?: string | null
@@ -498,10 +508,12 @@ export type Database = {
           fecha_pago?: string | null
           fecha_pedido_autorizado?: string | null
           fecha_pedido_colocado?: string | null
+          fecha_rechazo_presupuestos?: string | null
           folio?: string
           id?: string
           justificacion?: string | null
           justificacion_rechazo?: string | null
+          justificacion_rechazo_presupuestos?: string | null
           licitado_por?: string | null
           monto_total_compra?: number | null
           nombre_proyecto?: string | null
@@ -510,6 +522,9 @@ export type Database = {
           pedido_colocado_por?: string | null
           porcentaje_cada_un?: string | null
           presupuesto_aproximado?: number | null
+          rechazado_por_presupuestos_id?: string | null
+          rechazado_por_presupuestos_nombre?: string | null
+          rechazado_por_presupuestos_rol?: string | null
           se_dividira_gasto?: boolean | null
           solicitado_por?: string
           sucursal?: string | null

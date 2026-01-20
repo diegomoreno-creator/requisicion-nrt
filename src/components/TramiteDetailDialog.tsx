@@ -34,7 +34,7 @@ import { useCatalogos } from "@/hooks/useCatalogos";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { ChevronRight, Download, Lightbulb, Loader2, Pencil } from "lucide-react";
+import { AlertTriangle, ChevronRight, Download, Lightbulb, Loader2, Pencil } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -154,7 +154,9 @@ const TramiteDetailDialog = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [showRejectByCompradorConfirm, setShowRejectByCompradorConfirm] = useState(false);
+  const [showRejectByPresupuestosConfirm, setShowRejectByPresupuestosConfirm] = useState(false);
   const [rejectJustification, setRejectJustification] = useState("");
+  const [rejectPresupuestosJustification, setRejectPresupuestosJustification] = useState("");
   const [apuntesLicitacion, setApuntesLicitacion] = useState("");
   const [savingApuntes, setSavingApuntes] = useState(false);
   const [apuntesPresupuesto, setApuntesPresupuesto] = useState("");
@@ -438,6 +440,12 @@ const TramiteDetailDialog = ({
 
   // Presupuestos: can move from pedido_colocado to pedido_autorizado
   const canAuthorizePedido = () => {
+    if (!requisicion || !user) return false;
+    return requisicion.estado === "pedido_colocado" && (isPresupuestos || isSuperadmin);
+  };
+
+  // Presupuestos: can reject when status is pedido_colocado
+  const canRejectByPresupuestos = () => {
     if (!requisicion || !user) return false;
     return requisicion.estado === "pedido_colocado" && (isPresupuestos || isSuperadmin);
   };
@@ -732,6 +740,46 @@ const TramiteDetailDialog = ({
     } catch (error) {
       console.error("Error authorizing pedido:", error);
       toast.error("Error al autorizar pedido");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectByPresupuestos = async () => {
+    if (!tramiteId || !user) return;
+    if (!rejectPresupuestosJustification.trim()) {
+      toast.error("Debe ingresar una justificación para el rechazo");
+      return;
+    }
+    setActionLoading(true);
+
+    try {
+      // Get user name and role
+      const [nameResult, roleResult] = await Promise.all([
+        supabase.rpc('get_profile_name', { _user_id: user.id }),
+        supabase.rpc('get_user_role_text', { _user_id: user.id })
+      ]);
+
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ 
+          justificacion_rechazo_presupuestos: rejectPresupuestosJustification.trim(),
+          rechazado_por_presupuestos_id: user.id,
+          rechazado_por_presupuestos_nombre: nameResult.data || "Usuario",
+          rechazado_por_presupuestos_rol: roleResult.data || "presupuestos",
+          fecha_rechazo_presupuestos: new Date().toISOString()
+        } as any)
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Requisición rechazada por Presupuestos");
+      setShowRejectByPresupuestosConfirm(false);
+      setRejectPresupuestosJustification("");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error rejecting by presupuestos:", error);
+      toast.error("Error al rechazar la requisición");
     } finally {
       setActionLoading(false);
     }
@@ -1446,6 +1494,28 @@ const TramiteDetailDialog = ({
               </div>
             )}
 
+            {/* Justificación de Rechazo de Presupuestos */}
+            {requisicion && (requisicion as any).justificacion_rechazo_presupuestos && (
+              <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                  <h3 className="text-yellow-600 dark:text-yellow-400 font-semibold">Rechazo de Presupuestos</h3>
+                </div>
+                <div className="bg-yellow-500/10 rounded p-3">
+                  <p className="text-foreground whitespace-pre-wrap">
+                    {(requisicion as any).justificacion_rechazo_presupuestos}
+                  </p>
+                </div>
+                <div className="mt-3 text-sm text-muted-foreground">
+                  <p><strong>Rechazado por:</strong> {(requisicion as any).rechazado_por_presupuestos_nombre || "Usuario"}</p>
+                  <p><strong>Rol:</strong> {(requisicion as any).rechazado_por_presupuestos_rol || "presupuestos"}</p>
+                  {(requisicion as any).fecha_rechazo_presupuestos && (
+                    <p><strong>Fecha:</strong> {format(new Date((requisicion as any).fecha_rechazo_presupuestos), "dd/MM/yyyy HH:mm", { locale: es })}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Apuntes de Compras - visible when in aprobado or later, editable only by comprador when aprobado, hidden from solicitador */}
             {requisicion && !isSolicitador && (requisicion.estado === 'aprobado' || (requisicion as any).apuntes_compras) && (
               <div className="bg-pink-500/10 border border-pink-500/30 rounded-lg p-4">
@@ -1807,6 +1877,15 @@ const TramiteDetailDialog = ({
                   </Button>
                 </div>
               )}
+              {canRejectByPresupuestos() && (
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowRejectByPresupuestosConfirm(true)}
+                  disabled={actionLoading}
+                >
+                  Rechazar
+                </Button>
+              )}
               {canAuthorizePedido() && (
                 <Button
                   className="bg-orange-600 hover:bg-orange-700"
@@ -1913,6 +1992,49 @@ const TramiteDetailDialog = ({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleRejectBeforeLicitacion}
               disabled={actionLoading || !rejectJustification.trim()}
+            >
+              {actionLoading ? "Rechazando..." : "Confirmar Rechazo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reject by Presupuestos Confirmation Dialog */}
+      <AlertDialog open={showRejectByPresupuestosConfirm} onOpenChange={setShowRejectByPresupuestosConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-500" />
+              ¿Rechazar requisición?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              La requisición <strong>{requisicion?.folio}</strong> será marcada como rechazada por el área de Presupuestos.
+              El autorizador asignado será notificado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="reject-presupuestos-justification" className="text-sm font-medium">
+              Justificación del rechazo <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="reject-presupuestos-justification"
+              value={rejectPresupuestosJustification}
+              onChange={(e) => setRejectPresupuestosJustification(e.target.value)}
+              placeholder="Ingrese el motivo del rechazo..."
+              className="mt-2"
+              rows={4}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setRejectPresupuestosJustification("");
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleRejectByPresupuestos}
+              disabled={actionLoading || !rejectPresupuestosJustification.trim()}
             >
               {actionLoading ? "Rechazando..." : "Confirmar Rechazo"}
             </AlertDialogAction>
