@@ -116,6 +116,8 @@ interface Partida {
   unidad_medida: string | null;
   modelo_parte: string | null;
   fecha_necesidad: string | null;
+  tipo_gasto: string | null;
+  categoria_gasto: string | null;
 }
 
 const timelineSteps = [
@@ -1543,6 +1545,8 @@ const TramiteDetailDialog = ({
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="text-muted-foreground">#</TableHead>
                         <TableHead className="text-muted-foreground">Descripción</TableHead>
+                        <TableHead className="text-muted-foreground">Tipo Gasto</TableHead>
+                        <TableHead className="text-muted-foreground">Categoría</TableHead>
                         <TableHead className="text-muted-foreground">Cantidad</TableHead>
                         <TableHead className="text-muted-foreground">Unidad</TableHead>
                         <TableHead className="text-muted-foreground">Modelo/Parte</TableHead>
@@ -1554,6 +1558,8 @@ const TramiteDetailDialog = ({
                         <TableRow key={partida.id} className="hover:bg-muted/20">
                           <TableCell>{partida.numero_partida}</TableCell>
                           <TableCell>{partida.descripcion || "-"}</TableCell>
+                          <TableCell>{partida.tipo_gasto || "-"}</TableCell>
+                          <TableCell>{partida.categoria_gasto || "-"}</TableCell>
                           <TableCell>{partida.cantidad || "-"}</TableCell>
                           <TableCell>{partida.unidad_medida || "-"}</TableCell>
                           <TableCell>{partida.modelo_parte || "-"}</TableCell>
