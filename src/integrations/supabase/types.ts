@@ -496,6 +496,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_solicitante_info: {
+        Args: { _user_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]

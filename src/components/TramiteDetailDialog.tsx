@@ -247,15 +247,27 @@ const TramiteDetailDialog = ({
   };
 
   const fetchUserEmails = async (solicitadoPor: string, autorizadorId: string | null) => {
-    // Fetch solicitante from profiles (RLS allows viewing own profile)
-    const { data: solicitanteProfile } = await supabase
-      .from("profiles")
-      .select("user_id, email, full_name")
-      .eq("user_id", solicitadoPor)
-      .single();
+    // Fetch solicitante using security definer function (bypasses RLS)
+    const { data: solicitanteData } = await supabase.rpc("get_solicitante_info", { 
+      _user_id: solicitadoPor 
+    });
 
-    if (solicitanteProfile) {
-      setSolicitanteEmail(solicitanteProfile.full_name || solicitanteProfile.email || "Usuario");
+    if (solicitanteData && solicitanteData.length > 0) {
+      const solicitante = solicitanteData[0];
+      setSolicitanteEmail(solicitante.full_name || solicitante.email || "Usuario");
+    } else {
+      // Fallback: try direct profile access (works for own profile)
+      const { data: solicitanteProfile } = await supabase
+        .from("profiles")
+        .select("user_id, email, full_name")
+        .eq("user_id", solicitadoPor)
+        .maybeSingle();
+
+      if (solicitanteProfile) {
+        setSolicitanteEmail(solicitanteProfile.full_name || solicitanteProfile.email || "Usuario");
+      } else {
+        setSolicitanteEmail("Usuario");
+      }
     }
 
     // Fetch autorizador using the get_autorizadores function (bypasses RLS)
@@ -265,14 +277,13 @@ const TramiteDetailDialog = ({
       if (autorizador) {
         setAutorizadorEmail(autorizador.full_name || autorizador.email || "");
       } else {
-        // If not in autorizadores, try profiles directly (might be admin/superadmin)
-        const { data: authProfile } = await supabase
-          .from("profiles")
-          .select("user_id, email, full_name")
-          .eq("user_id", autorizadorId)
-          .single();
-        if (authProfile) {
-          setAutorizadorEmail(authProfile.full_name || authProfile.email || "");
+        // Fallback: try get_solicitante_info function
+        const { data: authData } = await supabase.rpc("get_solicitante_info", { 
+          _user_id: autorizadorId 
+        });
+        if (authData && authData.length > 0) {
+          const auth = authData[0];
+          setAutorizadorEmail(auth.full_name || auth.email || "");
         }
       }
     }
