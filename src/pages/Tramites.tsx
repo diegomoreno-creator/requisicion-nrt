@@ -119,7 +119,7 @@ const Tramites = () => {
       // Fetch requisiciones - RLS policies will handle visibility
       const { data: requisiciones, error: reqError } = await supabase
         .from("requisiciones")
-        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion, asunto, justificacion_rechazo, deleted_at, autorizado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
+        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion, asunto, justificacion_rechazo, justificacion_rechazo_presupuestos, autorizador_id, deleted_at, autorizado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
         .order("created_at", { ascending: false });
 
       if (reqError) {
@@ -181,10 +181,12 @@ const Tramites = () => {
         if (r.deleted_at) {
           deleted.push(tramite);
         } else if ((isSolicitador && r.solicitado_por === user.id && r.estado === 'pendiente' && r.justificacion_rechazo) ||
-                   (isComprador && r.justificacion_rechazo && r.estado === 'pendiente')) {
+                   (isComprador && r.justificacion_rechazo && r.estado === 'pendiente') ||
+                   (isAutorizador && r.autorizador_id === user.id && (r as any).justificacion_rechazo_presupuestos)) {
           // Items with rejection justification go to rejected tab
-          // For solicitador: their own items
+          // For solicitador: their own items with justificacion_rechazo
           // For comprador: items they rejected (any item with justificacion_rechazo)
+          // For autorizador: items they authorized that have justificacion_rechazo_presupuestos
           rejected.push(tramite);
         } else if (isComprador && r.pedido_colocado_por === user.id) {
           // Comprador: only items where they completed both phases (pedido_colocado)
@@ -281,8 +283,8 @@ const Tramites = () => {
 
   // Check if current user role shows attended tab
   const showAttendedTab = isAutorizador || isPresupuestos || isTesoreria || isComprador;
-  // Solicitador and Comprador show rejected tab
-  const showRejectedTab = isSolicitador || isComprador;
+  // Solicitador, Comprador, and Autorizador show rejected tab
+  const showRejectedTab = isSolicitador || isComprador || isAutorizador;
 
   const formatFecha = (fecha: string) => {
     try {
