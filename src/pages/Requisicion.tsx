@@ -46,7 +46,69 @@ interface Partida {
   cantidad: number;
   fecha_necesidad: Date | null;
   tipo_gasto: string;
+  categoria_gasto: string;
 }
+
+// Categorías de gasto por tipo
+const categoriasGasto: Record<string, string[]> = {
+  administrativo: [
+    "Arreglos, festejos y festividades",
+    "Arrendamiento de equipo de oficina",
+    "Asesorías, cursos y capacitación no técnica",
+    "Papelería y consumibles",
+    "Cuotas y suscripciones",
+    "Gastos de oficina",
+    "Impuestos y derechos",
+    "Licenciamiento administrativo",
+    "Servicios y renta de línea",
+    "Mantenimiento y conservación",
+    "Servicios y líneas de celular",
+    "Pagos trámites administrativos",
+    "Préstamos",
+    "Productos de limpieza",
+    "Renta de oficinas",
+    "Seguros y pólizas",
+    "Uniformes",
+    "Viáticos",
+  ],
+  operativo: [
+    "Arrendamiento de espacio o infraestructura",
+    "Capacitación técnica",
+    "CFE, fuentes, postería",
+    "Comisiones de operación",
+    "Consultoría técnica",
+    "Coubicación",
+    "Desarrollo de software",
+    "Equipo para la operación",
+    "Equipos terminales",
+    "Gastos relacionados con equipo de transporte",
+    "Herramientas",
+    "Licenciamiento operativo",
+    "Material de instalación",
+    "Operación de canal/radio",
+    "Otros gastos operativos",
+    "Pagos a ei!",
+    "Pagos a Optifibra",
+    "Publicidad",
+    "Señales",
+    "Servicios de internet",
+    "Soporte técnico, Hosting",
+    "Starlink",
+  ],
+  proyecto_inversion: [
+    "Celulares",
+    "Construcción",
+    "Equipo de cómputo",
+    "Equipo de oficina",
+    "Equipo de transporte",
+    "Fibra óptica",
+    "Infraestructura de red",
+    "Licencias de software",
+    "Maquinaria y equipo",
+    "Mobiliario",
+    "Otros activos fijos",
+  ],
+};
 
 interface UserOption {
   user_id: string;
@@ -101,6 +163,7 @@ const Requisicion = () => {
       cantidad: 1,
       fecha_necesidad: new Date(),
       tipo_gasto: "",
+      categoria_gasto: "",
     },
   ]);
 
@@ -192,6 +255,7 @@ const Requisicion = () => {
           cantidad: p.cantidad || 1,
           fecha_necesidad: p.fecha_necesidad ? new Date(p.fecha_necesidad) : null,
           tipo_gasto: p.tipo_gasto || "",
+          categoria_gasto: p.categoria_gasto || "",
         })));
       }
     } catch (error) {
@@ -225,6 +289,7 @@ const Requisicion = () => {
       cantidad: 1,
       fecha_necesidad: new Date(),
       tipo_gasto: "",
+      categoria_gasto: "",
     };
     setPartidas([...partidas, newPartida]);
   };
@@ -242,7 +307,14 @@ const Requisicion = () => {
 
   const updatePartida = (id: string, field: keyof Partida, value: any) => {
     setPartidas(
-      partidas.map((p) => (p.id === id ? { ...p, [field]: value } : p))
+      partidas.map((p) => {
+        if (p.id !== id) return p;
+        // Si cambia el tipo_gasto, limpiar la categoria_gasto
+        if (field === "tipo_gasto" && p.tipo_gasto !== value) {
+          return { ...p, [field]: value, categoria_gasto: "" };
+        }
+        return { ...p, [field]: value };
+      })
     );
   };
 
@@ -343,6 +415,7 @@ const Requisicion = () => {
           cantidad: p.cantidad,
           fecha_necesidad: p.fecha_necesidad?.toISOString().split("T")[0],
           tipo_gasto: p.tipo_gasto || null,
+          categoria_gasto: p.categoria_gasto || null,
         }));
 
         const { error: partidasError } = await supabaseAuthed
@@ -410,6 +483,7 @@ const Requisicion = () => {
           cantidad: p.cantidad,
           fecha_necesidad: p.fecha_necesidad?.toISOString().split("T")[0],
           tipo_gasto: p.tipo_gasto || null,
+          categoria_gasto: p.categoria_gasto || null,
         }));
 
         const { error: partidasError } = await supabaseAuthed
@@ -641,6 +715,7 @@ const Requisicion = () => {
                       <TableRow className="border-border hover:bg-transparent">
                         <TableHead className="text-muted-foreground w-20">Partida</TableHead>
                         <TableHead className="text-muted-foreground w-40">Tipo de Gasto</TableHead>
+                        <TableHead className="text-muted-foreground w-52">Categoría de Gasto</TableHead>
                         <TableHead className="text-muted-foreground">Descripción</TableHead>
                         <TableHead className="text-muted-foreground">Modelo/# Parte</TableHead>
                         <TableHead className="text-muted-foreground w-24">UM</TableHead>
@@ -673,6 +748,24 @@ const Requisicion = () => {
                                 <SelectItem value="administrativo">Administrativo</SelectItem>
                                 <SelectItem value="operativo">Operativo</SelectItem>
                                 <SelectItem value="proyecto_inversion">Proyecto/Inversión</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={partida.categoria_gasto}
+                              onValueChange={(value) =>
+                                updatePartida(partida.id, "categoria_gasto", value)
+                              }
+                              disabled={!partida.tipo_gasto}
+                            >
+                              <SelectTrigger className="bg-input border-border w-48">
+                                <SelectValue placeholder={partida.tipo_gasto ? "Seleccionar categoría" : "Primero seleccione tipo"} />
+                              </SelectTrigger>
+                              <SelectContent className="bg-card border-border max-h-60">
+                                {partida.tipo_gasto && categoriasGasto[partida.tipo_gasto]?.map((cat) => (
+                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </TableCell>

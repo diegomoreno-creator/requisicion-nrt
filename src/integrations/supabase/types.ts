@@ -303,6 +303,7 @@ export type Database = {
       requisicion_partidas: {
         Row: {
           cantidad: number | null
+          categoria_gasto: string | null
           created_at: string
           descripcion: string | null
           fecha_necesidad: string | null
@@ -315,6 +316,7 @@ export type Database = {
         }
         Insert: {
           cantidad?: number | null
+          categoria_gasto?: string | null
           created_at?: string
           descripcion?: string | null
           fecha_necesidad?: string | null
@@ -327,6 +329,7 @@ export type Database = {
         }
         Update: {
           cantidad?: number | null
+          categoria_gasto?: string | null
           created_at?: string
           descripcion?: string | null
           fecha_necesidad?: string | null
