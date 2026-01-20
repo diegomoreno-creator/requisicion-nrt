@@ -33,7 +33,9 @@ import { useCatalogos } from "@/hooks/useCatalogos";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { ChevronRight, Lightbulb, Loader2 } from "lucide-react";
+import { ChevronRight, Download, Lightbulb, Loader2 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface TramiteDetailDialogProps {
   open: boolean;
@@ -564,6 +566,150 @@ const TramiteDetailDialog = ({
     }
   };
 
+  const handleDownloadPDF = () => {
+    if (!tramite) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPosition = 20;
+
+    // Title
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${tramiteTipo}: ${tramite.folio}`, pageWidth / 2, yPosition, { align: "center" });
+    yPosition += 15;
+
+    // Estado badge
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    const estadoLabel = timelineSteps.find(s => s.key === tramite.estado)?.label.replace("\n", " ") || tramite.estado;
+    doc.text(`Estado: ${estadoLabel}`, pageWidth / 2, yPosition, { align: "center" });
+    yPosition += 15;
+
+    // General Information Section
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Información General", 14, yPosition);
+    yPosition += 8;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+
+    const addField = (label: string, value: string) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(`${label}:`, 14, yPosition);
+      doc.setFont("helvetica", "normal");
+      doc.text(value, 60, yPosition);
+      yPosition += 6;
+    };
+
+    addField("Solicitado por", solicitanteEmail || "-");
+    addField("Fecha Solicitud", reposicion 
+      ? formatDate(reposicion.fecha_solicitud) 
+      : requisicion 
+        ? formatDate(requisicion.created_at) 
+        : "-");
+    addField("Autorizador", autorizadorEmail || "-");
+
+    if (reposicion) {
+      addField("Tipo Reposición", reposicion.tipo_reposicion || "-");
+      addField("Gastos Semana", formatCurrency(reposicion.gastos_semana));
+      addField("Monto Total", formatCurrency(reposicion.monto_total));
+      if (reposicion.reponer_a) addField("Reponer a", reposicion.reponer_a);
+      if (reposicion.tipo_reposicion === "colaborador") {
+        if (reposicion.banco) addField("Banco", reposicion.banco);
+        if (reposicion.cuenta_clabe) addField("Cuenta/CLABE", reposicion.cuenta_clabe);
+      }
+    }
+
+    if (requisicion) {
+      addField("Empresa", getEmpresaNombre(requisicion.empresa));
+      addField("Unidad de Negocio", getUnidadNombre(requisicion.unidad_negocio));
+      addField("Sucursal", getSucursalNombre(requisicion.sucursal));
+      if (requisicion.departamento_solicitante) addField("Departamento", requisicion.departamento_solicitante);
+      addField("Presupuesto", formatCurrency(requisicion.presupuesto_aproximado));
+      if (requisicion.nombre_proyecto) addField("Proyecto", requisicion.nombre_proyecto);
+    }
+
+    yPosition += 5;
+
+    // Gastos table for Reposición
+    if (reposicion && gastos.length > 0) {
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Gastos a Reponer", 14, yPosition);
+      yPosition += 5;
+
+      autoTable(doc, {
+        startY: yPosition,
+        head: [["Unidad", "Empresa", "Descripción", "Proveedor", "Fecha", "Factura", "Importe"]],
+        body: gastos.map((gasto) => [
+          getUnidadNombre(gasto.unidad_negocio_id),
+          getEmpresaNombre(gasto.empresa_id),
+          gasto.descripcion || "-",
+          gasto.proveedor_negocio || "-",
+          formatDate(gasto.fecha_gasto),
+          gasto.factura_no || "-",
+          formatCurrency(gasto.importe),
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [100, 100, 100] },
+      });
+
+      yPosition = (doc as any).lastAutoTable.finalY + 10;
+    }
+
+    // Partidas table for Requisición
+    if (requisicion && partidas.length > 0) {
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Partidas", 14, yPosition);
+      yPosition += 5;
+
+      autoTable(doc, {
+        startY: yPosition,
+        head: [["#", "Descripción", "Cantidad", "Unidad", "Modelo/Parte", "Fecha Necesidad"]],
+        body: partidas.map((partida) => [
+          partida.numero_partida.toString(),
+          partida.descripcion || "-",
+          partida.cantidad?.toString() || "-",
+          partida.unidad_medida || "-",
+          partida.modelo_parte || "-",
+          formatDate(partida.fecha_necesidad),
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [100, 100, 100] },
+      });
+
+      yPosition = (doc as any).lastAutoTable.finalY + 10;
+    }
+
+    // Justificación
+    const justificacion = reposicion?.justificacion || requisicion?.justificacion;
+    if (justificacion) {
+      // Check if we need a new page
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Justificación", 14, yPosition);
+      yPosition += 8;
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const splitText = doc.splitTextToSize(justificacion, pageWidth - 28);
+      doc.text(splitText, 14, yPosition);
+    }
+
+    // Download
+    const fileName = `${tramiteTipo}_${tramite.folio.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+    doc.save(fileName);
+    toast.success("PDF descargado exitosamente");
+  };
+
   const handleAnalyzeWithAI = async () => {
     if (!tramite) return;
     setAiLoading(true);
@@ -980,7 +1126,11 @@ const TramiteDetailDialog = ({
             <Separator />
 
             {/* Actions */}
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-wrap justify-end gap-3">
+              <Button variant="outline" onClick={handleDownloadPDF}>
+                <Download className="w-4 h-4 mr-2" />
+                Descargar PDF
+              </Button>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cerrar
               </Button>
