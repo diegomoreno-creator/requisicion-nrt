@@ -66,6 +66,9 @@ interface RequisicionDetail {
   asunto: string | null;
   justificacion: string | null;
   justificacion_rechazo: string | null;
+  justificacion_rechazo_presupuestos: string | null;
+  rechazado_por_presupuestos_nombre: string | null;
+  fecha_rechazo_presupuestos: string | null;
   presupuesto_aproximado: number | null;
   datos_proveedor: string | null;
   datos_banco: string | null;
@@ -155,8 +158,10 @@ const TramiteDetailDialog = ({
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [showRejectByCompradorConfirm, setShowRejectByCompradorConfirm] = useState(false);
   const [showRejectByPresupuestosConfirm, setShowRejectByPresupuestosConfirm] = useState(false);
+  const [showRejectPresupuestosToSolicitadorConfirm, setShowRejectPresupuestosToSolicitadorConfirm] = useState(false);
   const [rejectJustification, setRejectJustification] = useState("");
   const [rejectPresupuestosJustification, setRejectPresupuestosJustification] = useState("");
+  const [rejectPresupuestosToSolicitadorJustification, setRejectPresupuestosToSolicitadorJustification] = useState("");
   const [apuntesLicitacion, setApuntesLicitacion] = useState("");
   const [savingApuntes, setSavingApuntes] = useState(false);
   const [apuntesPresupuesto, setApuntesPresupuesto] = useState("");
@@ -448,6 +453,16 @@ const TramiteDetailDialog = ({
   const canRejectByPresupuestos = () => {
     if (!requisicion || !user) return false;
     return requisicion.estado === "pedido_colocado" && (isPresupuestos || isSuperadmin);
+  };
+
+  // Autorizador: can handle items rejected by presupuestos
+  const canHandlePresupuestosRejection = () => {
+    if (!requisicion || !user) return false;
+    const isAssignedAutorizador = requisicion.autorizador_id === user.id;
+    const hasPresupuestosRejection = !!requisicion.justificacion_rechazo_presupuestos;
+    // Only show when status is still pedido_colocado and there's a presupuestos rejection
+    return hasPresupuestosRejection && requisicion.estado === "pedido_colocado" && 
+           (isAssignedAutorizador || isSuperadmin || isAdmin);
   };
 
   // Tesoreria: can move from pedido_autorizado to pedido_pagado
@@ -806,6 +821,87 @@ const TramiteDetailDialog = ({
     } catch (error) {
       console.error("Error paying pedido:", error);
       toast.error("Error al marcar como pagado");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Autorizador: Accept presupuestos rejection decision (move back to en_licitacion)
+  const handleAcceptPresupuestosRejection = async () => {
+    if (!tramiteId || !user) return;
+    setActionLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ 
+          estado: "en_licitacion",
+          // Clear the presupuestos rejection since we're going back to fix it
+          justificacion_rechazo_presupuestos: null,
+          rechazado_por_presupuestos_id: null,
+          rechazado_por_presupuestos_nombre: null,
+          rechazado_por_presupuestos_rol: null,
+          fecha_rechazo_presupuestos: null,
+          // Clear pedido_colocado info
+          pedido_colocado_por: null,
+          fecha_pedido_colocado: null,
+          monto_total_compra: null
+        } as any)
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Requisición devuelta a Licitación para corrección");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error accepting presupuestos rejection:", error);
+      toast.error("Error al procesar la decisión");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Autorizador: Reject presupuestos rejection decision (send back to solicitador)
+  const handleRejectPresupuestosToSolicitador = async () => {
+    if (!tramiteId || !user) return;
+    if (!rejectPresupuestosToSolicitadorJustification.trim()) {
+      toast.error("Debe ingresar una justificación para devolver al solicitador");
+      return;
+    }
+    setActionLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ 
+          estado: "pendiente",
+          justificacion_rechazo: rejectPresupuestosToSolicitadorJustification.trim(),
+          // Clear the presupuestos rejection
+          justificacion_rechazo_presupuestos: null,
+          rechazado_por_presupuestos_id: null,
+          rechazado_por_presupuestos_nombre: null,
+          rechazado_por_presupuestos_rol: null,
+          fecha_rechazo_presupuestos: null,
+          // Clear all workflow fields
+          pedido_colocado_por: null,
+          fecha_pedido_colocado: null,
+          monto_total_compra: null,
+          licitado_por: null,
+          fecha_licitacion: null,
+          autorizado_por: null,
+          fecha_autorizacion_real: null
+        } as any)
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Requisición devuelta al solicitador");
+      setShowRejectPresupuestosToSolicitadorConfirm(false);
+      setRejectPresupuestosToSolicitadorJustification("");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error rejecting to solicitador:", error);
+      toast.error("Error al devolver al solicitador");
     } finally {
       setActionLoading(false);
     }
@@ -1904,6 +2000,24 @@ const TramiteDetailDialog = ({
                   Marcar como Pagado
                 </Button>
               )}
+              {canHandlePresupuestosRejection() && (
+                <>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowRejectPresupuestosToSolicitadorConfirm(true)}
+                    disabled={actionLoading}
+                  >
+                    Devolver a Solicitador
+                  </Button>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={handleAcceptPresupuestosRejection}
+                    disabled={actionLoading}
+                  >
+                    Aceptar y Corregir
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -2037,6 +2151,49 @@ const TramiteDetailDialog = ({
               disabled={actionLoading || !rejectPresupuestosJustification.trim()}
             >
               {actionLoading ? "Rechazando..." : "Confirmar Rechazo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reject to Solicitador Confirmation Dialog (Autorizador handling presupuestos rejection) */}
+      <AlertDialog open={showRejectPresupuestosToSolicitadorConfirm} onOpenChange={setShowRejectPresupuestosToSolicitadorConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-500" />
+              ¿Devolver requisición al solicitador?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              La requisición <strong>{requisicion?.folio}</strong> será devuelta al solicitador para que realice las correcciones necesarias.
+              El proceso comenzará nuevamente desde el inicio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="reject-presupuestos-to-solicitador-justification" className="text-sm font-medium">
+              Justificación para el solicitador <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="reject-presupuestos-to-solicitador-justification"
+              value={rejectPresupuestosToSolicitadorJustification}
+              onChange={(e) => setRejectPresupuestosToSolicitadorJustification(e.target.value)}
+              placeholder="Ingrese el motivo por el cual se devuelve al solicitador..."
+              className="mt-2"
+              rows={4}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setRejectPresupuestosToSolicitadorJustification("");
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleRejectPresupuestosToSolicitador}
+              disabled={actionLoading || !rejectPresupuestosToSolicitadorJustification.trim()}
+            >
+              {actionLoading ? "Procesando..." : "Confirmar Devolución"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
