@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, TrendingUp, Clock, AlertTriangle, CheckCircle, FileText, DollarSign, Users, BarChart3 } from "lucide-react";
 import { 
@@ -35,9 +36,12 @@ interface RequisicionStats {
 
 interface TimeStats {
   stage: string;
+  avgMinutes: number;
   avgHours: number;
   avgDays: number;
 }
+
+type TimeUnit = "minutes" | "hours" | "days";
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
@@ -61,6 +65,7 @@ const AdminStatistics = () => {
   const [monthlyVolume, setMonthlyVolume] = useState<{ month: string; requisiciones: number; reposiciones: number }[]>([]);
   const [avgTotalTime, setAvgTotalTime] = useState<number>(0);
   const [bottleneck, setBottleneck] = useState<string>("");
+  const [timeUnit, setTimeUnit] = useState<TimeUnit>("hours");
 
   useEffect(() => {
     fetchStatistics();
@@ -144,11 +149,12 @@ const AdminStatistics = () => {
     const stats: TimeStats[] = Object.entries(stagesTimes)
       .filter(([_, times]) => times.length > 0)
       .map(([stage, times]) => {
-        const avg = times.reduce((a, b) => a + b, 0) / times.length;
+        const avgHours = times.reduce((a, b) => a + b, 0) / times.length;
         return {
           stage,
-          avgHours: Math.round(avg),
-          avgDays: Math.round(avg / 24 * 10) / 10,
+          avgMinutes: Math.round(avgHours * 60),
+          avgHours: Math.round(avgHours),
+          avgDays: Math.round(avgHours / 24 * 10) / 10,
         };
       });
 
@@ -336,14 +342,32 @@ const AdminStatistics = () => {
         {/* Time by Stage Chart */}
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tiempo Promedio por Etapa (horas)
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Tiempo Promedio por Etapa
+              </CardTitle>
+              <Select value={timeUnit} onValueChange={(value: TimeUnit) => setTimeUnit(value)}>
+                <SelectTrigger className="w-28 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="minutes">Minutos</SelectItem>
+                  <SelectItem value="hours">Horas</SelectItem>
+                  <SelectItem value="days">Días</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
             {timeStats.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={timeStats} layout="vertical">
+                <BarChart 
+                  data={timeStats.map(stat => ({
+                    ...stat,
+                    value: timeUnit === "minutes" ? stat.avgMinutes : timeUnit === "hours" ? stat.avgHours : stat.avgDays
+                  }))} 
+                  layout="vertical"
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis 
@@ -359,9 +383,12 @@ const AdminStatistics = () => {
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px'
                     }}
-                    formatter={(value: number) => [`${value} horas (${Math.round(value/24*10)/10} días)`, 'Promedio']}
+                    formatter={(value: number) => {
+                      const unitLabel = timeUnit === "minutes" ? "minutos" : timeUnit === "hours" ? "horas" : "días";
+                      return [`${value} ${unitLabel}`, 'Promedio'];
+                    }}
                   />
-                  <Bar dataKey="avgHours" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
