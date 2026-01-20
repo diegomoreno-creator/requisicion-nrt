@@ -161,6 +161,8 @@ const TramiteDetailDialog = ({
   const [savingApuntesPresupuesto, setSavingApuntesPresupuesto] = useState(false);
   const [apuntesTesoreria, setApuntesTesoreria] = useState("");
   const [savingApuntesTesoreria, setSavingApuntesTesoreria] = useState(false);
+  const [apuntesCompras, setApuntesCompras] = useState("");
+  const [savingApuntesCompras, setSavingApuntesCompras] = useState(false);
   const [textoCompras, setTextoCompras] = useState("");
   const [savingTextoCompras, setSavingTextoCompras] = useState(false);
   const [textoComprasHistorial, setTextoComprasHistorial] = useState<Array<{
@@ -288,6 +290,7 @@ const TramiteDetailDialog = ({
         setApuntesLicitacion(req.apuntes_licitacion || "");
         setApuntesPresupuesto((req as any).apuntes_presupuesto || "");
         setApuntesTesoreria((req as any).apuntes_tesoreria || "");
+        setApuntesCompras((req as any).apuntes_compras || "");
         setTextoCompras("");
         setMontoTotalCompra(req.monto_total_compra?.toString() || "");
         
@@ -823,6 +826,28 @@ const TramiteDetailDialog = ({
       toast.error("Error al guardar apuntes de tesorería");
     } finally {
       setSavingApuntesTesoreria(false);
+    }
+  };
+
+  const handleSaveApuntesCompras = async () => {
+    if (!tramiteId) return;
+    setSavingApuntesCompras(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ apuntes_compras: apuntesCompras.trim() || null } as any)
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Apuntes de compras guardados");
+      // Update local state
+      setRequisicion(prev => prev ? { ...prev, ...(({ apuntes_compras: apuntesCompras.trim() || null }) as any) } : null);
+    } catch (error) {
+      console.error("Error saving apuntes compras:", error);
+      toast.error("Error al guardar apuntes de compras");
+    } finally {
+      setSavingApuntesCompras(false);
     }
   };
 
@@ -1418,6 +1443,42 @@ const TramiteDetailDialog = ({
                 <p className="text-foreground">
                   {requisicion.justificacion_rechazo}
                 </p>
+              </div>
+            )}
+
+            {/* Apuntes de Compras - visible when in aprobado or later, editable only by comprador when aprobado, hidden from solicitador */}
+            {requisicion && !isSolicitador && (requisicion.estado === 'aprobado' || (requisicion as any).apuntes_compras) && (
+              <div className="bg-pink-500/10 border border-pink-500/30 rounded-lg p-4">
+                <h3 className="text-pink-400 font-semibold mb-2">Apuntes de Compras</h3>
+                {requisicion.estado === 'aprobado' && (isComprador || isSuperadmin) ? (
+                  <div className="space-y-3">
+                    <Textarea
+                      value={apuntesCompras}
+                      onChange={(e) => setApuntesCompras(e.target.value)}
+                      placeholder="Escriba aquí cualquier suceso o nota relevante del proceso de compras..."
+                      className="min-h-[100px] bg-background/50"
+                    />
+                    <Button
+                      onClick={handleSaveApuntesCompras}
+                      disabled={savingApuntesCompras}
+                      size="sm"
+                      className="bg-pink-600 hover:bg-pink-700"
+                    >
+                      {savingApuntesCompras ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        "Guardar Apuntes"
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-foreground whitespace-pre-wrap">
+                    {(requisicion as any).apuntes_compras || "Sin apuntes registrados"}
+                  </p>
+                )}
               </div>
             )}
 
