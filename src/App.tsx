@@ -53,6 +53,14 @@ const App = () => (
               } 
             />
             <Route 
+              path="/requisicion/:id" 
+              element={
+                <ProtectedRoute>
+                  <Requisicion />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/reposicion" 
               element={
                 <ProtectedRoute requiresFormAccess>
