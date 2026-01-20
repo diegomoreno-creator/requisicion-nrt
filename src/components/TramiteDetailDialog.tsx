@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +34,7 @@ import { useCatalogos } from "@/hooks/useCatalogos";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { ChevronRight, Download, Lightbulb, Loader2 } from "lucide-react";
+import { ChevronRight, Download, Lightbulb, Loader2, Pencil } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import jsPDF from "jspdf";
@@ -129,6 +130,7 @@ const TramiteDetailDialog = ({
   tramiteTipo,
   onUpdated,
 }: TramiteDetailDialogProps) => {
+  const navigate = useNavigate();
   const { user, isAutorizador, isSuperadmin, isAdmin, isComprador, isPresupuestos, isTesoreria, isSolicitador } = useAuth();
   const { empresas, unidadesNegocio, sucursales } = useCatalogos();
   const [loading, setLoading] = useState(true);
@@ -353,6 +355,22 @@ const TramiteDetailDialog = ({
   const canRestore = () => {
     if (!requisicion || !user) return false;
     return requisicion.deleted_at !== null && isSuperadmin;
+  };
+
+  // Solicitador can edit their own rejected requisitions
+  const canEditRejected = () => {
+    if (!requisicion || !user) return false;
+    const isOwner = requisicion.solicitado_por === user.id;
+    const hasRejection = !!requisicion.justificacion_rechazo;
+    const isPending = requisicion.estado === "pendiente";
+    return isOwner && hasRejection && isPending;
+  };
+
+  const handleEditRejected = () => {
+    if (requisicion) {
+      onOpenChange(false);
+      navigate(`/requisicion/${requisicion.id}`);
+    }
   };
 
   const handleDelete = async () => {
@@ -1218,6 +1236,15 @@ const TramiteDetailDialog = ({
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cerrar
               </Button>
+              {canEditRejected() && (
+                <Button
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={handleEditRejected}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Editar y Reenviar
+                </Button>
+              )}
               {canRestore() && (
                 <Button
                   variant="outline"

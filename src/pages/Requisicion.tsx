@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -55,7 +55,9 @@ interface UserOption {
 
 const Requisicion = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading, canAccessApp } = useAuth();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditMode = !!editId;
+  const { user, loading: authLoading, canAccessApp, isSolicitador, isSuperadmin, isAdmin } = useAuth();
   const { 
     tiposRequisicion, 
     empresas, 
@@ -64,10 +66,12 @@ const Requisicion = () => {
     loading: catalogosLoading 
   } = useCatalogos();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
   const [autorizadores, setAutorizadores] = useState<UserOption[]>([]);
+  const [originalRequisicionId, setOriginalRequisicionId] = useState<string | null>(null);
 
   // Form state
-  const [folio] = useState(`REQ-${Date.now()}`);
+  const [folio, setFolio] = useState(`REQ-${Date.now()}`);
   const [tipoRequisicion, setTipoRequisicion] = useState("");
   const [unidadNegocio, setUnidadNegocio] = useState("");
   const [empresa, setEmpresa] = useState("");
@@ -99,14 +103,102 @@ const Requisicion = () => {
   ]);
 
   useEffect(() => {
-    if (!authLoading && !canAccessApp) {
+    if (!authLoading && !canAccessApp && !isEditMode) {
       navigate("/");
     }
-  }, [authLoading, canAccessApp, navigate]);
+  }, [authLoading, canAccessApp, navigate, isEditMode]);
 
   useEffect(() => {
     fetchAutorizadores();
   }, []);
+
+  // Load existing requisicion data for editing
+  useEffect(() => {
+    if (editId && user) {
+      loadRequisicionForEdit(editId);
+    }
+  }, [editId, user]);
+
+  const loadRequisicionForEdit = async (requisicionId: string) => {
+    setIsLoadingEdit(true);
+    try {
+      // Fetch requisicion
+      const { data: req, error: reqError } = await supabase
+        .from("requisiciones")
+        .select("*")
+        .eq("id", requisicionId)
+        .single();
+
+      if (reqError) throw reqError;
+      if (!req) {
+        toast.error("Requisición no encontrada");
+        navigate("/tramites");
+        return;
+      }
+
+      // Check if user owns this requisition and it's rejected (has justificacion_rechazo)
+      if (req.solicitado_por !== user?.id) {
+        toast.error("No tienes permiso para editar esta requisición");
+        navigate("/tramites");
+        return;
+      }
+
+      if (!req.justificacion_rechazo) {
+        toast.error("Solo puedes editar requisiciones rechazadas");
+        navigate("/tramites");
+        return;
+      }
+
+      // Load requisicion data into form
+      setFolio(req.folio);
+      setOriginalRequisicionId(req.id);
+      setTipoRequisicion(req.tipo_requisicion || "");
+      setEmpresa(req.empresa || "");
+      setUnidadNegocio(req.unidad_negocio || "");
+      setSucursal(req.sucursal || "");
+      setAutorizadorId(req.autorizador_id || "");
+      setDepartamentoSolicitante(req.departamento_solicitante || "");
+      setPresupuestoAproximado(req.presupuesto_aproximado?.toString() || "");
+      setSeDividiraGasto(req.se_dividira_gasto || false);
+      setUnDivisionGasto(req.un_division_gasto || "");
+      setPorcentajeCadaUn(req.porcentaje_cada_un || "");
+      setDatosProveedor(req.datos_proveedor || "");
+      setDatosBanco(req.datos_banco || "");
+      setNombreProyecto(req.nombre_proyecto || "");
+      setAsunto(req.asunto || "");
+      setJustificacion(req.justificacion || "");
+      if (req.fecha_autorizacion) {
+        setFechaAutorizacion(new Date(req.fecha_autorizacion));
+      }
+
+      // Fetch partidas
+      const { data: partidasData, error: partidasError } = await supabase
+        .from("requisicion_partidas")
+        .select("*")
+        .eq("requisicion_id", requisicionId)
+        .order("numero_partida", { ascending: true });
+
+      if (partidasError) throw partidasError;
+
+      if (partidasData && partidasData.length > 0) {
+        setPartidas(partidasData.map(p => ({
+          id: p.id,
+          numero_partida: p.numero_partida,
+          descripcion: p.descripcion || "",
+          modelo_parte: p.modelo_parte || "",
+          unidad_medida: p.unidad_medida || "",
+          cantidad: p.cantidad || 1,
+          fecha_necesidad: p.fecha_necesidad ? new Date(p.fecha_necesidad) : null,
+        })));
+      }
+    } catch (error) {
+      console.error("Error loading requisicion:", error);
+      toast.error("Error al cargar la requisición");
+      navigate("/tramites");
+    } finally {
+      setIsLoadingEdit(false);
+    }
+  };
 
   const fetchAutorizadores = async () => {
     try {
@@ -165,39 +257,6 @@ const Requisicion = () => {
 
     setIsSubmitting(true);
 
-    // Generamos el ID en cliente para evitar necesitar SELECT/RLS al pedir "returning" tras el INSERT
-    const requisicionId = crypto.randomUUID();
-
-    const insertRequisicion = async () => {
-      const { error } = await supabase
-        .from("requisiciones")
-        .insert({
-          id: requisicionId,
-          folio,
-          tipo_requisicion: tipoRequisicion,
-          unidad_negocio: unidadNegocio,
-          empresa,
-          fecha_autorizacion: fechaAutorizacion.toISOString().split("T")[0],
-          sucursal,
-          autorizador_id: autorizadorId || null,
-          departamento_solicitante: departamentoSolicitante,
-          solicitado_por: user.id,
-          presupuesto_aproximado: presupuestoAproximado
-            ? parseFloat(presupuestoAproximado)
-            : null,
-          se_dividira_gasto: seDividiraGasto,
-          un_division_gasto: seDividiraGasto ? unDivisionGasto : null,
-          porcentaje_cada_un: seDividiraGasto ? porcentajeCadaUn : null,
-          datos_proveedor: datosProveedor,
-          datos_banco: datosBanco,
-          nombre_proyecto: nombreProyecto,
-          justificacion,
-          estado: "borrador",
-        });
-
-      return { error };
-    };
-
     try {
       // Asegura una sesión válida antes de mutar (evita requests sin JWT → RLS 403)
       const { data: sessionData } = await supabase.auth.getSession();
@@ -228,10 +287,9 @@ const Requisicion = () => {
         }
       );
 
-      const insertRequisicion = async () => {
-        const { error } = await supabaseAuthed.from("requisiciones").insert({
-          id: requisicionId,
-          folio,
+      if (isEditMode && originalRequisicionId) {
+        // UPDATE mode - clear justificacion_rechazo and update requisicion
+        const updateData = {
           tipo_requisicion: tipoRequisicion,
           unidad_negocio: unidadNegocio,
           empresa,
@@ -239,7 +297,6 @@ const Requisicion = () => {
           sucursal,
           autorizador_id: autorizadorId || null,
           departamento_solicitante: departamentoSolicitante,
-          solicitado_por: user.id,
           presupuesto_aproximado: presupuestoAproximado
             ? parseFloat(presupuestoAproximado)
             : null,
@@ -251,45 +308,111 @@ const Requisicion = () => {
           nombre_proyecto: nombreProyecto,
           asunto,
           justificacion,
-          estado: "pendiente",
-        });
+          justificacion_rechazo: null, // Clear rejection justification on resubmit
+          estado: "pendiente" as const,
+          updated_at: new Date().toISOString(),
+        };
 
-        return { error };
-      };
+        const { error: updateError } = await supabaseAuthed
+          .from("requisiciones")
+          .update(updateData)
+          .eq("id", originalRequisicionId);
 
-      // Insert requisicion (reintenta si la sesión aún no se adjuntó)
-      let { error: reqError } = await insertRequisicion();
+        if (updateError) throw updateError;
 
-      if (
-        reqError &&
-        (reqError.code === "42501" ||
-          /row-level security/i.test(reqError.message ?? ""))
-      ) {
-        const retry = await insertRequisicion();
-        reqError = retry.error;
+        // Delete existing partidas and insert new ones
+        const { error: deletePartidasError } = await supabaseAuthed
+          .from("requisicion_partidas")
+          .delete()
+          .eq("requisicion_id", originalRequisicionId);
+
+        if (deletePartidasError) throw deletePartidasError;
+
+        const partidasToInsert = partidas.map((p) => ({
+          requisicion_id: originalRequisicionId,
+          numero_partida: p.numero_partida,
+          descripcion: p.descripcion,
+          modelo_parte: p.modelo_parte,
+          unidad_medida: p.unidad_medida,
+          cantidad: p.cantidad,
+          fecha_necesidad: p.fecha_necesidad?.toISOString().split("T")[0],
+        }));
+
+        const { error: partidasError } = await supabaseAuthed
+          .from("requisicion_partidas")
+          .insert(partidasToInsert);
+
+        if (partidasError) throw partidasError;
+
+        toast.success("Requisición actualizada y reenviada exitosamente");
+        navigate("/tramites");
+      } else {
+        // INSERT mode - create new requisicion
+        const requisicionId = crypto.randomUUID();
+
+        const insertRequisicion = async () => {
+          const { error } = await supabaseAuthed.from("requisiciones").insert({
+            id: requisicionId,
+            folio,
+            tipo_requisicion: tipoRequisicion,
+            unidad_negocio: unidadNegocio,
+            empresa,
+            fecha_autorizacion: fechaAutorizacion.toISOString().split("T")[0],
+            sucursal,
+            autorizador_id: autorizadorId || null,
+            departamento_solicitante: departamentoSolicitante,
+            solicitado_por: user.id,
+            presupuesto_aproximado: presupuestoAproximado
+              ? parseFloat(presupuestoAproximado)
+              : null,
+            se_dividira_gasto: seDividiraGasto,
+            un_division_gasto: seDividiraGasto ? unDivisionGasto : null,
+            porcentaje_cada_un: seDividiraGasto ? porcentajeCadaUn : null,
+            datos_proveedor: datosProveedor,
+            datos_banco: datosBanco,
+            nombre_proyecto: nombreProyecto,
+            asunto,
+            justificacion,
+            estado: "pendiente",
+          });
+
+          return { error };
+        };
+
+        // Insert requisicion (reintenta si la sesión aún no se adjuntó)
+        let { error: reqError } = await insertRequisicion();
+
+        if (
+          reqError &&
+          (reqError.code === "42501" ||
+            /row-level security/i.test(reqError.message ?? ""))
+        ) {
+          const retry = await insertRequisicion();
+          reqError = retry.error;
+        }
+
+        if (reqError) throw reqError;
+
+        // Insert partidas
+        const partidasToInsert = partidas.map((p) => ({
+          requisicion_id: requisicionId,
+          numero_partida: p.numero_partida,
+          descripcion: p.descripcion,
+          modelo_parte: p.modelo_parte,
+          unidad_medida: p.unidad_medida,
+          cantidad: p.cantidad,
+          fecha_necesidad: p.fecha_necesidad?.toISOString().split("T")[0],
+        }));
+
+        const { error: partidasError } = await supabaseAuthed
+          .from("requisicion_partidas")
+          .insert(partidasToInsert);
+
+        if (partidasError) throw partidasError;
+
+        toast.success("Requisición guardada exitosamente");
+        navigate("/tramites");
       }
-
-      if (reqError) throw reqError;
-
-      // Insert partidas
-      const partidasToInsert = partidas.map((p) => ({
-        requisicion_id: requisicionId,
-        numero_partida: p.numero_partida,
-        descripcion: p.descripcion,
-        modelo_parte: p.modelo_parte,
-        unidad_medida: p.unidad_medida,
-        cantidad: p.cantidad,
-        fecha_necesidad: p.fecha_necesidad?.toISOString().split("T")[0],
-      }));
-
-      const { error: partidasError } = await supabaseAuthed
-        .from("requisicion_partidas")
-        .insert(partidasToInsert);
-
-      if (partidasError) throw partidasError;
-
-      toast.success("Requisición guardada exitosamente");
-      navigate("/tramites");
     } catch (error: any) {
       console.error("Error saving requisicion:", error);
       const msg =
@@ -302,7 +425,7 @@ const Requisicion = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || isLoadingEdit) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -316,14 +439,14 @@ const Requisicion = () => {
         <div className="flex items-center justify-between mb-8">
           <Button
             variant="ghost"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate(isEditMode ? "/tramites" : "/dashboard")}
             className="text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver
           </Button>
           <h1 className="text-2xl font-bold text-primary">
-            Formato de Requisición
+            {isEditMode ? "Editar y Reenviar Requisición" : "Formato de Requisición"}
           </h1>
         </div>
 
@@ -728,15 +851,20 @@ const Requisicion = () => {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-6"
+                className={cn(
+                  "w-full font-medium py-6",
+                  isEditMode 
+                    ? "bg-green-600 hover:bg-green-700 text-white" 
+                    : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                )}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Guardando...
+                    {isEditMode ? "Reenviando..." : "Guardando..."}
                   </>
                 ) : (
-                  "Guardar Requisición"
+                  isEditMode ? "Reenviar Requisición" : "Guardar Requisición"
                 )}
               </Button>
             </CardContent>
