@@ -826,7 +826,7 @@ const TramiteDetailDialog = ({
     }
   };
 
-  // Autorizador: Accept presupuestos rejection decision (move back to en_licitacion)
+  // Autorizador: Accept presupuestos rejection decision (clear rejection and keep at pedido_colocado for presupuestos to review again)
   const handleAcceptPresupuestosRejection = async () => {
     if (!tramiteId || !user) return;
     setActionLoading(true);
@@ -835,22 +835,18 @@ const TramiteDetailDialog = ({
       const { error } = await supabase
         .from("requisiciones")
         .update({ 
-          estado: "en_licitacion",
-          // Clear the presupuestos rejection since we're going back to fix it
+          // Keep estado as pedido_colocado so it goes back to presupuestos
+          // Just clear the rejection fields
           justificacion_rechazo_presupuestos: null,
           rechazado_por_presupuestos_id: null,
           rechazado_por_presupuestos_nombre: null,
           rechazado_por_presupuestos_rol: null,
-          fecha_rechazo_presupuestos: null,
-          // Clear pedido_colocado info
-          pedido_colocado_por: null,
-          fecha_pedido_colocado: null,
-          monto_total_compra: null
+          fecha_rechazo_presupuestos: null
         } as any)
         .eq("id", tramiteId);
 
       if (error) throw error;
-      toast.success("Requisición devuelta a Licitación para corrección");
+      toast.success("Requisición devuelta a Presupuestos para revisión");
       onUpdated?.();
       onOpenChange(false);
     } catch (error) {
@@ -2014,7 +2010,7 @@ const TramiteDetailDialog = ({
                     onClick={handleAcceptPresupuestosRejection}
                     disabled={actionLoading}
                   >
-                    Aceptar y Corregir
+                    Aprobar y Reenviar a Presupuestos
                   </Button>
                 </>
               )}
