@@ -546,22 +546,6 @@ const Tramites = () => {
                   {renderTramitesTable(deletedTramites, true)}
                 </TabsContent>
               </Tabs>
-            ) : showAttendedTab ? (
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="activos">Pendientes</TabsTrigger>
-                  <TabsTrigger value="atendidos" className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    Atendidos ({attendedTramites.length})
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="activos">
-                  {renderTramitesTable(filteredTramites)}
-                </TabsContent>
-                <TabsContent value="atendidos">
-                  {renderTramitesTable(filteredAttendedTramites)}
-                </TabsContent>
-              </Tabs>
             ) : showAttendedTab && showRejectedTab ? (
               // Comprador: shows both Atendidas and Rechazadas tabs
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -584,6 +568,23 @@ const Tramites = () => {
                 </TabsContent>
                 <TabsContent value="rechazadas">
                   {renderTramitesTable(filteredRejectedTramites)}
+                </TabsContent>
+              </Tabs>
+            ) : showAttendedTab ? (
+              // Autorizador, Presupuestos, Tesoreria: only Atendidos tab
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="activos">Pendientes</TabsTrigger>
+                  <TabsTrigger value="atendidos" className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Atendidos ({attendedTramites.length})
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="activos">
+                  {renderTramitesTable(filteredTramites)}
+                </TabsContent>
+                <TabsContent value="atendidos">
+                  {renderTramitesTable(filteredAttendedTramites)}
                 </TabsContent>
               </Tabs>
             ) : showRejectedTab ? (
