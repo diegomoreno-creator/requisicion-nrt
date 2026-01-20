@@ -365,8 +365,37 @@ const Requisicion = () => {
 
       if (isEditMode && originalRequisicionId) {
         // UPDATE mode - clear justificacion_rechazo and update requisicion
-        // Set estado to 'aprobado' so it goes back to the Comprador (who rejected it),
-        // not to the Autorizador (since it was already approved before rejection)
+        // IMPORTANT: Delete partidas FIRST while the estado is still 'pendiente'
+        // Then update the requisicion (which changes estado to 'aprobado')
+        
+        // Step 1: Delete existing partidas (while estado is still pendiente/rechazado)
+        const { error: deletePartidasError } = await supabaseAuthed
+          .from("requisicion_partidas")
+          .delete()
+          .eq("requisicion_id", originalRequisicionId);
+
+        if (deletePartidasError) throw deletePartidasError;
+
+        // Step 2: Insert new partidas
+        const partidasToInsert = partidas.map((p) => ({
+          requisicion_id: originalRequisicionId,
+          numero_partida: p.numero_partida,
+          descripcion: p.descripcion,
+          modelo_parte: p.modelo_parte,
+          unidad_medida: p.unidad_medida,
+          cantidad: p.cantidad,
+          fecha_necesidad: p.fecha_necesidad?.toISOString().split("T")[0],
+          tipo_gasto: p.tipo_gasto || null,
+          categoria_gasto: p.categoria_gasto || null,
+        }));
+
+        const { error: partidasError } = await supabaseAuthed
+          .from("requisicion_partidas")
+          .insert(partidasToInsert);
+
+        if (partidasError) throw partidasError;
+
+        // Step 3: Update requisicion - set estado to 'aprobado' so it goes back to the Comprador
         const updateData = {
           tipo_requisicion: tipoRequisicion,
           unidad_negocio: unidadNegocio,
@@ -397,32 +426,6 @@ const Requisicion = () => {
           .eq("id", originalRequisicionId);
 
         if (updateError) throw updateError;
-
-        // Delete existing partidas and insert new ones
-        const { error: deletePartidasError } = await supabaseAuthed
-          .from("requisicion_partidas")
-          .delete()
-          .eq("requisicion_id", originalRequisicionId);
-
-        if (deletePartidasError) throw deletePartidasError;
-
-        const partidasToInsert = partidas.map((p) => ({
-          requisicion_id: originalRequisicionId,
-          numero_partida: p.numero_partida,
-          descripcion: p.descripcion,
-          modelo_parte: p.modelo_parte,
-          unidad_medida: p.unidad_medida,
-          cantidad: p.cantidad,
-          fecha_necesidad: p.fecha_necesidad?.toISOString().split("T")[0],
-          tipo_gasto: p.tipo_gasto || null,
-          categoria_gasto: p.categoria_gasto || null,
-        }));
-
-        const { error: partidasError } = await supabaseAuthed
-          .from("requisicion_partidas")
-          .insert(partidasToInsert);
-
-        if (partidasError) throw partidasError;
 
         toast.success("Requisición actualizada y reenviada exitosamente");
         navigate("/tramites");
