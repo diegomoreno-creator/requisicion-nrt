@@ -45,6 +45,7 @@ interface Partida {
   unidad_medida: string;
   cantidad: number;
   fecha_necesidad: Date | null;
+  tipo_gasto: string;
 }
 
 interface UserOption {
@@ -99,6 +100,7 @@ const Requisicion = () => {
       unidad_medida: "",
       cantidad: 1,
       fecha_necesidad: new Date(),
+      tipo_gasto: "",
     },
   ]);
 
@@ -189,6 +191,7 @@ const Requisicion = () => {
           unidad_medida: p.unidad_medida || "",
           cantidad: p.cantidad || 1,
           fecha_necesidad: p.fecha_necesidad ? new Date(p.fecha_necesidad) : null,
+          tipo_gasto: p.tipo_gasto || "",
         })));
       }
     } catch (error) {
@@ -221,6 +224,7 @@ const Requisicion = () => {
       unidad_medida: "",
       cantidad: 1,
       fecha_necesidad: new Date(),
+      tipo_gasto: "",
     };
     setPartidas([...partidas, newPartida]);
   };
@@ -338,6 +342,7 @@ const Requisicion = () => {
           unidad_medida: p.unidad_medida,
           cantidad: p.cantidad,
           fecha_necesidad: p.fecha_necesidad?.toISOString().split("T")[0],
+          tipo_gasto: p.tipo_gasto || null,
         }));
 
         const { error: partidasError } = await supabaseAuthed
@@ -404,6 +409,7 @@ const Requisicion = () => {
           unidad_medida: p.unidad_medida,
           cantidad: p.cantidad,
           fecha_necesidad: p.fecha_necesidad?.toISOString().split("T")[0],
+          tipo_gasto: p.tipo_gasto || null,
         }));
 
         const { error: partidasError } = await supabaseAuthed
@@ -634,6 +640,7 @@ const Requisicion = () => {
                     <TableHeader>
                       <TableRow className="border-border hover:bg-transparent">
                         <TableHead className="text-muted-foreground w-20">Partida</TableHead>
+                        <TableHead className="text-muted-foreground w-40">Tipo de Gasto</TableHead>
                         <TableHead className="text-muted-foreground">Descripción</TableHead>
                         <TableHead className="text-muted-foreground">Modelo/# Parte</TableHead>
                         <TableHead className="text-muted-foreground w-24">UM</TableHead>
@@ -651,6 +658,23 @@ const Requisicion = () => {
                               disabled
                               className="bg-muted border-border text-center w-16"
                             />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={partida.tipo_gasto}
+                              onValueChange={(value) =>
+                                updatePartida(partida.id, "tipo_gasto", value)
+                              }
+                            >
+                              <SelectTrigger className="bg-input border-border w-36">
+                                <SelectValue placeholder="Seleccionar" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-card border-border">
+                                <SelectItem value="administrativo">Administrativo</SelectItem>
+                                <SelectItem value="operativo">Operativo</SelectItem>
+                                <SelectItem value="proyecto_inversion">Proyecto/Inversión</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             <Input
