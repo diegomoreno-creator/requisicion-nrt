@@ -165,6 +165,8 @@ const TramiteDetailDialog = ({
     editado_por: string;
     editado_at: string;
     editor_name?: string;
+    editor_role?: string;
+    estado_al_comentar?: string;
   }>>([]);
   const [montoTotalCompra, setMontoTotalCompra] = useState("");
 
@@ -256,9 +258,16 @@ const TramiteDetailDialog = ({
         // Get editor names for each entry
         if (historialData && historialData.length > 0) {
           const historialWithNames = await Promise.all(
-            historialData.map(async (entry) => {
-              const { data: editorName } = await supabase.rpc('get_profile_name', { _user_id: entry.editado_por });
-              return { ...entry, editor_name: editorName || "Usuario desconocido" };
+            historialData.map(async (entry: any) => {
+              const [nameResult, roleResult] = await Promise.all([
+                supabase.rpc('get_profile_name', { _user_id: entry.editado_por }),
+                supabase.rpc('get_user_role_text', { _user_id: entry.editado_por })
+              ]);
+              return { 
+                ...entry, 
+                editor_name: nameResult.data || "Usuario desconocido",
+                editor_role: roleResult.data || "sin rol"
+              };
             })
           );
           setTextoComprasHistorial(historialWithNames);
@@ -731,7 +740,7 @@ const TramiteDetailDialog = ({
   };
 
   const handleSaveTextoCompras = async () => {
-    if (!tramiteId || !user || !textoCompras.trim()) {
+    if (!tramiteId || !user || !textoCompras.trim() || !requisicion) {
       toast.error("Debe escribir un texto antes de guardar");
       return;
     }
@@ -739,35 +748,43 @@ const TramiteDetailDialog = ({
 
     try {
       const now = new Date().toISOString();
+      const currentEstado = requisicion.estado;
       
-      // Insert into historial table
+      // Insert into historial table with estado
       const { error } = await supabase
         .from("requisicion_texto_compras_historial")
         .insert({
           requisicion_id: tramiteId,
           texto: textoCompras.trim(),
           editado_por: user.id,
-          editado_at: now
+          editado_at: now,
+          estado_al_comentar: currentEstado
         });
 
       if (error) throw error;
-      toast.success("Texto de compras guardado");
+      toast.success("Comentario guardado");
       
-      // Get editor name and add to local historial
-      const { data: editorData } = await supabase.rpc('get_profile_name', { _user_id: user.id });
+      // Get editor name and role, add to local historial
+      const [nameResult, roleResult] = await Promise.all([
+        supabase.rpc('get_profile_name', { _user_id: user.id }),
+        supabase.rpc('get_user_role_text', { _user_id: user.id })
+      ]);
+      
       const newEntry = {
         id: crypto.randomUUID(),
         texto: textoCompras.trim(),
         editado_por: user.id,
         editado_at: now,
-        editor_name: editorData || "Usuario"
+        editor_name: nameResult.data || "Usuario",
+        editor_role: roleResult.data || "sin rol",
+        estado_al_comentar: currentEstado
       };
       
       setTextoComprasHistorial(prev => [newEntry, ...prev]);
       setTextoCompras(""); // Clear input after saving
     } catch (error) {
-      console.error("Error saving texto compras:", error);
-      toast.error("Error al guardar texto de compras");
+      console.error("Error saving comentario:", error);
+      toast.error("Error al guardar comentario");
     } finally {
       setSavingTextoCompras(false);
     }
@@ -1361,10 +1378,21 @@ const TramiteDetailDialog = ({
                 {textoComprasHistorial.length > 0 && (
                   <div className="mb-4 space-y-2 max-h-48 overflow-y-auto">
                     {textoComprasHistorial.map((entry) => (
-                      <div key={entry.id} className="text-sm border-l-2 border-accent/50 pl-3 py-1">
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(entry.editado_at), "dd/MM/yyyy HH:mm", { locale: es })} por {entry.editor_name}
-                        </p>
+                      <div key={entry.id} className="text-sm border-l-2 border-accent/50 pl-3 py-2">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-1">
+                          <span>{format(new Date(entry.editado_at), "dd/MM/yyyy HH:mm", { locale: es })}</span>
+                          <span>por <span className="font-medium text-foreground">{entry.editor_name}</span></span>
+                          {entry.editor_role && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {entry.editor_role}
+                            </Badge>
+                          )}
+                          {entry.estado_al_comentar && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                              Etapa: {entry.estado_al_comentar.replace(/_/g, ' ')}
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-foreground">{entry.texto}</p>
                       </div>
                     ))}
