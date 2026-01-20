@@ -36,6 +36,7 @@ import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { ChevronRight, Download, Lightbulb, Loader2, Pencil } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -73,6 +74,7 @@ interface RequisicionDetail {
   texto_compras: string | null;
   texto_compras_editado_por: string | null;
   texto_compras_editado_at: string | null;
+  monto_total_compra: number | null;
 }
 
 interface ReposicionDetail {
@@ -158,6 +160,7 @@ const TramiteDetailDialog = ({
   const [textoCompras, setTextoCompras] = useState("");
   const [savingTextoCompras, setSavingTextoCompras] = useState(false);
   const [textoComprasEditorName, setTextoComprasEditorName] = useState<string | null>(null);
+  const [montoTotalCompra, setMontoTotalCompra] = useState("");
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
@@ -235,6 +238,7 @@ const TramiteDetailDialog = ({
         setRequisicion(req);
         setApuntesLicitacion(req.apuntes_licitacion || "");
         setTextoCompras(req.texto_compras || "");
+        setMontoTotalCompra(req.monto_total_compra?.toString() || "");
         
         // Fetch editor name if texto_compras was edited
         if (req.texto_compras_editado_por) {
@@ -602,6 +606,13 @@ const TramiteDetailDialog = ({
 
   const handleMoveToPedidoColocado = async () => {
     if (!tramiteId || !user) return;
+    
+    const monto = parseFloat(montoTotalCompra);
+    if (!montoTotalCompra || isNaN(monto) || monto <= 0) {
+      toast.error("Debe ingresar un monto total válido antes de colocar el pedido");
+      return;
+    }
+    
     setActionLoading(true);
 
     try {
@@ -610,7 +621,8 @@ const TramiteDetailDialog = ({
         .update({ 
           estado: "pedido_colocado",
           pedido_colocado_por: user.id,
-          fecha_pedido_colocado: new Date().toISOString()
+          fecha_pedido_colocado: new Date().toISOString(),
+          monto_total_compra: monto
         })
         .eq("id", tramiteId);
 
@@ -1167,6 +1179,15 @@ const TramiteDetailDialog = ({
                         </p>
                       </div>
                     )}
+                    {/* Show monto total compra when available (after pedido colocado) */}
+                    {requisicion.monto_total_compra && (
+                      <div>
+                        <p className="text-muted-foreground text-sm">Monto Total Compra:</p>
+                        <p className="text-foreground font-semibold">
+                          {formatCurrency(requisicion.monto_total_compra)}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <p className="text-muted-foreground text-sm">Proyecto:</p>
                       <p className="text-foreground">
@@ -1480,13 +1501,28 @@ const TramiteDetailDialog = ({
                 </Button>
               )}
               {canMoveToPedidoColocado() && (
-                <Button
-                  className="bg-purple-600 hover:bg-purple-700"
-                  onClick={handleMoveToPedidoColocado}
-                  disabled={actionLoading}
-                >
-                  Colocar Pedido
-                </Button>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="montoTotal" className="text-sm whitespace-nowrap">Monto Total:</Label>
+                    <Input
+                      id="montoTotal"
+                      type="number"
+                      placeholder="0.00"
+                      value={montoTotalCompra}
+                      onChange={(e) => setMontoTotalCompra(e.target.value)}
+                      className="w-32"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <Button
+                    className="bg-purple-600 hover:bg-purple-700"
+                    onClick={handleMoveToPedidoColocado}
+                    disabled={actionLoading || !montoTotalCompra}
+                  >
+                    Colocar Pedido
+                  </Button>
+                </div>
               )}
               {canAuthorizePedido() && (
                 <Button
