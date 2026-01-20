@@ -573,11 +573,42 @@ const TramiteDetailDialog = ({
     const pageWidth = doc.internal.pageSize.getWidth();
     let yPosition = 20;
 
+    // NRT MÉXICO Branding Header
+    const nrtFontSize = 24;
+    const mexicoFontSize = nrtFontSize * 0.75; // 25% smaller
+    
+    // Calculate positions for centered "NRT MÉXICO"
+    doc.setFontSize(nrtFontSize);
+    doc.setFont("helvetica", "bold");
+    const nrtText = "NRT";
+    const nrtWidth = doc.getTextWidth(nrtText);
+    
+    doc.setFontSize(mexicoFontSize);
+    const mexicoText = " MÉXICO";
+    const mexicoWidth = doc.getTextWidth(mexicoText);
+    
+    const totalWidth = nrtWidth + mexicoWidth;
+    const startX = (pageWidth - totalWidth) / 2;
+    
+    // Draw NRT in brand red color
+    doc.setFontSize(nrtFontSize);
+    doc.setTextColor(208, 57, 37); // #d03925
+    doc.text(nrtText, startX, yPosition);
+    
+    // Draw MÉXICO in dark gray (for visibility on white PDF)
+    doc.setFontSize(mexicoFontSize);
+    doc.setTextColor(60, 60, 60);
+    doc.text(mexicoText, startX + nrtWidth, yPosition);
+    
+    // Reset text color to black
+    doc.setTextColor(0, 0, 0);
+    yPosition += 15;
+
     // Title
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
     doc.text(`${tramiteTipo}: ${tramite.folio}`, pageWidth / 2, yPosition, { align: "center" });
-    yPosition += 15;
+    yPosition += 12;
 
     // Estado badge
     doc.setFontSize(12);
