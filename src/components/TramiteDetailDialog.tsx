@@ -181,7 +181,7 @@ const TramiteDetailDialog = ({
     }
   }, [open, tramiteId, tramiteTipo]);
 
-  // Real-time subscription for status updates
+  // Real-time subscription for status updates and historial
   useEffect(() => {
     if (!open || !tramiteId || !tramiteTipo) return;
 
@@ -206,6 +206,39 @@ const TramiteDetailDialog = ({
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'requisicion_texto_compras_historial',
+          filter: `requisicion_id=eq.${tramiteId}`,
+        },
+        async (payload) => {
+          // Fetch editor info for new entry
+          const newRecord = payload.new as any;
+          const [nameResult, roleResult] = await Promise.all([
+            supabase.rpc('get_profile_name', { _user_id: newRecord.editado_por }),
+            supabase.rpc('get_user_role_text', { _user_id: newRecord.editado_por })
+          ]);
+          
+          const newEntry = {
+            id: newRecord.id,
+            texto: newRecord.texto,
+            editado_por: newRecord.editado_por,
+            editado_at: newRecord.editado_at,
+            editor_name: nameResult.data || "Usuario",
+            editor_role: roleResult.data || "sin rol",
+            estado_al_comentar: newRecord.estado_al_comentar
+          };
+          
+          // Add to historial if not already present
+          setTextoComprasHistorial(prev => {
+            if (prev.some(e => e.id === newEntry.id)) return prev;
+            return [newEntry, ...prev];
+          });
+        }
+      )
       .subscribe();
 
     return () => {
@@ -216,6 +249,10 @@ const TramiteDetailDialog = ({
   const fetchDetails = async () => {
     if (!tramiteId || !tramiteTipo) return;
     setLoading(true);
+    // Reset state to prevent duplications
+    setPartidas([]);
+    setGastos([]);
+    setTextoComprasHistorial([]);
 
     try {
       if (tramiteTipo === "Reposición") {
@@ -1384,8 +1421,8 @@ const TramiteDetailDialog = ({
               </div>
             )}
 
-            {/* Apuntes de Licitación - visible when in en_licitacion or later, editable only by comprador when en_licitacion */}
-            {requisicion && (requisicion.estado === 'en_licitacion' || requisicion.apuntes_licitacion) && (
+            {/* Apuntes de Licitación - visible when in en_licitacion or later, editable only by comprador when en_licitacion, hidden from solicitador */}
+            {requisicion && !isSolicitador && (requisicion.estado === 'en_licitacion' || requisicion.apuntes_licitacion) && (
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
                 <h3 className="text-blue-400 font-semibold mb-2">Apuntes de Licitación</h3>
                 {requisicion.estado === 'en_licitacion' && (isComprador || isSuperadmin) ? (
@@ -1419,8 +1456,8 @@ const TramiteDetailDialog = ({
               </div>
             )}
 
-            {/* Apuntes de Presupuesto - visible when in pedido_colocado or later, editable only by presupuestos when pedido_colocado */}
-            {requisicion && (requisicion.estado === 'pedido_colocado' || (requisicion as any).apuntes_presupuesto) && (
+            {/* Apuntes de Presupuesto - visible when in pedido_colocado or later, editable only by presupuestos when pedido_colocado, hidden from solicitador */}
+            {requisicion && !isSolicitador && (requisicion.estado === 'pedido_colocado' || (requisicion as any).apuntes_presupuesto) && (
               <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
                 <h3 className="text-purple-400 font-semibold mb-2">Apuntes de Presupuesto</h3>
                 {requisicion.estado === 'pedido_colocado' && (isPresupuestos || isSuperadmin) ? (
@@ -1455,8 +1492,8 @@ const TramiteDetailDialog = ({
               </div>
             )}
 
-            {/* Apuntes de Tesorería - visible when in pedido_autorizado or later, editable only by tesoreria when pedido_autorizado */}
-            {requisicion && (requisicion.estado === 'pedido_autorizado' || (requisicion as any).apuntes_tesoreria) && (
+            {/* Apuntes de Tesorería - visible when in pedido_autorizado or later, editable only by tesoreria when pedido_autorizado, hidden from solicitador */}
+            {requisicion && !isSolicitador && (requisicion.estado === 'pedido_autorizado' || (requisicion as any).apuntes_tesoreria) && (
               <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
                 <h3 className="text-orange-400 font-semibold mb-2">Apuntes de Tesorería</h3>
                 {requisicion.estado === 'pedido_autorizado' && (isTesoreria || isSuperadmin) ? (
