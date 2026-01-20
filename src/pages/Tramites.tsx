@@ -180,9 +180,15 @@ const Tramites = () => {
         
         if (r.deleted_at) {
           deleted.push(tramite);
-        } else if (isSolicitador && r.solicitado_por === user.id && r.estado === 'pendiente' && r.justificacion_rechazo) {
-          // For solicitador: items returned with rejection justification go to rejected
+        } else if ((isSolicitador && r.solicitado_por === user.id && r.estado === 'pendiente' && r.justificacion_rechazo) ||
+                   (isComprador && r.justificacion_rechazo && r.estado === 'pendiente')) {
+          // Items with rejection justification go to rejected tab
+          // For solicitador: their own items
+          // For comprador: items they rejected (any item with justificacion_rechazo)
           rejected.push(tramite);
+        } else if (isComprador && (r.licitado_por === user.id || r.pedido_colocado_por === user.id)) {
+          // Comprador: items they processed (licitado or pedido colocado)
+          attended.push(tramite);
         } else if (processorField && (r as any)[processorField] === user.id) {
           // User processed this tramite - goes to Atendidos
           attended.push(tramite);
@@ -272,10 +278,10 @@ const Tramites = () => {
     return matchesSearch && matchesTipo;
   });
 
-  // Check if current user role shows attended tab (not for comprador, superadmin, admin, solicitador)
-  const showAttendedTab = isAutorizador || isPresupuestos || isTesoreria;
-  // Solicitador shows rejected tab
-  const showRejectedTab = isSolicitador;
+  // Check if current user role shows attended tab
+  const showAttendedTab = isAutorizador || isPresupuestos || isTesoreria || isComprador;
+  // Solicitador and Comprador show rejected tab
+  const showRejectedTab = isSolicitador || isComprador;
 
   const formatFecha = (fecha: string) => {
     try {
@@ -556,7 +562,32 @@ const Tramites = () => {
                   {renderTramitesTable(filteredAttendedTramites)}
                 </TabsContent>
               </Tabs>
+            ) : showAttendedTab && showRejectedTab ? (
+              // Comprador: shows both Atendidas and Rechazadas tabs
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="activos">Pendientes</TabsTrigger>
+                  <TabsTrigger value="atendidos" className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Atendidos ({attendedTramites.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="rechazadas" className="flex items-center gap-2">
+                    <XCircle className="w-4 h-4" />
+                    Rechazadas ({rejectedTramites.length})
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="activos">
+                  {renderTramitesTable(filteredTramites)}
+                </TabsContent>
+                <TabsContent value="atendidos">
+                  {renderTramitesTable(filteredAttendedTramites)}
+                </TabsContent>
+                <TabsContent value="rechazadas">
+                  {renderTramitesTable(filteredRejectedTramites)}
+                </TabsContent>
+              </Tabs>
             ) : showRejectedTab ? (
+              // Solicitador: only Rechazadas tab
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="mb-4">
                   <TabsTrigger value="activos">Mis Trámites</TabsTrigger>
