@@ -310,6 +310,7 @@ export type Database = {
           modelo_parte: string | null
           numero_partida: number
           requisicion_id: string
+          tipo_gasto: string | null
           unidad_medida: string | null
         }
         Insert: {
@@ -321,6 +322,7 @@ export type Database = {
           modelo_parte?: string | null
           numero_partida: number
           requisicion_id: string
+          tipo_gasto?: string | null
           unidad_medida?: string | null
         }
         Update: {
@@ -332,6 +334,7 @@ export type Database = {
           modelo_parte?: string | null
           numero_partida?: number
           requisicion_id?: string
+          tipo_gasto?: string | null
           unidad_medida?: string | null
         }
         Relationships: [
