@@ -344,6 +344,41 @@ export type Database = {
           },
         ]
       }
+      requisicion_texto_compras_historial: {
+        Row: {
+          created_at: string
+          editado_at: string
+          editado_por: string
+          id: string
+          requisicion_id: string
+          texto: string
+        }
+        Insert: {
+          created_at?: string
+          editado_at?: string
+          editado_por: string
+          id?: string
+          requisicion_id: string
+          texto: string
+        }
+        Update: {
+          created_at?: string
+          editado_at?: string
+          editado_por?: string
+          id?: string
+          requisicion_id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requisicion_texto_compras_historial_requisicion_id_fkey"
+            columns: ["requisicion_id"]
+            isOneToOne: false
+            referencedRelation: "requisiciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       requisiciones: {
         Row: {
           apuntes_licitacion: string | null

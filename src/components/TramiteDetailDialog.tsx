@@ -159,7 +159,13 @@ const TramiteDetailDialog = ({
   const [savingApuntes, setSavingApuntes] = useState(false);
   const [textoCompras, setTextoCompras] = useState("");
   const [savingTextoCompras, setSavingTextoCompras] = useState(false);
-  const [textoComprasEditorName, setTextoComprasEditorName] = useState<string | null>(null);
+  const [textoComprasHistorial, setTextoComprasHistorial] = useState<Array<{
+    id: string;
+    texto: string;
+    editado_por: string;
+    editado_at: string;
+    editor_name?: string;
+  }>>([]);
   const [montoTotalCompra, setMontoTotalCompra] = useState("");
 
   useEffect(() => {
@@ -237,15 +243,27 @@ const TramiteDetailDialog = ({
         if (error) throw error;
         setRequisicion(req);
         setApuntesLicitacion(req.apuntes_licitacion || "");
-        setTextoCompras(req.texto_compras || "");
+        setTextoCompras("");
         setMontoTotalCompra(req.monto_total_compra?.toString() || "");
         
-        // Fetch editor name if texto_compras was edited
-        if (req.texto_compras_editado_por) {
-          const { data: editorData } = await supabase.rpc('get_profile_name', { _user_id: req.texto_compras_editado_por });
-          setTextoComprasEditorName(editorData || "Usuario desconocido");
+        // Fetch texto compras historial
+        const { data: historialData } = await supabase
+          .from("requisicion_texto_compras_historial")
+          .select("*")
+          .eq("requisicion_id", tramiteId)
+          .order("editado_at", { ascending: false });
+        
+        // Get editor names for each entry
+        if (historialData && historialData.length > 0) {
+          const historialWithNames = await Promise.all(
+            historialData.map(async (entry) => {
+              const { data: editorName } = await supabase.rpc('get_profile_name', { _user_id: entry.editado_por });
+              return { ...entry, editor_name: editorName || "Usuario desconocido" };
+            })
+          );
+          setTextoComprasHistorial(historialWithNames);
         } else {
-          setTextoComprasEditorName(null);
+          setTextoComprasHistorial([]);
         }
         setReposicion(null);
 
@@ -713,34 +731,40 @@ const TramiteDetailDialog = ({
   };
 
   const handleSaveTextoCompras = async () => {
-    if (!tramiteId || !user) return;
+    if (!tramiteId || !user || !textoCompras.trim()) {
+      toast.error("Debe escribir un texto antes de guardar");
+      return;
+    }
     setSavingTextoCompras(true);
 
     try {
       const now = new Date().toISOString();
+      
+      // Insert into historial table
       const { error } = await supabase
-        .from("requisiciones")
-        .update({ 
-          texto_compras: textoCompras.trim() || null,
-          texto_compras_editado_por: user.id,
-          texto_compras_editado_at: now
-        })
-        .eq("id", tramiteId);
+        .from("requisicion_texto_compras_historial")
+        .insert({
+          requisicion_id: tramiteId,
+          texto: textoCompras.trim(),
+          editado_por: user.id,
+          editado_at: now
+        });
 
       if (error) throw error;
       toast.success("Texto de compras guardado");
       
-      // Update local state
-      setRequisicion(prev => prev ? { 
-        ...prev, 
-        texto_compras: textoCompras.trim() || null,
-        texto_compras_editado_por: user.id,
-        texto_compras_editado_at: now
-      } : null);
-      
-      // Update editor name display
+      // Get editor name and add to local historial
       const { data: editorData } = await supabase.rpc('get_profile_name', { _user_id: user.id });
-      setTextoComprasEditorName(editorData || "Usuario");
+      const newEntry = {
+        id: crypto.randomUUID(),
+        texto: textoCompras.trim(),
+        editado_por: user.id,
+        editado_at: now,
+        editor_name: editorData || "Usuario"
+      };
+      
+      setTextoComprasHistorial(prev => [newEntry, ...prev]);
+      setTextoCompras(""); // Clear input after saving
     } catch (error) {
       console.error("Error saving texto compras:", error);
       toast.error("Error al guardar texto de compras");
@@ -1328,25 +1352,36 @@ const TramiteDetailDialog = ({
               </div>
             )}
 
-            {/* Texto de Compras - editable por cualquier usuario */}
+            {/* Texto de Compras - editable por cualquier usuario con historial */}
             {requisicion && (
               <div className="bg-accent/20 border border-accent/30 rounded-lg p-4">
-                <h3 className="text-accent-foreground font-semibold mb-2">Texto de Compras</h3>
-                {requisicion.texto_compras_editado_at && textoComprasEditorName && (
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Última edición: {format(new Date(requisicion.texto_compras_editado_at), "dd/MM/yyyy HH:mm", { locale: es })} por {textoComprasEditorName}
-                  </p>
+                <h3 className="text-accent-foreground font-semibold mb-3">Texto de Compras</h3>
+                
+                {/* Historial de cambios */}
+                {textoComprasHistorial.length > 0 && (
+                  <div className="mb-4 space-y-2 max-h-48 overflow-y-auto">
+                    {textoComprasHistorial.map((entry) => (
+                      <div key={entry.id} className="text-sm border-l-2 border-accent/50 pl-3 py-1">
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(entry.editado_at), "dd/MM/yyyy HH:mm", { locale: es })} por {entry.editor_name}
+                        </p>
+                        <p className="text-foreground">{entry.texto}</p>
+                      </div>
+                    ))}
+                  </div>
                 )}
+                
+                {/* Input para nuevo texto */}
                 <div className="space-y-3">
                   <Textarea
                     value={textoCompras}
                     onChange={(e) => setTextoCompras(e.target.value)}
                     placeholder="Escriba aquí notas, comentarios o información relevante para el área de compras..."
-                    className="min-h-[100px] bg-background/50"
+                    className="min-h-[80px] bg-background/50"
                   />
                   <Button
                     onClick={handleSaveTextoCompras}
-                    disabled={savingTextoCompras}
+                    disabled={savingTextoCompras || !textoCompras.trim()}
                     size="sm"
                   >
                     {savingTextoCompras ? (
@@ -1355,7 +1390,7 @@ const TramiteDetailDialog = ({
                         Guardando...
                       </>
                     ) : (
-                      "Guardar Texto de Compras"
+                      "Agregar Comentario"
                     )}
                   </Button>
                 </div>
