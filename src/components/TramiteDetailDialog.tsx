@@ -63,6 +63,7 @@ interface RequisicionDetail {
   nombre_proyecto: string | null;
   asunto: string | null;
   justificacion: string | null;
+  justificacion_rechazo: string | null;
   presupuesto_aproximado: number | null;
   datos_proveedor: string | null;
   datos_banco: string | null;
@@ -533,7 +534,7 @@ const TramiteDetailDialog = ({
         .from("requisiciones")
         .update({ 
           estado: "pendiente",
-          justificacion: rejectJustification.trim()
+          justificacion_rechazo: rejectJustification.trim()
         })
         .eq("id", tramiteId);
 
@@ -1147,6 +1148,16 @@ const TramiteDetailDialog = ({
                 <h3 className="text-primary font-semibold mb-2">Justificación</h3>
                 <p className="text-foreground">
                   {reposicion?.justificacion || requisicion?.justificacion}
+                </p>
+              </div>
+            )}
+
+            {/* Justificación de Rechazo */}
+            {requisicion?.justificacion_rechazo && (
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+                <h3 className="text-destructive font-semibold mb-2">Justificación del Rechazo</h3>
+                <p className="text-foreground">
+                  {requisicion.justificacion_rechazo}
                 </p>
               </div>
             )}
