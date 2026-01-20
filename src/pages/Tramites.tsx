@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FolderSearch, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle, FolderSearch, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
@@ -37,6 +37,12 @@ interface Tramite {
   solicitante: string;
   estado: string;
   deleted_at?: string | null;
+  // Tracking who processed each phase
+  autorizado_por?: string | null;
+  licitado_por?: string | null;
+  pedido_colocado_por?: string | null;
+  pedido_autorizado_por?: string | null;
+  pagado_por?: string | null;
 }
 
 const estadoColors: Record<string, string> = {
@@ -66,6 +72,7 @@ const Tramites = () => {
   const { user, isSuperadmin, isAdmin, isComprador, isAutorizador, isPresupuestos, isTesoreria, isSolicitador, loading: authLoading } = useAuth();
   const { tiposRequisicion, getTipoColor, getTipoNombre } = useCatalogos();
   const [tramites, setTramites] = useState<Tramite[]>([]);
+  const [attendedTramites, setAttendedTramites] = useState<Tramite[]>([]);
   const [deletedTramites, setDeletedTramites] = useState<Tramite[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,6 +83,15 @@ const Tramites = () => {
   } | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("activos");
+
+  // Determine which processor field to check based on user role
+  const getProcessorField = (): string | null => {
+    if (isAutorizador) return 'autorizado_por';
+    if (isPresupuestos) return 'pedido_autorizado_por';
+    if (isTesoreria) return 'pagado_por';
+    // Comprador handles multiple phases, so we don't use "Atendidos" for them
+    return null;
+  };
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -91,7 +107,7 @@ const Tramites = () => {
       // Fetch requisiciones - RLS policies will handle visibility
       const { data: requisiciones, error: reqError } = await supabase
         .from("requisiciones")
-        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion, deleted_at")
+        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion, deleted_at, autorizado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
         .order("created_at", { ascending: false });
 
       if (reqError) {
@@ -101,7 +117,7 @@ const Tramites = () => {
       // Fetch reposiciones - RLS policies will handle visibility
       const { data: reposiciones, error: repoError } = await supabase
         .from("reposiciones")
-        .select("id, folio, fecha_solicitud, solicitado_por, estado")
+        .select("id, folio, fecha_solicitud, solicitado_por, estado, autorizado_por, pagado_por")
         .order("created_at", { ascending: false });
 
       if (repoError) {
@@ -124,9 +140,12 @@ const Tramites = () => {
         userMap.set(p.user_id, p.full_name || p.email || "Usuario");
       });
 
-      // Combine and format tramites - separate active and deleted
+      // Combine and format tramites - separate active, attended, and deleted
       const activeTramites: Tramite[] = [];
+      const attended: Tramite[] = [];
       const deleted: Tramite[] = [];
+      
+      const processorField = getProcessorField();
 
       requisiciones?.forEach((r) => {
         const tramite: Tramite = {
@@ -138,30 +157,52 @@ const Tramites = () => {
           solicitante: userMap.get(r.solicitado_por) || "Usuario",
           estado: r.estado || "borrador",
           deleted_at: r.deleted_at,
+          autorizado_por: r.autorizado_por,
+          licitado_por: r.licitado_por,
+          pedido_colocado_por: r.pedido_colocado_por,
+          pedido_autorizado_por: r.pedido_autorizado_por,
+          pagado_por: r.pagado_por,
         };
+        
         if (r.deleted_at) {
           deleted.push(tramite);
+        } else if (processorField && (r as any)[processorField] === user.id) {
+          // User processed this tramite - goes to Atendidos
+          attended.push(tramite);
         } else {
           activeTramites.push(tramite);
         }
       });
 
       reposiciones?.forEach((r) => {
-        activeTramites.push({
+        const tramite: Tramite = {
           id: r.id,
           folio: r.folio,
           tipo: "Reposición",
           fecha: r.fecha_solicitud,
           solicitante: userMap.get(r.solicitado_por) || "Usuario",
           estado: r.estado || "borrador",
-        });
+          autorizado_por: r.autorizado_por,
+          pagado_por: r.pagado_por,
+        };
+        
+        // For reposiciones, check autorizador (autorizado_por) and tesoreria (pagado_por)
+        if (processorField === 'autorizado_por' && r.autorizado_por === user.id) {
+          attended.push(tramite);
+        } else if (processorField === 'pagado_por' && r.pagado_por === user.id) {
+          attended.push(tramite);
+        } else {
+          activeTramites.push(tramite);
+        }
       });
 
       // Sort by date descending
       activeTramites.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+      attended.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
       deleted.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
       setTramites(activeTramites);
+      setAttendedTramites(attended);
       setDeletedTramites(deleted);
     } catch (error) {
       console.error("Error fetching tramites:", error);
@@ -183,6 +224,23 @@ const Tramites = () => {
 
     return matchesSearch && matchesTipo;
   });
+
+  const filteredAttendedTramites = attendedTramites.filter((tramite) => {
+    const matchesSearch =
+      tramite.folio.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tramite.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tramite.solicitante.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesTipo =
+      filterTipo === "todos" ||
+      (filterTipo === "requisicion" && tramite.tipo === "Requisición") ||
+      (filterTipo === "reposicion" && tramite.tipo === "Reposición");
+
+    return matchesSearch && matchesTipo;
+  });
+
+  // Check if current user role shows attended tab (not for comprador, superadmin, admin, solicitador)
+  const showAttendedTab = isAutorizador || isPresupuestos || isTesoreria;
 
   const formatFecha = (fecha: string) => {
     try {
@@ -355,7 +413,7 @@ const Tramites = () => {
               </Select>
             </div>
 
-            {/* Tabs for superadmin to see deleted */}
+            {/* Tabs based on role */}
             {isSuperadmin ? (
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="mb-4">
@@ -370,6 +428,22 @@ const Tramites = () => {
                 </TabsContent>
                 <TabsContent value="borrados">
                   {renderTramitesTable(deletedTramites, true)}
+                </TabsContent>
+              </Tabs>
+            ) : showAttendedTab ? (
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="activos">Pendientes</TabsTrigger>
+                  <TabsTrigger value="atendidos" className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Atendidos ({attendedTramites.length})
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="activos">
+                  {renderTramitesTable(filteredTramites)}
+                </TabsContent>
+                <TabsContent value="atendidos">
+                  {renderTramitesTable(filteredAttendedTramites)}
                 </TabsContent>
               </Tabs>
             ) : (

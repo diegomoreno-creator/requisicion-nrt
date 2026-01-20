@@ -388,14 +388,18 @@ const TramiteDetailDialog = ({
   };
 
   const handleApprove = async () => {
-    if (!tramiteId || !tramiteTipo) return;
+    if (!tramiteId || !tramiteTipo || !user) return;
     setActionLoading(true);
 
     try {
       const table = tramiteTipo === "Reposición" ? "reposiciones" : "requisiciones";
       const { error } = await supabase
         .from(table)
-        .update({ estado: "aprobado" })
+        .update({ 
+          estado: "aprobado",
+          autorizado_por: user.id,
+          fecha_autorizacion_real: new Date().toISOString()
+        })
         .eq("id", tramiteId);
 
       if (error) throw error;
@@ -480,13 +484,17 @@ const TramiteDetailDialog = ({
   };
 
   const handleMoveToLicitacion = async () => {
-    if (!tramiteId) return;
+    if (!tramiteId || !user) return;
     setActionLoading(true);
 
     try {
       const { error } = await supabase
         .from("requisiciones")
-        .update({ estado: "en_licitacion" })
+        .update({ 
+          estado: "en_licitacion",
+          licitado_por: user.id,
+          fecha_licitacion: new Date().toISOString()
+        })
         .eq("id", tramiteId);
 
       if (error) throw error;
@@ -502,13 +510,17 @@ const TramiteDetailDialog = ({
   };
 
   const handleMoveToPedidoColocado = async () => {
-    if (!tramiteId) return;
+    if (!tramiteId || !user) return;
     setActionLoading(true);
 
     try {
       const { error } = await supabase
         .from("requisiciones")
-        .update({ estado: "pedido_colocado" })
+        .update({ 
+          estado: "pedido_colocado",
+          pedido_colocado_por: user.id,
+          fecha_pedido_colocado: new Date().toISOString()
+        })
         .eq("id", tramiteId);
 
       if (error) throw error;
@@ -524,13 +536,17 @@ const TramiteDetailDialog = ({
   };
 
   const handleAuthorizePedido = async () => {
-    if (!tramiteId) return;
+    if (!tramiteId || !user) return;
     setActionLoading(true);
 
     try {
       const { error } = await supabase
         .from("requisiciones")
-        .update({ estado: "pedido_autorizado" })
+        .update({ 
+          estado: "pedido_autorizado",
+          pedido_autorizado_por: user.id,
+          fecha_pedido_autorizado: new Date().toISOString()
+        })
         .eq("id", tramiteId);
 
       if (error) throw error;
@@ -546,13 +562,17 @@ const TramiteDetailDialog = ({
   };
 
   const handlePayPedido = async () => {
-    if (!tramiteId) return;
+    if (!tramiteId || !user) return;
     setActionLoading(true);
 
     try {
       const { error } = await supabase
         .from("requisiciones")
-        .update({ estado: "pedido_pagado" })
+        .update({ 
+          estado: "pedido_pagado",
+          pagado_por: user.id,
+          fecha_pago: new Date().toISOString()
+        })
         .eq("id", tramiteId);
 
       if (error) throw error;

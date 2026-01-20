@@ -236,51 +236,63 @@ export type Database = {
       }
       reposiciones: {
         Row: {
+          autorizado_por: string | null
           autorizador_id: string | null
           banco: string | null
           created_at: string
           cuenta_clabe: string | null
           estado: string
+          fecha_autorizacion: string | null
+          fecha_pago: string | null
           fecha_solicitud: string
           folio: string
           gastos_semana: number | null
           id: string
           justificacion: string | null
           monto_total: number | null
+          pagado_por: string | null
           reponer_a: string | null
           solicitado_por: string
           tipo_reposicion: string
           updated_at: string
         }
         Insert: {
+          autorizado_por?: string | null
           autorizador_id?: string | null
           banco?: string | null
           created_at?: string
           cuenta_clabe?: string | null
           estado?: string
+          fecha_autorizacion?: string | null
+          fecha_pago?: string | null
           fecha_solicitud?: string
           folio: string
           gastos_semana?: number | null
           id?: string
           justificacion?: string | null
           monto_total?: number | null
+          pagado_por?: string | null
           reponer_a?: string | null
           solicitado_por: string
           tipo_reposicion?: string
           updated_at?: string
         }
         Update: {
+          autorizado_por?: string | null
           autorizador_id?: string | null
           banco?: string | null
           created_at?: string
           cuenta_clabe?: string | null
           estado?: string
+          fecha_autorizacion?: string | null
+          fecha_pago?: string | null
           fecha_solicitud?: string
           folio?: string
           gastos_semana?: number | null
           id?: string
           justificacion?: string | null
           monto_total?: number | null
+          pagado_por?: string | null
           reponer_a?: string | null
           solicitado_por?: string
           tipo_reposicion?: string
@@ -334,6 +346,7 @@ export type Database = {
       }
       requisiciones: {
         Row: {
+          autorizado_por: string | null
           autorizador_id: string | null
           created_at: string
           datos_banco: string | null
@@ -343,10 +356,19 @@ export type Database = {
           empresa: string | null
           estado: Database["public"]["Enums"]["requisition_status"] | null
           fecha_autorizacion: string | null
+          fecha_autorizacion_real: string | null
+          fecha_licitacion: string | null
+          fecha_pago: string | null
+          fecha_pedido_autorizado: string | null
+          fecha_pedido_colocado: string | null
           folio: string
           id: string
           justificacion: string | null
+          licitado_por: string | null
           nombre_proyecto: string | null
+          pagado_por: string | null
+          pedido_autorizado_por: string | null
+          pedido_colocado_por: string | null
           porcentaje_cada_un: string | null
           presupuesto_aproximado: number | null
           se_dividira_gasto: boolean | null
@@ -358,6 +380,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          autorizado_por?: string | null
           autorizador_id?: string | null
           created_at?: string
           datos_banco?: string | null
@@ -367,10 +390,19 @@ export type Database = {
           empresa?: string | null
           estado?: Database["public"]["Enums"]["requisition_status"] | null
           fecha_autorizacion?: string | null
+          fecha_autorizacion_real?: string | null
+          fecha_licitacion?: string | null
+          fecha_pago?: string | null
+          fecha_pedido_autorizado?: string | null
+          fecha_pedido_colocado?: string | null
           folio: string
           id?: string
           justificacion?: string | null
+          licitado_por?: string | null
           nombre_proyecto?: string | null
+          pagado_por?: string | null
+          pedido_autorizado_por?: string | null
+          pedido_colocado_por?: string | null
           porcentaje_cada_un?: string | null
           presupuesto_aproximado?: number | null
           se_dividira_gasto?: boolean | null
@@ -382,6 +414,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          autorizado_por?: string | null
           autorizador_id?: string | null
           created_at?: string
           datos_banco?: string | null
@@ -391,10 +424,19 @@ export type Database = {
           empresa?: string | null
           estado?: Database["public"]["Enums"]["requisition_status"] | null
           fecha_autorizacion?: string | null
+          fecha_autorizacion_real?: string | null
+          fecha_licitacion?: string | null
+          fecha_pago?: string | null
+          fecha_pedido_autorizado?: string | null
+          fecha_pedido_colocado?: string | null
           folio?: string
           id?: string
           justificacion?: string | null
+          licitado_por?: string | null
           nombre_proyecto?: string | null
+          pagado_por?: string | null
+          pedido_autorizado_por?: string | null
+          pedido_colocado_por?: string | null
           porcentaje_cada_un?: string | null
           presupuesto_aproximado?: number | null
           se_dividira_gasto?: boolean | null
