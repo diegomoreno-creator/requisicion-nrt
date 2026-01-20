@@ -82,6 +82,7 @@ const Requisicion = () => {
   const [datosProveedor, setDatosProveedor] = useState("");
   const [datosBanco, setDatosBanco] = useState("");
   const [nombreProyecto, setNombreProyecto] = useState("");
+  const [asunto, setAsunto] = useState("");
   const [justificacion, setJustificacion] = useState("");
 
   // Partidas state
@@ -243,6 +244,7 @@ const Requisicion = () => {
           datos_proveedor: datosProveedor,
           datos_banco: datosBanco,
           nombre_proyecto: nombreProyecto,
+          asunto,
           justificacion,
           estado: "pendiente",
         });
@@ -690,6 +692,17 @@ const Requisicion = () => {
                   value={nombreProyecto}
                   onChange={(e) => setNombreProyecto(e.target.value)}
                   className="bg-input border-border"
+                />
+              </div>
+
+              {/* Asunto */}
+              <div className="space-y-2">
+                <Label className="text-foreground">Asunto</Label>
+                <Input
+                  value={asunto}
+                  onChange={(e) => setAsunto(e.target.value)}
+                  className="bg-input border-border"
+                  placeholder="Ej: viáticos, viaje a Monterrey..."
                 />
               </div>
 

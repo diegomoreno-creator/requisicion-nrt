@@ -346,6 +346,7 @@ export type Database = {
       }
       requisiciones: {
         Row: {
+          asunto: string | null
           autorizado_por: string | null
           autorizador_id: string | null
           created_at: string
@@ -380,6 +381,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asunto?: string | null
           autorizado_por?: string | null
           autorizador_id?: string | null
           created_at?: string
@@ -414,6 +416,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asunto?: string | null
           autorizado_por?: string | null
           autorizador_id?: string | null
           created_at?: string
