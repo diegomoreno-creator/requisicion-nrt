@@ -38,7 +38,7 @@ export const renderNRTHeader = (
 
   // Set canvas size for high quality
   const scale = 4;
-  const nrtFontSize = 28;
+  const nrtFontSize = 14; // Reduced 50% from 28
   const mexicoFontSize = nrtFontSize * 0.75;
   
   // Measure text widths
@@ -88,7 +88,7 @@ const renderFallbackHeader = (
   pageWidth: number,
   yPosition: number
 ): number => {
-  const nrtFontSize = 24;
+  const nrtFontSize = 12; // Reduced 50% from 24
   const mexicoFontSize = nrtFontSize * 0.75;
   
   doc.setFontSize(nrtFontSize);
