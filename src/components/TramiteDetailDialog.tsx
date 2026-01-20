@@ -1080,12 +1080,15 @@ const TramiteDetailDialog = ({
                         {requisicion.departamento_solicitante || "-"}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground text-sm">Presupuesto:</p>
-                      <p className="text-foreground">
-                        {formatCurrency(requisicion.presupuesto_aproximado)}
-                      </p>
-                    </div>
+                    {/* Hide budget from comprador role */}
+                    {!isComprador && (
+                      <div>
+                        <p className="text-muted-foreground text-sm">Presupuesto:</p>
+                        <p className="text-foreground">
+                          {formatCurrency(requisicion.presupuesto_aproximado)}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <p className="text-muted-foreground text-sm">Proyecto:</p>
                       <p className="text-foreground">
