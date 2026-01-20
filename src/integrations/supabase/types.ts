@@ -377,6 +377,9 @@ export type Database = {
           se_dividira_gasto: boolean | null
           solicitado_por: string
           sucursal: string | null
+          texto_compras: string | null
+          texto_compras_editado_at: string | null
+          texto_compras_editado_por: string | null
           tipo_requisicion: string | null
           un_division_gasto: string | null
           unidad_negocio: string | null
@@ -414,6 +417,9 @@ export type Database = {
           se_dividira_gasto?: boolean | null
           solicitado_por: string
           sucursal?: string | null
+          texto_compras?: string | null
+          texto_compras_editado_at?: string | null
+          texto_compras_editado_por?: string | null
           tipo_requisicion?: string | null
           un_division_gasto?: string | null
           unidad_negocio?: string | null
@@ -451,6 +457,9 @@ export type Database = {
           se_dividira_gasto?: boolean | null
           solicitado_por?: string
           sucursal?: string | null
+          texto_compras?: string | null
+          texto_compras_editado_at?: string | null
+          texto_compras_editado_por?: string | null
           tipo_requisicion?: string | null
           un_division_gasto?: string | null
           unidad_negocio?: string | null
@@ -499,6 +508,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_profile_name: { Args: { _user_id: string }; Returns: string }
       get_solicitante_info: {
         Args: { _user_id: string }
         Returns: {
