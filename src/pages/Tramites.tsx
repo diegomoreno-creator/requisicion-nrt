@@ -136,20 +136,24 @@ const Tramites = () => {
         console.error("Error fetching reposiciones:", repoError);
       }
 
-      // Get all unique user IDs to fetch their emails
+      // Get all unique user IDs to fetch their names using security definer function
       const userIds = new Set<string>();
       requisiciones?.forEach((r) => userIds.add(r.solicitado_por));
       reposiciones?.forEach((r) => userIds.add(r.solicitado_por));
 
-      // Fetch user emails from profiles
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, email, full_name")
-        .in("user_id", Array.from(userIds));
-
+      // Fetch user names using the security definer function for each unique user
       const userMap = new Map<string, string>();
-      profiles?.forEach((p) => {
-        userMap.set(p.user_id, p.full_name || p.email || "Usuario");
+      const userIdArray = Array.from(userIds);
+      
+      // Fetch names in parallel using the security definer function
+      const namePromises = userIdArray.map(async (userId) => {
+        const { data } = await supabase.rpc('get_profile_name', { _user_id: userId });
+        return { userId, name: data || "Usuario" };
+      });
+      
+      const nameResults = await Promise.all(namePromises);
+      nameResults.forEach(({ userId, name }) => {
+        userMap.set(userId, name);
       });
 
       // Combine and format tramites - separate active, attended, rejected, and deleted
