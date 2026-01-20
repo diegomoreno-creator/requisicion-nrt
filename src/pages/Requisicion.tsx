@@ -289,6 +289,8 @@ const Requisicion = () => {
 
       if (isEditMode && originalRequisicionId) {
         // UPDATE mode - clear justificacion_rechazo and update requisicion
+        // Set estado to 'aprobado' so it goes back to the Comprador (who rejected it),
+        // not to the Autorizador (since it was already approved before rejection)
         const updateData = {
           tipo_requisicion: tipoRequisicion,
           unidad_negocio: unidadNegocio,
@@ -309,7 +311,7 @@ const Requisicion = () => {
           asunto,
           justificacion,
           justificacion_rechazo: null, // Clear rejection justification on resubmit
-          estado: "pendiente" as const,
+          estado: "aprobado" as const, // Goes back to Comprador, not Autorizador
           updated_at: new Date().toISOString(),
         };
 
