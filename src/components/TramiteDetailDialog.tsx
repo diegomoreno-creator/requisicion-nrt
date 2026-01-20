@@ -69,6 +69,7 @@ interface RequisicionDetail {
   datos_proveedor: string | null;
   datos_banco: string | null;
   deleted_at: string | null;
+  apuntes_licitacion: string | null;
 }
 
 interface ReposicionDetail {
@@ -149,6 +150,8 @@ const TramiteDetailDialog = ({
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [showRejectByCompradorConfirm, setShowRejectByCompradorConfirm] = useState(false);
   const [rejectJustification, setRejectJustification] = useState("");
+  const [apuntesLicitacion, setApuntesLicitacion] = useState("");
+  const [savingApuntes, setSavingApuntes] = useState(false);
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
@@ -224,6 +227,7 @@ const TramiteDetailDialog = ({
 
         if (error) throw error;
         setRequisicion(req);
+        setApuntesLicitacion(req.apuntes_licitacion || "");
         setReposicion(null);
 
         // Fetch partidas
@@ -656,6 +660,28 @@ const TramiteDetailDialog = ({
       toast.error("Error al marcar como pagado");
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleSaveApuntesLicitacion = async () => {
+    if (!tramiteId) return;
+    setSavingApuntes(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ apuntes_licitacion: apuntesLicitacion.trim() || null })
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Apuntes de licitación guardados");
+      // Update local state
+      setRequisicion(prev => prev ? { ...prev, apuntes_licitacion: apuntesLicitacion.trim() || null } : null);
+    } catch (error) {
+      console.error("Error saving apuntes:", error);
+      toast.error("Error al guardar apuntes de licitación");
+    } finally {
+      setSavingApuntes(false);
     }
   };
 
@@ -1191,6 +1217,41 @@ const TramiteDetailDialog = ({
                 <p className="text-foreground">
                   {requisicion.justificacion_rechazo}
                 </p>
+              </div>
+            )}
+
+            {/* Apuntes de Licitación - visible when in en_licitacion or later, editable only by comprador when en_licitacion */}
+            {requisicion && (requisicion.estado === 'en_licitacion' || requisicion.apuntes_licitacion) && (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <h3 className="text-blue-400 font-semibold mb-2">Apuntes de Licitación</h3>
+                {requisicion.estado === 'en_licitacion' && (isComprador || isSuperadmin) ? (
+                  <div className="space-y-3">
+                    <Textarea
+                      value={apuntesLicitacion}
+                      onChange={(e) => setApuntesLicitacion(e.target.value)}
+                      placeholder="Escriba aquí cualquier suceso o nota relevante del proceso de licitación..."
+                      className="min-h-[100px] bg-background/50"
+                    />
+                    <Button
+                      onClick={handleSaveApuntesLicitacion}
+                      disabled={savingApuntes}
+                      size="sm"
+                    >
+                      {savingApuntes ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        "Guardar Apuntes"
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-foreground whitespace-pre-wrap">
+                    {requisicion.apuntes_licitacion || "Sin apuntes registrados"}
+                  </p>
+                )}
               </div>
             )}
 
