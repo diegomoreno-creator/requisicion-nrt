@@ -70,6 +70,9 @@ interface RequisicionDetail {
   datos_banco: string | null;
   deleted_at: string | null;
   apuntes_licitacion: string | null;
+  texto_compras: string | null;
+  texto_compras_editado_por: string | null;
+  texto_compras_editado_at: string | null;
 }
 
 interface ReposicionDetail {
@@ -152,6 +155,9 @@ const TramiteDetailDialog = ({
   const [rejectJustification, setRejectJustification] = useState("");
   const [apuntesLicitacion, setApuntesLicitacion] = useState("");
   const [savingApuntes, setSavingApuntes] = useState(false);
+  const [textoCompras, setTextoCompras] = useState("");
+  const [savingTextoCompras, setSavingTextoCompras] = useState(false);
+  const [textoComprasEditorName, setTextoComprasEditorName] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
@@ -228,6 +234,15 @@ const TramiteDetailDialog = ({
         if (error) throw error;
         setRequisicion(req);
         setApuntesLicitacion(req.apuntes_licitacion || "");
+        setTextoCompras(req.texto_compras || "");
+        
+        // Fetch editor name if texto_compras was edited
+        if (req.texto_compras_editado_por) {
+          const { data: editorData } = await supabase.rpc('get_profile_name', { _user_id: req.texto_compras_editado_por });
+          setTextoComprasEditorName(editorData || "Usuario desconocido");
+        } else {
+          setTextoComprasEditorName(null);
+        }
         setReposicion(null);
 
         // Fetch partidas
@@ -682,6 +697,43 @@ const TramiteDetailDialog = ({
       toast.error("Error al guardar apuntes de licitación");
     } finally {
       setSavingApuntes(false);
+    }
+  };
+
+  const handleSaveTextoCompras = async () => {
+    if (!tramiteId || !user) return;
+    setSavingTextoCompras(true);
+
+    try {
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ 
+          texto_compras: textoCompras.trim() || null,
+          texto_compras_editado_por: user.id,
+          texto_compras_editado_at: now
+        })
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Texto de compras guardado");
+      
+      // Update local state
+      setRequisicion(prev => prev ? { 
+        ...prev, 
+        texto_compras: textoCompras.trim() || null,
+        texto_compras_editado_por: user.id,
+        texto_compras_editado_at: now
+      } : null);
+      
+      // Update editor name display
+      const { data: editorData } = await supabase.rpc('get_profile_name', { _user_id: user.id });
+      setTextoComprasEditorName(editorData || "Usuario");
+    } catch (error) {
+      console.error("Error saving texto compras:", error);
+      toast.error("Error al guardar texto de compras");
+    } finally {
+      setSavingTextoCompras(false);
     }
   };
 
@@ -1252,6 +1304,40 @@ const TramiteDetailDialog = ({
                     {requisicion.apuntes_licitacion || "Sin apuntes registrados"}
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Texto de Compras - editable por cualquier usuario */}
+            {requisicion && (
+              <div className="bg-accent/20 border border-accent/30 rounded-lg p-4">
+                <h3 className="text-accent-foreground font-semibold mb-2">Texto de Compras</h3>
+                {requisicion.texto_compras_editado_at && textoComprasEditorName && (
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Última edición: {format(new Date(requisicion.texto_compras_editado_at), "dd/MM/yyyy HH:mm", { locale: es })} por {textoComprasEditorName}
+                  </p>
+                )}
+                <div className="space-y-3">
+                  <Textarea
+                    value={textoCompras}
+                    onChange={(e) => setTextoCompras(e.target.value)}
+                    placeholder="Escriba aquí notas, comentarios o información relevante para el área de compras..."
+                    className="min-h-[100px] bg-background/50"
+                  />
+                  <Button
+                    onClick={handleSaveTextoCompras}
+                    disabled={savingTextoCompras}
+                    size="sm"
+                  >
+                    {savingTextoCompras ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Guardando...
+                      </>
+                    ) : (
+                      "Guardar Texto de Compras"
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
 
