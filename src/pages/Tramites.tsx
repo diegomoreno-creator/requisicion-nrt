@@ -119,7 +119,7 @@ const Tramites = () => {
       // Fetch requisiciones - RLS policies will handle visibility
       const { data: requisiciones, error: reqError } = await supabase
         .from("requisiciones")
-        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion, asunto, justificacion, deleted_at, autorizado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
+        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion, asunto, justificacion_rechazo, deleted_at, autorizado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
         .order("created_at", { ascending: false });
 
       if (reqError) {
@@ -180,8 +180,8 @@ const Tramites = () => {
         
         if (r.deleted_at) {
           deleted.push(tramite);
-        } else if (isSolicitador && r.solicitado_por === user.id && r.estado === 'pendiente' && r.justificacion) {
-          // For solicitador: items returned with justification (rejected by comprador) go to rejected
+        } else if (isSolicitador && r.solicitado_por === user.id && r.estado === 'pendiente' && r.justificacion_rechazo) {
+          // For solicitador: items returned with rejection justification go to rejected
           rejected.push(tramite);
         } else if (processorField && (r as any)[processorField] === user.id) {
           // User processed this tramite - goes to Atendidos

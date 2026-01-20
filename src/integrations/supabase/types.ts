@@ -365,6 +365,7 @@ export type Database = {
           folio: string
           id: string
           justificacion: string | null
+          justificacion_rechazo: string | null
           licitado_por: string | null
           nombre_proyecto: string | null
           pagado_por: string | null
@@ -400,6 +401,7 @@ export type Database = {
           folio: string
           id?: string
           justificacion?: string | null
+          justificacion_rechazo?: string | null
           licitado_por?: string | null
           nombre_proyecto?: string | null
           pagado_por?: string | null
@@ -435,6 +437,7 @@ export type Database = {
           folio?: string
           id?: string
           justificacion?: string | null
+          justificacion_rechazo?: string | null
           licitado_por?: string | null
           nombre_proyecto?: string | null
           pagado_por?: string | null
