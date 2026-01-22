@@ -50,6 +50,7 @@ const Dashboard = () => {
   const { user, role, loading, signOut, isSuperadmin, isSolicitador, isAdmin, canAccessApp } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [pendingSugerencias, setPendingSugerencias] = useState(0);
 
   // Enable realtime notifications for status changes
   useRealtimeNotifications();
@@ -69,6 +70,22 @@ const Dashboard = () => {
 
     fetchProfile();
   }, [user]);
+
+  // Fetch pending suggestions count for superadmin
+  useEffect(() => {
+    const fetchPendingSugerencias = async () => {
+      if (!isSuperadmin) return;
+      
+      const { count } = await supabase
+        .from("sugerencias" as any)
+        .select("*", { count: "exact", head: true })
+        .eq("estado", "pendiente");
+      
+      setPendingSugerencias(count || 0);
+    };
+
+    fetchPendingSugerencias();
+  }, [isSuperadmin]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -192,9 +209,16 @@ const Dashboard = () => {
                   <User className="w-4 h-4 mr-2" />
                   Mi Perfil
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/ayuda")}>
-                  <HelpCircle className="w-4 h-4 mr-2" />
-                  Ayuda
+                <DropdownMenuItem onClick={() => navigate("/ayuda")} className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Ayuda
+                  </div>
+                  {isSuperadmin && pendingSugerencias > 0 && (
+                    <Badge className="ml-2 bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 min-w-[20px] text-center">
+                      {pendingSugerencias}
+                    </Badge>
+                  )}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
