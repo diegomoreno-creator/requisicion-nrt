@@ -4,9 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, FilePlus, RefreshCw, FileText, FolderSearch, Users, Settings, CheckCircle, Clock, XCircle, ShoppingCart, Gavel, CreditCard, BarChart3, Download } from "lucide-react";
+import { ArrowLeft, FilePlus, RefreshCw, FileText, FolderSearch, Users, Settings, CheckCircle, Clock, XCircle, ShoppingCart, Gavel, CreditCard, BarChart3, Download, Send, Lightbulb, X, Check, CheckCheck, Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
+interface Sugerencia {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  contenido: string;
+  estado: 'pendiente' | 'aceptada' | 'rechazada' | 'terminada';
+  justificacion_rechazo: string | null;
+  created_at: string;
+}
 
 interface HelpSection {
   title: string;
@@ -308,7 +323,15 @@ const workflowSteps = [
 
 const Ayuda = () => {
   const navigate = useNavigate();
-  const { role, roles } = useAuth();
+  const { role, roles, user, isSuperadmin } = useAuth();
+  const [sugerenciaTexto, setSugerenciaTexto] = useState("");
+  const [sugerencias, setSugerencias] = useState<Sugerencia[]>([]);
+  const [loadingSugerencias, setLoadingSugerencias] = useState(true);
+  const [enviandoSugerencia, setEnviandoSugerencia] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedSugerencia, setSelectedSugerencia] = useState<Sugerencia | null>(null);
+  const [justificacionRechazo, setJustificacionRechazo] = useState("");
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   // Get relevant roles for the current user, showing their role first
   const userRoles = roles.filter(r => r !== 'inactivo');
@@ -319,6 +342,120 @@ const Ayuda = () => {
     if (aIndex === -1 && bIndex !== -1) return 1;
     return 0;
   });
+
+  // Fetch sugerencias
+  const fetchSugerencias = async () => {
+    setLoadingSugerencias(true);
+    const { data, error } = await supabase
+      .from('sugerencias' as any)
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching sugerencias:', error);
+    } else {
+      setSugerencias((data as any[]) || []);
+    }
+    setLoadingSugerencias(false);
+  };
+
+  useEffect(() => {
+    fetchSugerencias();
+  }, []);
+
+  const handleEnviarSugerencia = async () => {
+    if (!sugerenciaTexto.trim() || !user) return;
+
+    setEnviandoSugerencia(true);
+    
+    // Get user profile info
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('user_id', user.id)
+      .single();
+
+    const { error } = await supabase
+      .from('sugerencias' as any)
+      .insert({
+        user_id: user.id,
+        user_name: profile?.full_name || 'Usuario',
+        user_email: profile?.email || user.email || '',
+        contenido: sugerenciaTexto.trim()
+      });
+
+    if (error) {
+      toast.error("Error al enviar la sugerencia");
+      console.error(error);
+    } else {
+      toast.success("Sugerencia enviada correctamente");
+      setSugerenciaTexto("");
+      fetchSugerencias();
+    }
+    setEnviandoSugerencia(false);
+  };
+
+  const handleUpdateEstado = async (id: string, estado: 'aceptada' | 'terminada') => {
+    setProcessingId(id);
+    const { error } = await supabase
+      .from('sugerencias' as any)
+      .update({ estado })
+      .eq('id', id);
+
+    if (error) {
+      toast.error("Error al actualizar la sugerencia");
+    } else {
+      toast.success(`Sugerencia ${estado === 'aceptada' ? 'aceptada' : 'marcada como terminada'}`);
+      fetchSugerencias();
+    }
+    setProcessingId(null);
+  };
+
+  const handleRechazar = async () => {
+    if (!selectedSugerencia || !justificacionRechazo.trim()) return;
+
+    setProcessingId(selectedSugerencia.id);
+    const { error } = await supabase
+      .from('sugerencias' as any)
+      .update({ 
+        estado: 'rechazada',
+        justificacion_rechazo: justificacionRechazo.trim()
+      })
+      .eq('id', selectedSugerencia.id);
+
+    if (error) {
+      toast.error("Error al rechazar la sugerencia");
+    } else {
+      toast.success("Sugerencia rechazada");
+      fetchSugerencias();
+    }
+    setRejectDialogOpen(false);
+    setSelectedSugerencia(null);
+    setJustificacionRechazo("");
+    setProcessingId(null);
+  };
+
+  const getEstadoBadge = (estado: string, justificacion?: string | null) => {
+    switch (estado) {
+      case 'pendiente':
+        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">Pendiente</Badge>;
+      case 'aceptada':
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/30">Aceptada</Badge>;
+      case 'rechazada':
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/30">Rechazada</Badge>
+            {justificacion && (
+              <p className="text-xs text-muted-foreground italic">"{justificacion}"</p>
+            )}
+          </div>
+        );
+      case 'terminada':
+        return <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">Terminada</Badge>;
+      default:
+        return null;
+    }
+  };
 
   const generateTextContent = () => {
     let content = "=".repeat(60) + "\n";
@@ -534,7 +671,172 @@ const Ayuda = () => {
             </ul>
           </CardContent>
         </Card>
+
+        {/* Sugerencias Section */}
+        <Card className="mt-8 border-border bg-card">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-primary" />
+              Sugerencias
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Form to submit suggestion */}
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                ¿Tienes ideas para mejorar el sistema? Envía tu sugerencia y el equipo la revisará.
+              </p>
+              <Textarea
+                placeholder="Escribe tu sugerencia aquí..."
+                value={sugerenciaTexto}
+                onChange={(e) => setSugerenciaTexto(e.target.value)}
+                className="min-h-[100px]"
+              />
+              <Button 
+                onClick={handleEnviarSugerencia} 
+                disabled={!sugerenciaTexto.trim() || enviandoSugerencia}
+                className="gap-2"
+              >
+                {enviandoSugerencia ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                Enviar Sugerencia
+              </Button>
+            </div>
+
+            {/* Superadmin: Task list of all suggestions */}
+            {isSuperadmin && (
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold mb-4 text-foreground">Administrar Sugerencias</h3>
+                {loadingSugerencias ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : sugerencias.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No hay sugerencias aún.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {sugerencias.map((sug) => (
+                      <div key={sug.id} className="p-4 rounded-lg border border-border bg-secondary/30">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-sm">{sug.user_name}</span>
+                              <span className="text-xs text-muted-foreground">({sug.user_email})</span>
+                              {getEstadoBadge(sug.estado, sug.justificacion_rechazo)}
+                            </div>
+                            <p className="text-sm text-foreground">{sug.contenido}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(sug.created_at).toLocaleDateString('es-MX', { 
+                                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                          {sug.estado === 'pendiente' && (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                onClick={() => {
+                                  setSelectedSugerencia(sug);
+                                  setRejectDialogOpen(true);
+                                }}
+                                disabled={processingId === sug.id}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950/20"
+                                onClick={() => handleUpdateEstado(sug.id, 'aceptada')}
+                                disabled={processingId === sug.id}
+                              >
+                                {processingId === sug.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                              </Button>
+                            </div>
+                          )}
+                          {sug.estado === 'aceptada' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+                              onClick={() => handleUpdateEstado(sug.id, 'terminada')}
+                              disabled={processingId === sug.id}
+                            >
+                              {processingId === sug.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCheck className="w-4 h-4" />}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Regular users: Show their own suggestions */}
+            {!isSuperadmin && sugerencias.length > 0 && (
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold mb-4 text-foreground">Mis Sugerencias</h3>
+                <div className="space-y-3">
+                  {sugerencias.map((sug) => (
+                    <div key={sug.id} className="p-4 rounded-lg border border-border bg-secondary/30">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <p className="text-sm text-foreground">{sug.contenido}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(sug.created_at).toLocaleDateString('es-MX', { 
+                              year: 'numeric', month: 'short', day: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                        {getEstadoBadge(sug.estado, sug.justificacion_rechazo)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rechazar Sugerencia</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Por favor indica el motivo por el cual no se implementará esta sugerencia:
+            </p>
+            <Textarea
+              placeholder="Escribe la justificación..."
+              value={justificacionRechazo}
+              onChange={(e) => setJustificacionRechazo(e.target.value)}
+              className="min-h-[100px]"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleRechazar}
+              disabled={!justificacionRechazo.trim() || processingId !== null}
+            >
+              {processingId ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Rechazar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="fixed bottom-0 left-0 right-0 border-t border-border py-4 bg-background font-barlow">
