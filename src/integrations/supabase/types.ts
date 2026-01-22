@@ -538,6 +538,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sugerencias: {
+        Row: {
+          contenido: string
+          created_at: string
+          estado: string
+          id: string
+          justificacion_rechazo: string | null
+          updated_at: string
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          contenido: string
+          created_at?: string
+          estado?: string
+          id?: string
+          justificacion_rechazo?: string | null
+          updated_at?: string
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          contenido?: string
+          created_at?: string
+          estado?: string
+          id?: string
+          justificacion_rechazo?: string | null
+          updated_at?: string
+          user_email?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
