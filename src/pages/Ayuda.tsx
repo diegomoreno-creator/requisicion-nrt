@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, FilePlus, RefreshCw, FileText, FolderSearch, Users, Settings, CheckCircle, Clock, XCircle, ShoppingCart, Gavel, CreditCard, BarChart3 } from "lucide-react";
+import { ArrowLeft, FilePlus, RefreshCw, FileText, FolderSearch, Users, Settings, CheckCircle, Clock, XCircle, ShoppingCart, Gavel, CreditCard, BarChart3, Download } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { toast } from "sonner";
 
 interface HelpSection {
   title: string;
@@ -319,6 +320,71 @@ const Ayuda = () => {
     return 0;
   });
 
+  const generateTextContent = () => {
+    let content = "=".repeat(60) + "\n";
+    content += "GUÍA DE USO DEL SISTEMA - NRT MÉXICO\n";
+    content += "=".repeat(60) + "\n\n";
+
+    // Workflow
+    content += "FLUJO DE UNA REQUISICIÓN\n";
+    content += "-".repeat(40) + "\n";
+    workflowSteps.forEach((step, idx) => {
+      content += `${idx + 1}. ${step.label}: ${step.description}\n`;
+    });
+    content += "\n";
+
+    // Roles
+    content += "=".repeat(60) + "\n";
+    content += "FUNCIONES POR ROL\n";
+    content += "=".repeat(60) + "\n\n";
+
+    roleHelpData.forEach((roleData) => {
+      content += "-".repeat(40) + "\n";
+      content += `ROL: ${roleData.label.toUpperCase()}\n`;
+      content += "-".repeat(40) + "\n";
+      content += `${roleData.description}\n\n`;
+
+      roleData.sections.forEach((section) => {
+        content += `  ► ${section.title}\n`;
+        content += `    ${section.description}\n`;
+        section.features.forEach((feature) => {
+          content += `    • ${feature}\n`;
+        });
+        content += "\n";
+      });
+      content += "\n";
+    });
+
+    // Tips
+    content += "=".repeat(60) + "\n";
+    content += "CONSEJOS RÁPIDOS\n";
+    content += "=".repeat(60) + "\n";
+    content += "• Activa las notificaciones en tu perfil para recibir alertas de cambios de estado.\n";
+    content += "• Usa los filtros en 'Ver Trámites' para encontrar rápidamente lo que buscas.\n";
+    content += "• Guarda borradores si no tienes toda la información lista.\n";
+    content += "• Descarga el PDF de cualquier trámite para tener un respaldo.\n";
+    content += "• Cambia entre tema claro y oscuro con el botón en la esquina superior.\n";
+    content += "\n";
+    content += "=".repeat(60) + "\n";
+    content += "¿Necesitas más ayuda? Contacta al administrador del sistema.\n";
+
+    return content;
+  };
+
+  const handleDownload = () => {
+    const content = generateTextContent();
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "guia-sistema-nrt.txt";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Guía descargada correctamente");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -341,13 +407,19 @@ const Ayuda = () => {
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-6 py-10 pb-24">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Guía de Uso del Sistema
-          </h1>
-          <p className="text-muted-foreground">
-            Encuentra información detallada sobre las funciones disponibles según tu rol.
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Guía de Uso del Sistema
+            </h1>
+            <p className="text-muted-foreground">
+              Encuentra información detallada sobre las funciones disponibles según tu rol.
+            </p>
+          </div>
+          <Button variant="outline" onClick={handleDownload} className="gap-2">
+            <Download className="w-4 h-4" />
+            Descargar
+          </Button>
         </div>
 
         {/* Workflow Overview */}
