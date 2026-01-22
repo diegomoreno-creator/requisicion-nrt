@@ -681,34 +681,39 @@ const Ayuda = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Form to submit suggestion */}
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                ¿Tienes ideas para mejorar el sistema? Envía tu sugerencia y el equipo la revisará.
-              </p>
-              <Textarea
-                placeholder="Escribe tu sugerencia aquí..."
-                value={sugerenciaTexto}
-                onChange={(e) => setSugerenciaTexto(e.target.value)}
-                className="min-h-[100px]"
-              />
-              <Button 
-                onClick={handleEnviarSugerencia} 
-                disabled={!sugerenciaTexto.trim() || enviandoSugerencia}
-                className="gap-2"
-              >
-                {enviandoSugerencia ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-                Enviar Sugerencia
-              </Button>
-            </div>
+            {/* Form to submit suggestion - NOT for superadmin */}
+            {!isSuperadmin && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  ¿Tienes ideas para mejorar el sistema? Envía tu sugerencia y el equipo la revisará.
+                </p>
+                <Textarea
+                  placeholder="Escribe tu sugerencia aquí..."
+                  value={sugerenciaTexto}
+                  onChange={(e) => setSugerenciaTexto(e.target.value)}
+                  className="min-h-[100px]"
+                />
+                <Button 
+                  onClick={handleEnviarSugerencia} 
+                  disabled={!sugerenciaTexto.trim() || enviandoSugerencia}
+                  className="gap-2"
+                >
+                  {enviandoSugerencia ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  Enviar Sugerencia
+                </Button>
+              </div>
+            )}
 
             {/* Superadmin: Task list of all suggestions */}
             {isSuperadmin && (
-              <div className="border-t border-border pt-6">
+              <div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Gestiona las sugerencias enviadas por los usuarios del sistema.
+                </p>
                 <h3 className="font-semibold mb-4 text-foreground">Administrar Sugerencias</h3>
                 {loadingSugerencias ? (
                   <div className="flex items-center justify-center py-8">
