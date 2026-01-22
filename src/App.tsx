@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Perfil from "./pages/Perfil";
+import Ayuda from "./pages/Ayuda";
 import Requisicion from "./pages/Requisicion";
 import Reposicion from "./pages/Reposicion";
 import PagoSinOC from "./pages/PagoSinOC";
@@ -41,6 +42,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Perfil />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/ayuda" 
+              element={
+                <ProtectedRoute>
+                  <Ayuda />
                 </ProtectedRoute>
               } 
             />

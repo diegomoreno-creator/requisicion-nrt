@@ -23,7 +23,8 @@ import {
   Settings,
   LogOut,
   Loader2,
-  User
+  User,
+  HelpCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -190,6 +191,10 @@ const Dashboard = () => {
                 <DropdownMenuItem onClick={() => navigate("/perfil")}>
                   <User className="w-4 h-4 mr-2" />
                   Mi Perfil
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/ayuda")}>
+                  <HelpCircle className="w-4 h-4 mr-2" />
+                  Ayuda
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
