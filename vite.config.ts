@@ -49,6 +49,9 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
+        // Ensure OneSignal push handlers are available inside the PWA service worker.
+        // This avoids SW scope conflicts in installed PWAs.
+        importScripts: ["/OneSignalSDKWorker.js"],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         runtimeCaching: [
           {

@@ -21,6 +21,16 @@ interface OneSignalState {
   permission: NotificationPermission | null;
 }
 
+const isLovablePreviewHost = (hostname: string) =>
+  hostname.endsWith(".lovableproject.com") || hostname.startsWith("id-preview--");
+
+const normalizeOneSignalPermission = (permission: any): NotificationPermission => {
+  if (permission === true) return "granted";
+  if (permission === false) return "denied";
+  if (permission === "granted" || permission === "denied" || permission === "default") return permission;
+  return typeof Notification !== "undefined" ? Notification.permission : "default";
+};
+
 // Check if subscription exists in database
 const checkSubscriptionInDB = async (userId: string): Promise<boolean> => {
   try {
@@ -51,6 +61,7 @@ export const useOneSignalPush = () => {
     permission: null,
   });
   const initializedRef = useRef(false);
+  const warnedPreviewRef = useRef(false);
 
   // Initialize OneSignal
   useEffect(() => {
@@ -58,6 +69,24 @@ export const useOneSignalPush = () => {
     if (initializedRef.current) return;
     
     const initOneSignal = async () => {
+      // OneSignal está restringido al dominio publicado; en dominios de preview fallará.
+      if (isLovablePreviewHost(window.location.hostname)) {
+        if (!warnedPreviewRef.current) {
+          warnedPreviewRef.current = true;
+          toast.info(
+            "Las notificaciones push solo se pueden activar desde la app publicada (reinstala la PWA desde ahí)"
+          );
+        }
+        setState(prev => ({
+          ...prev,
+          isSupported: false,
+          isSubscribed: false,
+          isLoading: false,
+          permission: ("Notification" in window) ? Notification.permission : null,
+        }));
+        return;
+      }
+
       // Check if browser supports notifications
       if (!("Notification" in window)) {
         console.log("[OneSignal] Notifications not supported");
@@ -107,12 +136,16 @@ export const useOneSignalPush = () => {
               enable: false, // We'll use our own UI
             },
             allowLocalhostAsSecureOrigin: true,
+            // En PWA instalada, usa el SW de la PWA para evitar conflictos de scope.
+            serviceWorkerPath: "/sw.js",
+            serviceWorkerParam: { scope: "/" },
           });
 
           console.log("[OneSignal] Initialized successfully");
 
           // Check current subscription state from OneSignal
-          const isPushEnabled = await OneSignal.Notifications.permission;
+          const permission = normalizeOneSignalPermission(await OneSignal.Notifications.permission);
+          const isPushEnabled = permission === "granted";
           const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
           
           // Cross-check with database
@@ -129,7 +162,7 @@ export const useOneSignalPush = () => {
           setState(prev => ({
             ...prev,
             isSubscribed: finalIsSubscribed,
-            permission: Notification.permission,
+            permission,
             isLoading: false,
           }));
 
@@ -148,16 +181,21 @@ export const useOneSignalPush = () => {
 
           // Listen for subscription changes
           OneSignal.Notifications.addEventListener("permissionChange", (permission: boolean) => {
-            console.log("[OneSignal] Permission changed:", permission);
+            const normalized = normalizeOneSignalPermission(permission);
+            console.log("[OneSignal] Permission changed:", normalized);
             setState(prev => ({
               ...prev,
-              isSubscribed: permission,
-              permission: permission ? "granted" : "denied",
+              isSubscribed: normalized === "granted" ? prev.isSubscribed : false,
+              permission: normalized,
             }));
           });
 
         } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
           console.error("[OneSignal] Init error:", error);
+          if (message.includes("Can only be used on:")) {
+            toast.info("Las notificaciones push requieren abrir la app publicada y reinstalar la PWA desde esa URL");
+          }
           setState(prev => ({ ...prev, isLoading: false }));
         }
       });
@@ -217,9 +255,9 @@ export const useOneSignalPush = () => {
             // Request permission and opt in
             await OneSignal.Notifications.requestPermission();
             
-            const permission = await OneSignal.Notifications.permission;
+            const permission = normalizeOneSignalPermission(await OneSignal.Notifications.permission);
             
-            if (permission) {
+            if (permission === "granted") {
               // Opt in to push
               await OneSignal.User.PushSubscription.optIn();
               
@@ -243,7 +281,7 @@ export const useOneSignalPush = () => {
               setState(prev => ({ 
                 ...prev, 
                 isSubscribed: false, 
-                permission: "denied",
+                permission,
                 isLoading: false 
               }));
               resolve(false);
