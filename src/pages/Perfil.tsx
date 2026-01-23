@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotificationPreferences } from "@/hooks/useRealtimeNotifications";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Bell, Camera, Loader2, Save, User } from "lucide-react";
+import { ArrowLeft, Bell, BellRing, Camera, Loader2, Save, Smartphone, User } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -35,6 +36,14 @@ interface ProfileData {
 const Perfil = () => {
   const { user, loading: authLoading } = useAuth();
   const { preferences, loading: prefsLoading, updatePreferences } = useNotificationPreferences();
+  const { 
+    isSupported: pushSupported, 
+    isSubscribed: pushSubscribed, 
+    isLoading: pushLoading,
+    permission: pushPermission,
+    subscribe: subscribeToPush, 
+    unsubscribe: unsubscribeFromPush 
+  } = usePushNotifications();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -458,6 +467,59 @@ const Perfil = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Push Notifications Section */}
+        {pushSupported && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <BellRing className="w-5 h-5 text-primary" />
+                <CardTitle>Notificaciones Push</CardTitle>
+              </div>
+              <CardDescription>
+                Recibe notificaciones en tu dispositivo incluso cuando la aplicación está cerrada
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="push-notifications" className="text-base flex items-center gap-2">
+                    <Smartphone className="w-4 h-4" />
+                    Notificaciones Push
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {pushPermission === "denied" 
+                      ? "Permisos denegados. Habilítalos en la configuración del navegador."
+                      : pushSubscribed 
+                        ? "Las notificaciones push están activas en este dispositivo"
+                        : "Activa las notificaciones push para recibir alertas instantáneas"
+                    }
+                  </p>
+                </div>
+                <Switch
+                  id="push-notifications"
+                  checked={pushSubscribed}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      subscribeToPush();
+                    } else {
+                      unsubscribeFromPush();
+                    }
+                  }}
+                  disabled={pushLoading || pushPermission === "denied"}
+                />
+              </div>
+              {pushSubscribed && (
+                <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                  <p className="flex items-center gap-2">
+                    <BellRing className="w-4 h-4 text-primary" />
+                    Las notificaciones push están habilitadas para este dispositivo.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );

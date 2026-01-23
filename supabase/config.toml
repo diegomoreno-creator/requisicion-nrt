@@ -3,3 +3,7 @@ project_id = "nooeffvybuqwujdmhsvy"
 [functions.analyze-tramite]
 enabled = true
 verify_jwt = false
+
+[functions.send-push-notification]
+enabled = true
+verify_jwt = false
