@@ -101,6 +101,7 @@ const GestionUsuarios = () => {
   
   // Search and pagination state
   const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<AppRole | "all">("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   
@@ -362,14 +363,16 @@ const GestionUsuarios = () => {
     }
   };
 
-  // Filter users based on search query
+  // Filter users based on search query and role filter
   const filteredUsers = users.filter(u => {
     const query = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = (
       u.email.toLowerCase().includes(query) ||
       (u.full_name?.toLowerCase().includes(query) ?? false) ||
       u.roles.some(role => roleLabels[role].toLowerCase().includes(query))
     );
+    const matchesRole = roleFilter === "all" || u.roles.includes(roleFilter);
+    return matchesSearch && matchesRole;
   });
 
   // Pagination calculations
@@ -378,9 +381,14 @@ const GestionUsuarios = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-  // Reset to page 1 when search query or items per page changes
+  // Reset to page 1 when search query, role filter, or items per page changes
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
+    setCurrentPage(1);
+  };
+
+  const handleRoleFilterChange = (value: string) => {
+    setRoleFilter(value as AppRole | "all");
     setCurrentPage(1);
   };
 
@@ -541,32 +549,50 @@ const GestionUsuarios = () => {
           </CardHeader>
 
           <CardContent>
-            {/* Search and Pagination Controls */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por email, nombre o rol..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-9 bg-input border-border"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground whitespace-nowrap">Mostrar:</span>
-                <Select value={String(itemsPerPage)} onValueChange={handleItemsPerPageChange}>
-                  <SelectTrigger className="w-20 bg-input border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="20">20</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                    <SelectItem value="200">200</SelectItem>
-                    <SelectItem value="500">500</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* Search, Role Filter and Pagination Controls */}
+            <div className="flex flex-col gap-4 mb-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por email, nombre o rol..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="pl-9 bg-input border-border"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">Rol:</span>
+                  <Select value={roleFilter} onValueChange={handleRoleFilterChange}>
+                    <SelectTrigger className="w-36 bg-input border-border">
+                      <SelectValue placeholder="Todos los roles" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border">
+                      <SelectItem value="all">Todos los roles</SelectItem>
+                      {allRoles.map(role => (
+                        <SelectItem key={role} value={role}>
+                          {roleLabels[role]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">Mostrar:</span>
+                  <Select value={String(itemsPerPage)} onValueChange={handleItemsPerPageChange}>
+                    <SelectTrigger className="w-20 bg-input border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border">
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="200">200</SelectItem>
+                      <SelectItem value="500">500</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
