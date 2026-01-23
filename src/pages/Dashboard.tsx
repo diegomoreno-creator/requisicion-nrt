@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import AdminStatistics from "@/components/AdminStatistics";
+import BroadcastNotification from "@/components/BroadcastNotification";
 
 const roleLabels: Record<string, string> = {
   superadmin: "Super Admin",
@@ -241,6 +242,13 @@ const Dashboard = () => {
         {(isSuperadmin || isAdmin) && (
           <div className="mb-8">
             <AdminStatistics />
+          </div>
+        )}
+
+        {/* Broadcast Notification Panel - Superadmin only */}
+        {isSuperadmin && (
+          <div className="mb-8">
+            <BroadcastNotification />
           </div>
         )}
 
