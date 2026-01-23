@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+// VAPID Public Key - safe to expose in frontend
+const VAPID_PUBLIC_KEY = "BEQEiUELkT0DZtn2WpBy5J3J4kFM2c1BGSzrH1JXzaomGwZorEZN4gt6pk_Yl7cXzu16P1NGokI4hGweknunl2k";
 
 interface PushSubscriptionState {
   isSupported: boolean;
