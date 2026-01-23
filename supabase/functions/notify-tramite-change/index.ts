@@ -224,6 +224,27 @@ serve(async (req) => {
       );
     }
 
+    // Get OneSignal player IDs from push_subscriptions
+    const { data: subscriptions, error: subError } = await supabase
+      .from("push_subscriptions")
+      .select("user_id, auth")
+      .in("user_id", usersWithNotifs);
+    
+    if (subError) {
+      console.error("[Notify] Error fetching subscriptions:", subError);
+    }
+    
+    // Extract player IDs (stored in 'auth' column)
+    const playerIds = subscriptions?.map(s => s.auth).filter(Boolean) || [];
+    
+    if (playerIds.length === 0) {
+      console.log("[Notify] No valid OneSignal player IDs found");
+      return new Response(
+        JSON.stringify({ success: true, message: "No player IDs" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Build notification content
     const folio = newRecord.folio as string;
     const newEstado = newRecord.estado as string;
@@ -241,17 +262,14 @@ serve(async (req) => {
     // Body: Estado + Folio for reference
     const notificationBody = `${estadoLabel} • ${folio}`;
     
-    console.log(`[Notify] Sending OneSignal notification to ${usersWithNotifs.length} users`);
-    console.log(`[Notify] User IDs (external_id):`, JSON.stringify(usersWithNotifs));
+    console.log(`[Notify] Sending OneSignal notification to ${playerIds.length} players`);
+    console.log(`[Notify] Player IDs:`, JSON.stringify(playerIds));
     console.log(`[Notify] Title: ${notificationTitle}, Body: ${notificationBody}`);
 
-    // Send notification via OneSignal API using external_user_ids
+    // Send notification via OneSignal API using subscription IDs (player IDs)
     const oneSignalPayload = {
       app_id: oneSignalAppId,
-      include_aliases: {
-        external_id: usersWithNotifs
-      },
-      target_channel: "push",
+      include_subscription_ids: playerIds,
       headings: { en: notificationTitle, es: notificationTitle },
       contents: { en: notificationBody, es: notificationBody },
       web_url: "https://requisicion-nrt.lovable.app/tramites",
