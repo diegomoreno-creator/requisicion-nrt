@@ -15,3 +15,11 @@ verify_jwt = false
 [functions.send-broadcast-notification]
 enabled = true
 verify_jwt = false
+
+[functions.send-test-notification]
+enabled = true
+verify_jwt = false
+
+[functions.manage-users]
+enabled = true
+verify_jwt = false
