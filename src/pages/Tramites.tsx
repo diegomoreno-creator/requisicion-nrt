@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bell, CheckCircle, FolderSearch, RotateCcw, Search, Trash2, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Bell, CheckCircle, FolderSearch, RotateCcw, Search, Trash2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -46,6 +46,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Tramite {
   id: string;
@@ -107,6 +108,9 @@ const Tramites = () => {
   } | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("activos");
+  const [selectedForDeletion, setSelectedForDeletion] = useState<Set<string>>(new Set());
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   // Determine which processor field to check based on user role
   const getProcessorField = (): string | null => {
@@ -390,6 +394,100 @@ const Tramites = () => {
     }
   };
 
+  // Toggle selection for a single tramite
+  const toggleTramiteSelection = (tramiteId: string) => {
+    setSelectedForDeletion(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(tramiteId)) {
+        newSet.delete(tramiteId);
+      } else {
+        newSet.add(tramiteId);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle select all deleted tramites
+  const toggleSelectAllDeleted = () => {
+    if (selectedForDeletion.size === deletedTramites.length) {
+      setSelectedForDeletion(new Set());
+    } else {
+      setSelectedForDeletion(new Set(deletedTramites.map(t => t.id)));
+    }
+  };
+
+  // Handle bulk permanent delete
+  const handleBulkPermanentDelete = async () => {
+    if (selectedForDeletion.size === 0) return;
+    
+    setBulkDeleteLoading(true);
+    setShowBulkDeleteConfirm(false);
+    
+    try {
+      const tramitesToDelete = deletedTramites.filter(t => selectedForDeletion.has(t.id));
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const tramite of tramitesToDelete) {
+        try {
+          if (tramite.tipo === "Requisición") {
+            // Delete related partidas first
+            await supabase
+              .from("requisicion_partidas")
+              .delete()
+              .eq("requisicion_id", tramite.id);
+
+            // Delete historial
+            await supabase
+              .from("requisicion_texto_compras_historial")
+              .delete()
+              .eq("requisicion_id", tramite.id);
+
+            // Delete requisicion
+            const { error } = await supabase
+              .from("requisiciones")
+              .delete()
+              .eq("id", tramite.id);
+            
+            if (error) throw error;
+          } else {
+            // Delete related gastos first
+            await supabase
+              .from("reposicion_gastos")
+              .delete()
+              .eq("reposicion_id", tramite.id);
+
+            // Delete reposicion
+            const { error } = await supabase
+              .from("reposiciones")
+              .delete()
+              .eq("id", tramite.id);
+            
+            if (error) throw error;
+          }
+          successCount++;
+        } catch (err) {
+          console.error(`Error deleting ${tramite.folio}:`, err);
+          errorCount++;
+        }
+      }
+
+      if (errorCount === 0) {
+        toast.success(`${successCount} trámite(s) eliminado(s) permanentemente`);
+      } else {
+        toast.warning(`${successCount} eliminado(s), ${errorCount} error(es)`);
+      }
+      
+      setSelectedForDeletion(new Set());
+      fetchTramites();
+    } catch (error: any) {
+      console.error("Error in bulk delete:", error);
+      toast.error("Error al eliminar los trámites");
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  };
+
   const renderTramitesTable = (tramitesList: Tramite[], showDeleted = false) => {
     if (loading) {
       return (
@@ -419,6 +517,15 @@ const Tramites = () => {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
+              {showDeleted && (
+                <TableHead className="w-10 p-2">
+                  <Checkbox
+                    checked={selectedForDeletion.size === tramitesList.length && tramitesList.length > 0}
+                    onCheckedChange={toggleSelectAllDeleted}
+                    aria-label="Seleccionar todos"
+                  />
+                </TableHead>
+              )}
               <TableHead className="text-muted-foreground font-medium w-4"></TableHead>
               <TableHead className="text-muted-foreground font-medium">Folio</TableHead>
               <TableHead className="text-muted-foreground font-medium">Tipo de Trámite</TableHead>
@@ -438,12 +545,23 @@ const Tramites = () => {
             {tramitesList.map((tramite) => (
               <TableRow
                 key={`${tramite.tipo}-${tramite.id}`}
-                className="hover:bg-muted/20 cursor-pointer"
+                className={`hover:bg-muted/20 cursor-pointer ${showDeleted && selectedForDeletion.has(tramite.id) ? 'bg-destructive/10' : ''}`}
                 onClick={() => {
-                  setSelectedTramite({ id: tramite.id, tipo: tramite.tipo });
-                  setDetailOpen(true);
+                  if (!showDeleted) {
+                    setSelectedTramite({ id: tramite.id, tipo: tramite.tipo });
+                    setDetailOpen(true);
+                  }
                 }}
               >
+                {showDeleted && (
+                  <TableCell className="w-10 p-2" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedForDeletion.has(tramite.id)}
+                      onCheckedChange={() => toggleTramiteSelection(tramite.id)}
+                      aria-label={`Seleccionar ${tramite.folio}`}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="w-4 p-2">
                   {tramite.tipo === "Requisición" && tramite.tipoRequisicionId ? (
                     <div
@@ -689,6 +807,33 @@ const Tramites = () => {
                   {renderTramitesTable(filteredTramites)}
                 </TabsContent>
                 <TabsContent value="borrados">
+                  {/* Bulk actions bar */}
+                  {selectedForDeletion.size > 0 && (
+                    <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">
+                        {selectedForDeletion.size} trámite(s) seleccionado(s)
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedForDeletion(new Set())}
+                        >
+                          Deseleccionar todo
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setShowBulkDeleteConfirm(true)}
+                          disabled={bulkDeleteLoading}
+                          className="flex items-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          {bulkDeleteLoading ? "Eliminando..." : "Eliminar seleccionados"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   {renderTramitesTable(deletedTramites, true)}
                 </TabsContent>
               </Tabs>
@@ -763,6 +908,39 @@ const Tramites = () => {
           tramiteTipo={selectedTramite?.tipo || null}
           onUpdated={fetchTramites}
         />
+
+        {/* Bulk Delete Confirmation Dialog */}
+        <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+                ¿Eliminar {selectedForDeletion.size} trámite(s) permanentemente?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                <strong className="text-destructive">Esta acción es permanente e irreversible.</strong>
+                <br /><br />
+                Los siguientes trámites y todos sus datos asociados serán eliminados definitivamente:
+                <ul className="mt-2 text-sm max-h-32 overflow-y-auto">
+                  {deletedTramites
+                    .filter(t => selectedForDeletion.has(t.id))
+                    .map(t => (
+                      <li key={t.id} className="py-0.5">• {t.folio} ({t.tipo})</li>
+                    ))}
+                </ul>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleBulkPermanentDelete}
+              >
+                Eliminar permanentemente
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
