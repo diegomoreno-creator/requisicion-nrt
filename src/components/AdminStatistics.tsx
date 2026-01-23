@@ -203,7 +203,7 @@ const AdminStatistics = () => {
       const date = subMonths(new Date(), i);
       const start = startOfMonth(date);
       const end = endOfMonth(date);
-      const monthLabel = format(date, "MMM yy", { locale: es });
+      const monthLabel = format(date, "MMM ''yy", { locale: es });
 
       const reqCount = reqData.filter(r => {
         const created = new Date(r.created_at);
