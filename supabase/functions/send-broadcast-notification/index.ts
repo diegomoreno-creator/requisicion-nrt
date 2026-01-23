@@ -32,36 +32,44 @@ serve(async (req) => {
 
     // Verify the user is a superadmin
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ success: false, error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Create client with anon key and auth header for JWT validation
+    const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } }
+    });
 
-    // Get the user from the JWT
+    // Validate JWT using getClaims
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
 
-    if (authError || !user) {
-      console.error("[Broadcast] Auth error:", authError);
+    if (claimsError || !claimsData?.claims) {
+      console.error("[Broadcast] Claims error:", claimsError);
       return new Response(
         JSON.stringify({ success: false, error: "Invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const userId = claimsData.claims.sub as string;
+
+    // Use service role client to check role
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     // Check if user is superadmin
     const { data: roleData, error: roleError } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single();
 
     if (roleError || roleData?.role !== "superadmin") {
-      console.error("[Broadcast] Not superadmin:", user.id);
+      console.error("[Broadcast] Not superadmin:", userId);
       return new Response(
         JSON.stringify({ success: false, error: "Forbidden - Superadmin required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
