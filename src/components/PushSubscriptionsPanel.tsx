@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Table, 
@@ -24,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Bell, BellOff, Loader2, Search, Users, RefreshCw, AlertTriangle } from "lucide-react";
+import { Bell, BellOff, Loader2, Search, Users, RefreshCw, AlertTriangle, Send, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -38,6 +37,13 @@ interface UserWithPush {
   push_updated_at: string | null;
 }
 
+interface TestResult {
+  userId: string;
+  success: boolean;
+  recipients: number;
+  error?: string;
+}
+
 export const PushSubscriptionsPanel = () => {
   const [users, setUsers] = useState<UserWithPush[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +51,8 @@ export const PushSubscriptionsPanel = () => {
   const [filterPush, setFilterPush] = useState<"all" | "active" | "inactive">("all");
   const [userToUnsubscribe, setUserToUnsubscribe] = useState<UserWithPush | null>(null);
   const [unsubscribing, setUnsubscribing] = useState(false);
+  const [sendingTest, setSendingTest] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Map<string, TestResult>>(new Map());
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -128,6 +136,51 @@ export const PushSubscriptionsPanel = () => {
     } finally {
       setUnsubscribing(false);
       setUserToUnsubscribe(null);
+    }
+  };
+
+  const handleSendTestNotification = async (user: UserWithPush) => {
+    setSendingTest(user.user_id);
+    // Clear previous result for this user
+    setTestResults(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(user.user_id);
+      return newMap;
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke("send-test-notification", {
+        body: { user_id: user.user_id },
+      });
+
+      if (error) throw error;
+
+      const result: TestResult = {
+        userId: user.user_id,
+        success: data.success && data.recipients > 0,
+        recipients: data.recipients || 0,
+        error: data.error || (data.recipients === 0 ? "0 destinatarios - suscripción inválida" : undefined),
+      };
+
+      setTestResults(prev => new Map(prev).set(user.user_id, result));
+
+      if (result.success) {
+        toast.success(`Notificación enviada a ${user.full_name || user.email} (${result.recipients} destinatario${result.recipients > 1 ? 's' : ''})`);
+      } else {
+        toast.error(`Error: ${result.error}`);
+      }
+    } catch (error: any) {
+      console.error("Error sending test notification:", error);
+      const errorMsg = error?.message || "Error desconocido";
+      setTestResults(prev => new Map(prev).set(user.user_id, {
+        userId: user.user_id,
+        success: false,
+        recipients: 0,
+        error: errorMsg,
+      }));
+      toast.error(`Error al enviar notificación: ${errorMsg}`);
+    } finally {
+      setSendingTest(null);
     }
   };
 
@@ -310,17 +363,53 @@ export const PushSubscriptionsPanel = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {user.has_push && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setUserToUnsubscribe(user)}
-                          >
-                            <BellOff className="w-4 h-4 mr-1" />
-                            Desactivar
-                          </Button>
-                        )}
+                        <div className="flex items-center justify-end gap-2">
+                          {/* Test result indicator */}
+                          {testResults.has(user.user_id) && (
+                            <div className="flex items-center gap-1">
+                              {testResults.get(user.user_id)?.success ? (
+                                <Badge className="bg-green-500/20 text-green-600 text-xs">
+                                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                                  {testResults.get(user.user_id)?.recipients} enviado
+                                </Badge>
+                              ) : (
+                                <Badge variant="destructive" className="text-xs">
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                  Error
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                          
+                          {user.has_push && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSendTestNotification(user)}
+                                disabled={sendingTest === user.user_id}
+                              >
+                                {sendingTest === user.user_id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Send className="w-4 h-4 mr-1" />
+                                    Probar
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setUserToUnsubscribe(user)}
+                              >
+                                <BellOff className="w-4 h-4 mr-1" />
+                                Desactivar
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
