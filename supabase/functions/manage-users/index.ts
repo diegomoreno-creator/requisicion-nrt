@@ -352,6 +352,102 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (action === 'bulkCreateUsers') {
+      const { users } = body;
+      
+      if (!Array.isArray(users) || users.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Lista de usuarios requerida' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('Bulk creating', users.length, 'users');
+      const results: { email: string; success: boolean; error?: string }[] = [];
+
+      for (const user of users) {
+        const { email, password, fullName, roles } = user;
+        
+        if (!email || !password) {
+          results.push({ email: email || 'unknown', success: false, error: 'Email y contraseña requeridos' });
+          continue;
+        }
+
+        const userRoles = Array.isArray(roles) ? roles : (roles ? [roles] : ['inactivo']);
+
+        try {
+          // Create user with admin API
+          const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: {
+              full_name: fullName || ''
+            }
+          });
+
+          if (createError) {
+            console.error('Create user error for', email, ':', createError);
+            results.push({ 
+              email, 
+              success: false, 
+              error: createError.message.includes('already been registered') 
+                ? 'Correo ya registrado' 
+                : createError.message 
+            });
+            continue;
+          }
+
+          if (newUser.user) {
+            // Wait a bit for the trigger to complete
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Delete the default role created by trigger
+            await supabaseAdmin
+              .from('user_roles')
+              .delete()
+              .eq('user_id', newUser.user.id);
+
+            // Insert all specified roles
+            for (const role of userRoles) {
+              await supabaseAdmin
+                .from('user_roles')
+                .insert({ 
+                  user_id: newUser.user.id, 
+                  role
+                });
+            }
+
+            // Also update full_name in profile if provided
+            if (fullName) {
+              await supabaseAdmin
+                .from('profiles')
+                .update({ full_name: fullName })
+                .eq('user_id', newUser.user.id);
+            }
+          }
+
+          results.push({ email, success: true });
+          console.log('Created user:', email);
+        } catch (err) {
+          console.error('Error creating user', email, ':', err);
+          results.push({ email, success: false, error: err instanceof Error ? err.message : 'Error desconocido' });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Creados ${successCount} usuarios. ${failCount > 0 ? `${failCount} fallaron.` : ''}`,
+          results
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: 'Acción no válida' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

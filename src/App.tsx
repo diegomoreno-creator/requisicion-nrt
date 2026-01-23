@@ -14,6 +14,7 @@ import PagoSinOC from "./pages/PagoSinOC";
 import Tramites from "./pages/Tramites";
 import GestionUsuarios from "./pages/GestionUsuarios";
 import GestionCatalogos from "./pages/GestionCatalogos";
+import BulkCreateUsers from "./pages/BulkCreateUsers";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -106,6 +107,14 @@ const App = () => (
               element={
                 <ProtectedRoute requiresSuperadmin>
                   <GestionCatalogos />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/bulk-create-users" 
+              element={
+                <ProtectedRoute requiresSuperadmin>
+                  <BulkCreateUsers />
                 </ProtectedRoute>
               } 
             />
