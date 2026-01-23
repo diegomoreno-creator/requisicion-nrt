@@ -125,13 +125,13 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
-    const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
+    const oneSignalAppId = "e9acc76a-6d64-4a22-a386-6bbc611980b9";
+    const oneSignalApiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
 
-    if (!vapidPublicKey || !vapidPrivateKey) {
-      console.log("[Notify] VAPID keys not configured, skipping push");
+    if (!oneSignalApiKey) {
+      console.log("[Notify] OneSignal API key not configured, skipping push");
       return new Response(
-        JSON.stringify({ success: true, message: "VAPID not configured" }),
+        JSON.stringify({ success: true, message: "OneSignal not configured" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -224,94 +224,56 @@ serve(async (req) => {
       );
     }
 
-    // Get push subscriptions
-    const { data: subscriptions, error: subError } = await supabase
-      .from("push_subscriptions")
-      .select("*")
-      .in("user_id", usersWithNotifs);
-    
-    if (subError) throw subError;
-    
-    if (!subscriptions || subscriptions.length === 0) {
-      console.log("[Notify] No push subscriptions found");
-      return new Response(
-        JSON.stringify({ success: true, sent: 0, message: "No subscriptions" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log(`[Notify] Sending to ${subscriptions.length} devices`);
-
     // Build notification content
     const folio = newRecord.folio as string;
     const newEstado = newRecord.estado as string;
     const tramiteType = payload.table === "requisiciones" ? "Requisición" : "Reposición";
     const estadoLabel = estadoLabels[newEstado] || newEstado;
     
-    const notificationPayload = JSON.stringify({
-      title: `${tramiteType} ${folio}`,
-      body: `Estado: ${estadoLabel}`,
-      url: "/tramites",
-      tag: `tramite-${newRecord.id}`,
-      icon: "/pwa-192x192.png"
+    console.log(`[Notify] Sending OneSignal notification to ${usersWithNotifs.length} users`);
+
+    // Send notification via OneSignal API using external_user_ids
+    const oneSignalPayload = {
+      app_id: oneSignalAppId,
+      include_aliases: {
+        external_id: usersWithNotifs
+      },
+      target_channel: "push",
+      headings: { en: `${tramiteType} ${folio}` },
+      contents: { en: `Estado: ${estadoLabel}` },
+      url: "https://requisicion-nrt.lovable.app/tramites",
+      web_url: "https://requisicion-nrt.lovable.app/tramites",
+      chrome_web_icon: "https://requisicion-nrt.lovable.app/pwa-192x192.png",
+      firefox_icon: "https://requisicion-nrt.lovable.app/pwa-192x192.png",
+    };
+
+    const oneSignalResponse = await fetch("https://onesignal.com/api/v1/notifications", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Basic ${oneSignalApiKey}`,
+      },
+      body: JSON.stringify(oneSignalPayload),
     });
 
-    let sent = 0;
-    let failed = 0;
-    const expiredSubscriptions: string[] = [];
-
-    for (const sub of subscriptions) {
-      try {
-        const audience = new URL(sub.endpoint).origin;
-        const expiration = Math.floor(Date.now() / 1000) + 12 * 60 * 60;
-        
-        const header = btoa(JSON.stringify({ typ: "JWT", alg: "ES256" }));
-        const claims = btoa(JSON.stringify({
-          aud: audience,
-          exp: expiration,
-          sub: "mailto:admin@nrt.com.mx"
-        }));
-
-        const response = await fetch(sub.endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/plain",
-            "TTL": "86400",
-            "Authorization": `vapid t=${header}.${claims}., k=${vapidPublicKey}`,
-          },
-          body: notificationPayload,
-        });
-
-        if (response.status === 201 || response.status === 200) {
-          sent++;
-          console.log(`[Notify] Sent to ${sub.user_id}`);
-        } else if (response.status === 410 || response.status === 404) {
-          console.log(`[Notify] Subscription expired for ${sub.user_id}`);
-          expiredSubscriptions.push(sub.id);
-          failed++;
-        } else {
-          const text = await response.text();
-          console.error(`[Notify] Failed for ${sub.user_id}: ${response.status} - ${text}`);
-          failed++;
-        }
-      } catch (error) {
-        console.error(`[Notify] Error sending to ${sub.user_id}:`, error);
-        failed++;
-      }
+    const oneSignalResult = await oneSignalResponse.json();
+    
+    if (!oneSignalResponse.ok) {
+      console.error("[Notify] OneSignal error:", oneSignalResult);
+      return new Response(
+        JSON.stringify({ success: false, error: oneSignalResult }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Clean up expired subscriptions
-    if (expiredSubscriptions.length > 0) {
-      await supabase
-        .from("push_subscriptions")
-        .delete()
-        .in("id", expiredSubscriptions);
-    }
-
-    console.log(`[Notify] Results - Sent: ${sent}, Failed: ${failed}`);
+    console.log("[Notify] OneSignal response:", oneSignalResult);
 
     return new Response(
-      JSON.stringify({ success: true, sent, failed }),
+      JSON.stringify({ 
+        success: true, 
+        recipients: usersWithNotifs.length,
+        oneSignalId: oneSignalResult.id 
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {

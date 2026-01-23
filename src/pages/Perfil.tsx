@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotificationPreferences } from "@/hooks/useRealtimeNotifications";
-import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useOneSignalPush } from "@/hooks/useOneSignalPush";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,7 @@ const Perfil = () => {
     permission: pushPermission,
     subscribe: subscribeToPush, 
     unsubscribe: unsubscribeFromPush 
-  } = usePushNotifications();
+  } = useOneSignalPush();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
