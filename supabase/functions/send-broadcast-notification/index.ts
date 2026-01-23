@@ -85,13 +85,40 @@ serve(async (req) => {
       );
     }
 
-    console.log("[Broadcast] Sending notification:", { title, message });
+    // Get all active push subscriptions with player IDs
+    const { data: subscriptions, error: subError } = await supabase
+      .from("push_subscriptions")
+      .select("auth");  // auth column stores the OneSignal player_id
 
-    // Send notification to ALL subscribed users via OneSignal
-    // Using "Total Subscriptions" segment which includes all push-enabled devices
+    if (subError) {
+      console.error("[Broadcast] Error fetching subscriptions:", subError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Error fetching subscriptions" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Extract player IDs (stored in 'auth' column)
+    const playerIds = subscriptions
+      ?.map(sub => sub.auth)
+      .filter(id => id && id.length > 10) || [];  // Filter out invalid IDs
+
+    console.log(`[Broadcast] Found ${playerIds.length} active subscriptions`);
+
+    if (playerIds.length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: "No active push subscriptions found" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("[Broadcast] Sending notification:", { title, message, playerCount: playerIds.length });
+    console.log("[Broadcast] Player IDs:", playerIds);
+
+    // Send notification to specific player IDs instead of segments
     const oneSignalPayload = {
       app_id: oneSignalAppId,
-      included_segments: ["Total Subscriptions"],
+      include_player_ids: playerIds,
       headings: { en: title, es: title },
       contents: { en: message, es: message },
       web_url: "https://requisicion-nrt.lovable.app/dashboard",
@@ -123,7 +150,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        recipients: oneSignalResult.recipients || 0,
+        recipients: oneSignalResult.recipients || playerIds.length,
         oneSignalId: oneSignalResult.id,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
