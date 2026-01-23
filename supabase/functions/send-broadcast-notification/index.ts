@@ -98,27 +98,33 @@ serve(async (req) => {
       );
     }
 
-    // Extract player IDs (stored in 'auth' column)
-    const playerIds = subscriptions
-      ?.map(sub => sub.auth)
-      .filter(id => id && id.length > 10) || [];  // Filter out invalid IDs
+    // Extract OneSignal subscription IDs (stored in 'auth' column)
+    // Note: We use OneSignal's newer subscription model, so the correct field
+    // for the legacy /api/v1/notifications endpoint is `include_subscription_ids`.
+    const subscriptionIds = Array.from(
+      new Set(
+        (subscriptions ?? [])
+          .map((sub) => sub.auth)
+          .filter((id) => typeof id === "string" && id.length > 10)
+      )
+    );
 
-    console.log(`[Broadcast] Found ${playerIds.length} active subscriptions`);
+    console.log(`[Broadcast] Found ${subscriptionIds.length} active subscriptions (deduped)`);
 
-    if (playerIds.length === 0) {
+    if (subscriptionIds.length === 0) {
       return new Response(
         JSON.stringify({ success: false, error: "No active push subscriptions found" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("[Broadcast] Sending notification:", { title, message, playerCount: playerIds.length });
-    console.log("[Broadcast] Player IDs:", playerIds);
+    console.log("[Broadcast] Sending notification:", { title, message, subscriptionCount: subscriptionIds.length });
+    console.log("[Broadcast] Subscription IDs:", JSON.stringify(subscriptionIds));
 
-    // Send notification to specific player IDs instead of segments
+    // Send notification to specific subscription IDs instead of segments
     const oneSignalPayload = {
       app_id: oneSignalAppId,
-      include_player_ids: playerIds,
+      include_subscription_ids: subscriptionIds,
       headings: { en: title, es: title },
       contents: { en: message, es: message },
       web_url: "https://requisicion-nrt.lovable.app/dashboard",
@@ -145,13 +151,16 @@ serve(async (req) => {
       );
     }
 
-    console.log("[Broadcast] OneSignal response:", oneSignalResult);
+    console.log("[Broadcast] OneSignal response:", JSON.stringify(oneSignalResult));
+
+    const recipients = typeof oneSignalResult?.recipients === "number" ? oneSignalResult.recipients : 0;
 
     return new Response(
       JSON.stringify({
         success: true,
-        recipients: oneSignalResult.recipients || playerIds.length,
+        recipients,
         oneSignalId: oneSignalResult.id,
+        errors: oneSignalResult?.errors ?? null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
