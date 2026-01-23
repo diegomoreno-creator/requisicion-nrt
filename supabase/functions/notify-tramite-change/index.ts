@@ -200,35 +200,21 @@ serve(async (req) => {
     }
 
     // Check notification preferences
-    // Users without a preference record default to notifications ENABLED
     const userIdArray = Array.from(allUserIds);
     const prefColumn = payload.table === "requisiciones" ? "notify_requisiciones" : "notify_reposiciones";
     
-    // Get users who explicitly disabled notifications
-    const { data: disabledPrefs, error: prefsError } = await supabase
+    const { data: prefs, error: prefsError } = await supabase
       .from("notification_preferences")
-      .select("user_id, notify_requisiciones, notify_reposiciones")
-      .in("user_id", userIdArray);
+      .select("user_id")
+      .in("user_id", userIdArray)
+      .eq(prefColumn, true);
     
     if (prefsError) {
       console.error("[Notify] Error fetching preferences:", prefsError);
     }
     
-    // Build set of users who explicitly disabled notifications for this type
-    const disabledUserIds = new Set<string>();
-    disabledPrefs?.forEach(pref => {
-      const isDisabled = payload.table === "requisiciones" 
-        ? pref.notify_requisiciones === false 
-        : pref.notify_reposiciones === false;
-      if (isDisabled) {
-        disabledUserIds.add(pref.user_id);
-      }
-    });
-    
-    // Filter: keep users who either have no record OR have notifications enabled
-    const usersWithNotifs = userIdArray.filter(uid => !disabledUserIds.has(uid));
-    
-    console.log(`[Notify] Users to notify: ${usersWithNotifs.length}/${userIdArray.length} (${disabledUserIds.size} disabled)`);
+    // Filter to only users who have notifications enabled
+    const usersWithNotifs = prefs?.map(p => p.user_id) || userIdArray;
     
     if (usersWithNotifs.length === 0) {
       console.log("[Notify] All users have notifications disabled");
