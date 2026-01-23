@@ -227,10 +227,22 @@ serve(async (req) => {
     // Build notification content
     const folio = newRecord.folio as string;
     const newEstado = newRecord.estado as string;
+    const asunto = newRecord.asunto as string || newRecord.justificacion as string || folio;
     const tramiteType = payload.table === "requisiciones" ? "Requisición" : "Reposición";
     const estadoLabel = estadoLabels[newEstado] || newEstado;
     
+    // Title: Tipo de trámite + Asunto (truncated if too long)
+    const maxAsuntoLength = 50;
+    const truncatedAsunto = asunto.length > maxAsuntoLength 
+      ? asunto.substring(0, maxAsuntoLength) + "..." 
+      : asunto;
+    const notificationTitle = `${tramiteType}: ${truncatedAsunto}`;
+    
+    // Body: Estado + Folio for reference
+    const notificationBody = `${estadoLabel} • ${folio}`;
+    
     console.log(`[Notify] Sending OneSignal notification to ${usersWithNotifs.length} users`);
+    console.log(`[Notify] Title: ${notificationTitle}, Body: ${notificationBody}`);
 
     // Send notification via OneSignal API using external_user_ids
     const oneSignalPayload = {
@@ -239,8 +251,8 @@ serve(async (req) => {
         external_id: usersWithNotifs
       },
       target_channel: "push",
-      headings: { en: `${tramiteType} ${folio}`, es: `${tramiteType} ${folio}` },
-      contents: { en: `Estado: ${estadoLabel}`, es: `Estado: ${estadoLabel}` },
+      headings: { en: notificationTitle, es: notificationTitle },
+      contents: { en: notificationBody, es: notificationBody },
       web_url: "https://requisicion-nrt.lovable.app/tramites",
       chrome_web_icon: "https://requisicion-nrt.lovable.app/pwa-192x192.png",
       firefox_icon: "https://requisicion-nrt.lovable.app/pwa-192x192.png",
