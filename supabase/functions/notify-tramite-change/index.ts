@@ -239,9 +239,8 @@ serve(async (req) => {
         external_id: usersWithNotifs
       },
       target_channel: "push",
-      headings: { en: `${tramiteType} ${folio}` },
-      contents: { en: `Estado: ${estadoLabel}` },
-      url: "https://requisicion-nrt.lovable.app/tramites",
+      headings: { en: `${tramiteType} ${folio}`, es: `${tramiteType} ${folio}` },
+      contents: { en: `Estado: ${estadoLabel}`, es: `Estado: ${estadoLabel}` },
       web_url: "https://requisicion-nrt.lovable.app/tramites",
       chrome_web_icon: "https://requisicion-nrt.lovable.app/pwa-192x192.png",
       firefox_icon: "https://requisicion-nrt.lovable.app/pwa-192x192.png",
