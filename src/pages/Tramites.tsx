@@ -20,7 +20,19 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bell, CheckCircle, FolderSearch, Search, Trash2, XCircle } from "lucide-react";
+import { ArrowLeft, Bell, CheckCircle, FolderSearch, RotateCcw, Search, Trash2, XCircle } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
@@ -298,6 +310,86 @@ const Tramites = () => {
     }
   };
 
+  // Handle restore soft-deleted tramite (only requisiciones have deleted_at)
+  const handleRestoreTramite = async (tramite: Tramite) => {
+    try {
+      if (tramite.tipo === "Requisición") {
+        const { error } = await supabase
+          .from("requisiciones")
+          .update({ deleted_at: null })
+          .eq("id", tramite.id);
+        
+        if (error) throw error;
+        toast.success(`Requisición ${tramite.folio} restaurada exitosamente`);
+        fetchTramites();
+      } else {
+        toast.error("Las reposiciones no soportan restauración");
+      }
+    } catch (error: any) {
+      console.error("Error restoring tramite:", error);
+      toast.error("Error al restaurar el trámite");
+    }
+  };
+
+  // Handle permanent delete
+  const handlePermanentDelete = async (tramite: Tramite) => {
+    try {
+      if (tramite.tipo === "Requisición") {
+        // Delete related partidas first
+        const { error: partidasError } = await supabase
+          .from("requisicion_partidas")
+          .delete()
+          .eq("requisicion_id", tramite.id);
+        
+        if (partidasError) {
+          console.error("Error deleting partidas:", partidasError);
+        }
+
+        // Delete historial
+        const { error: historialError } = await supabase
+          .from("requisicion_texto_compras_historial")
+          .delete()
+          .eq("requisicion_id", tramite.id);
+        
+        if (historialError) {
+          console.error("Error deleting historial:", historialError);
+        }
+
+        // Delete requisicion
+        const { error } = await supabase
+          .from("requisiciones")
+          .delete()
+          .eq("id", tramite.id);
+        
+        if (error) throw error;
+      } else {
+        // Delete related gastos first
+        const { error: gastosError } = await supabase
+          .from("reposicion_gastos")
+          .delete()
+          .eq("reposicion_id", tramite.id);
+        
+        if (gastosError) {
+          console.error("Error deleting gastos:", gastosError);
+        }
+
+        // Delete reposicion
+        const { error } = await supabase
+          .from("reposiciones")
+          .delete()
+          .eq("id", tramite.id);
+        
+        if (error) throw error;
+      }
+      
+      toast.success(`${tramite.tipo} ${tramite.folio} eliminada permanentemente`);
+      fetchTramites();
+    } catch (error: any) {
+      console.error("Error permanently deleting tramite:", error);
+      toast.error("Error al eliminar el trámite permanentemente");
+    }
+  };
+
   const renderTramitesTable = (tramitesList: Tramite[], showDeleted = false) => {
     if (loading) {
       return (
@@ -336,6 +428,9 @@ const Tramites = () => {
               <TableHead className="text-muted-foreground font-medium">Estado</TableHead>
               {showDeleted && (
                 <TableHead className="text-muted-foreground font-medium">Borrado</TableHead>
+              )}
+              {showDeleted && (
+                <TableHead className="text-muted-foreground font-medium text-right">Acciones</TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -394,6 +489,50 @@ const Tramites = () => {
                 {showDeleted && tramite.deleted_at && (
                   <TableCell className="text-muted-foreground text-sm">
                     {formatFecha(tramite.deleted_at)}
+                  </TableCell>
+                )}
+                {showDeleted && (
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-primary hover:text-primary"
+                        onClick={() => handleRestoreTramite(tramite)}
+                        title="Restaurar"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-destructive hover:text-destructive"
+                            title="Eliminar permanentemente"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar permanentemente?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción no se puede deshacer. El trámite <strong>{tramite.folio}</strong> y todos sus datos asociados serán eliminados permanentemente del sistema.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => handlePermanentDelete(tramite)}
+                            >
+                              Eliminar permanentemente
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 )}
               </TableRow>
