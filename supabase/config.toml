@@ -7,3 +7,7 @@ verify_jwt = false
 [functions.send-push-notification]
 enabled = true
 verify_jwt = false
+
+[functions.notify-tramite-change]
+enabled = true
+verify_jwt = false
