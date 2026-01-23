@@ -154,10 +154,20 @@ export const useOneSignalPush = () => {
             isSubscribedInDB = await checkSubscriptionInDB(user.id);
           }
           
-          // Final subscription state: must be in both OneSignal AND database
-          const finalIsSubscribed = isPushEnabled && isOptedIn && isSubscribedInDB;
+          // Final subscription state: DB + permiso (especialmente importante en iOS PWA,
+          // donde el flag 'optedIn' puede desincronizarse al re-montar)
+          const finalIsSubscribed = isPushEnabled && isSubscribedInDB;
           
-          console.log("[OneSignal] State check - OneSignal:", isPushEnabled && isOptedIn, "DB:", isSubscribedInDB, "Final:", finalIsSubscribed);
+          console.log(
+            "[OneSignal] State check - Permission granted:",
+            isPushEnabled,
+            "OptedIn:",
+            isOptedIn,
+            "DB:",
+            isSubscribedInDB,
+            "Final:",
+            finalIsSubscribed
+          );
           
           setState(prev => ({
             ...prev,
@@ -174,8 +184,8 @@ export const useOneSignalPush = () => {
             // If subscribed in OneSignal but not in DB, sync to DB
             if (isPushEnabled && isOptedIn && !isSubscribedInDB) {
               console.log("[OneSignal] Syncing subscription to DB");
-              await saveSubscriptionToDatabase(OneSignal, user.id);
-              setState(prev => ({ ...prev, isSubscribed: true }));
+              const saved = await saveSubscriptionToDatabase(OneSignal, user.id);
+              if (saved) setState(prev => ({ ...prev, isSubscribed: true }));
             }
           }
 
@@ -205,9 +215,10 @@ export const useOneSignalPush = () => {
   }, [user]);
 
   // Save subscription to database
-  const saveSubscriptionToDatabase = async (OneSignal: any, userId?: string) => {
+  // Returns true only if the record was persisted successfully.
+  const saveSubscriptionToDatabase = async (OneSignal: any, userId?: string): Promise<boolean> => {
     const targetUserId = userId || user?.id;
-    if (!targetUserId) return;
+    if (!targetUserId) return false;
 
     try {
       const playerId = await OneSignal.User.PushSubscription.id;
@@ -228,12 +239,18 @@ export const useOneSignalPush = () => {
 
         if (error) {
           console.error("[OneSignal] Error saving subscription:", error);
+          return false;
         } else {
           console.log("[OneSignal] Subscription saved to database");
+          return true;
         }
       }
+
+      console.warn("[OneSignal] Missing player/subscription id; cannot persist subscription");
+      return false;
     } catch (error) {
       console.error("[OneSignal] Error getting player ID:", error);
+      return false;
     }
   };
 
@@ -265,7 +282,18 @@ export const useOneSignalPush = () => {
               await OneSignal.login(user.id);
               
               // Save to database
-              await saveSubscriptionToDatabase(OneSignal);
+              const saved = await saveSubscriptionToDatabase(OneSignal);
+              if (!saved) {
+                toast.error("No se pudo guardar la suscripción push; intenta de nuevo");
+                setState(prev => ({
+                  ...prev,
+                  isSubscribed: false,
+                  permission,
+                  isLoading: false,
+                }));
+                resolve(false);
+                return;
+              }
               
               setState(prev => ({ 
                 ...prev, 
