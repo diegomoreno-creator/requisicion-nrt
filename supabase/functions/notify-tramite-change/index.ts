@@ -145,10 +145,10 @@ serve(async (req) => {
       oldEstado: payload.old_record?.estado,
     });
 
-    // Only process UPDATE events
-    if (payload.type !== "UPDATE") {
+    // Process INSERT and UPDATE events
+    if (payload.type !== "UPDATE" && payload.type !== "INSERT") {
       return new Response(
-        JSON.stringify({ success: true, message: "Not an update" }),
+        JSON.stringify({ success: true, message: "Not an insert or update" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -156,8 +156,8 @@ serve(async (req) => {
     const newRecord = payload.record;
     const oldRecord = payload.old_record;
     
-    // Check if estado changed
-    if (newRecord.estado === oldRecord?.estado) {
+    // For UPDATE: Check if estado changed
+    if (payload.type === "UPDATE" && newRecord.estado === oldRecord?.estado) {
       console.log("[Notify] Estado unchanged, skipping");
       return new Response(
         JSON.stringify({ success: true, message: "Estado unchanged" }),
