@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,6 +21,27 @@ interface OneSignalState {
   permission: NotificationPermission | null;
 }
 
+// Check if subscription exists in database
+const checkSubscriptionInDB = async (userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from("push_subscriptions")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error("[OneSignal] Error checking DB subscription:", error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error("[OneSignal] Error checking DB subscription:", error);
+    return false;
+  }
+};
+
 export const useOneSignalPush = () => {
   const { user } = useAuth();
   const [state, setState] = useState<OneSignalState>({
@@ -29,9 +50,13 @@ export const useOneSignalPush = () => {
     isLoading: true,
     permission: null,
   });
+  const initializedRef = useRef(false);
 
   // Initialize OneSignal
   useEffect(() => {
+    // Prevent multiple initializations
+    if (initializedRef.current) return;
+    
     const initOneSignal = async () => {
       // Check if browser supports notifications
       if (!("Notification" in window)) {
@@ -42,11 +67,38 @@ export const useOneSignalPush = () => {
 
       setState(prev => ({ ...prev, isSupported: true, permission: Notification.permission }));
 
+      // If user is logged in, first check database for existing subscription
+      // This is the source of truth for subscription state
+      if (user) {
+        const hasDBSubscription = await checkSubscriptionInDB(user.id);
+        console.log("[OneSignal] DB subscription check:", hasDBSubscription);
+        
+        // If DB says subscribed but browser permission is denied, clean up DB
+        if (hasDBSubscription && Notification.permission === "denied") {
+          console.log("[OneSignal] Cleaning up stale DB subscription");
+          await supabase
+            .from("push_subscriptions")
+            .delete()
+            .eq("user_id", user.id);
+          setState(prev => ({ ...prev, isSubscribed: false, isLoading: false }));
+          return;
+        }
+        
+        // Use DB as source of truth combined with browser permission
+        if (hasDBSubscription && Notification.permission === "granted") {
+          setState(prev => ({ ...prev, isSubscribed: true, permission: "granted", isLoading: false }));
+        }
+      }
+
       // Wait for OneSignal SDK to load
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       
       window.OneSignalDeferred.push(async (OneSignal: any) => {
         try {
+          // Check if already initialized
+          if (initializedRef.current) return;
+          initializedRef.current = true;
+
           // Initialize OneSignal
           await OneSignal.init({
             appId: ONESIGNAL_APP_ID,
@@ -59,13 +111,24 @@ export const useOneSignalPush = () => {
 
           console.log("[OneSignal] Initialized successfully");
 
-          // Check current subscription state
+          // Check current subscription state from OneSignal
           const isPushEnabled = await OneSignal.Notifications.permission;
           const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
           
+          // Cross-check with database
+          let isSubscribedInDB = false;
+          if (user) {
+            isSubscribedInDB = await checkSubscriptionInDB(user.id);
+          }
+          
+          // Final subscription state: must be in both OneSignal AND database
+          const finalIsSubscribed = isPushEnabled && isOptedIn && isSubscribedInDB;
+          
+          console.log("[OneSignal] State check - OneSignal:", isPushEnabled && isOptedIn, "DB:", isSubscribedInDB, "Final:", finalIsSubscribed);
+          
           setState(prev => ({
             ...prev,
-            isSubscribed: isPushEnabled && isOptedIn,
+            isSubscribed: finalIsSubscribed,
             permission: Notification.permission,
             isLoading: false,
           }));
@@ -75,9 +138,11 @@ export const useOneSignalPush = () => {
             await OneSignal.login(user.id);
             console.log("[OneSignal] User logged in:", user.id);
             
-            // Store subscription in database for server-side push
-            if (isPushEnabled && isOptedIn) {
-              await saveSubscriptionToDatabase(OneSignal);
+            // If subscribed in OneSignal but not in DB, sync to DB
+            if (isPushEnabled && isOptedIn && !isSubscribedInDB) {
+              console.log("[OneSignal] Syncing subscription to DB");
+              await saveSubscriptionToDatabase(OneSignal, user.id);
+              setState(prev => ({ ...prev, isSubscribed: true }));
             }
           }
 
@@ -102,8 +167,9 @@ export const useOneSignalPush = () => {
   }, [user]);
 
   // Save subscription to database
-  const saveSubscriptionToDatabase = async (OneSignal: any) => {
-    if (!user) return;
+  const saveSubscriptionToDatabase = async (OneSignal: any, userId?: string) => {
+    const targetUserId = userId || user?.id;
+    if (!targetUserId) return;
 
     try {
       const playerId = await OneSignal.User.PushSubscription.id;
@@ -113,7 +179,7 @@ export const useOneSignalPush = () => {
         const { error } = await supabase
           .from("push_subscriptions")
           .upsert({
-            user_id: user.id,
+            user_id: targetUserId,
             endpoint: `onesignal:${playerId}`,
             p256dh: "onesignal",
             auth: playerId,
