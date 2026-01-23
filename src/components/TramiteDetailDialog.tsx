@@ -474,13 +474,25 @@ const TramiteDetailDialog = ({
   };
 
   // Solicitador can delete their own pending requisitions
+  // Superadmins can permanently delete any tramite regardless of status
   const canDelete = () => {
-    if (!requisicion || !user) return false;
-    // Can only delete if: user is owner, is pending, and not deleted already
-    const isOwner = requisicion.solicitado_por === user.id;
-    const isPending = requisicion.estado === "pendiente";
-    const notDeleted = !requisicion.deleted_at;
-    return isOwner && isPending && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
+    const tramite = reposicion || requisicion;
+    if (!tramite || !user) return false;
+    const notDeleted = tramiteTipo === "Requisición" 
+      ? !requisicion?.deleted_at 
+      : true; // reposiciones don't have soft delete
+    
+    // Superadmin can delete any tramite regardless of status
+    if (isSuperadmin && notDeleted) return true;
+    
+    // For requisiciones only: owner can soft delete if pending
+    if (tramiteTipo === "Requisición" && requisicion) {
+      const isOwner = requisicion.solicitado_por === user.id;
+      const isPending = requisicion.estado === "pendiente";
+      return isOwner && isPending && notDeleted && (isSolicitador || isAdmin);
+    }
+    
+    return false;
   };
 
   // Superadmin can restore deleted requisitions
@@ -506,22 +518,72 @@ const TramiteDetailDialog = ({
   };
 
   const handleDelete = async () => {
-    if (!tramiteId) return;
+    if (!tramiteId || !tramiteTipo) return;
     setDeleteLoading(true);
 
     try {
-      const { error } = await supabase
-        .from("requisiciones")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", tramiteId);
+      // Superadmin performs permanent delete, others do soft delete (requisiciones only)
+      if (isSuperadmin) {
+        // Permanent delete with cascade
+        if (tramiteTipo === "Requisición") {
+          // Delete related partidas first
+          const { error: partidasError } = await supabase
+            .from("requisicion_partidas")
+            .delete()
+            .eq("requisicion_id", tramiteId);
+          
+          if (partidasError) console.error("Error deleting partidas:", partidasError);
 
-      if (error) throw error;
-      toast.success("Requisición eliminada exitosamente");
+          // Delete historial
+          const { error: historialError } = await supabase
+            .from("requisicion_texto_compras_historial")
+            .delete()
+            .eq("requisicion_id", tramiteId);
+          
+          if (historialError) console.error("Error deleting historial:", historialError);
+
+          // Delete requisicion
+          const { error } = await supabase
+            .from("requisiciones")
+            .delete()
+            .eq("id", tramiteId);
+          
+          if (error) throw error;
+        } else {
+          // Reposición - delete gastos first
+          const { error: gastosError } = await supabase
+            .from("reposicion_gastos")
+            .delete()
+            .eq("reposicion_id", tramiteId);
+          
+          if (gastosError) console.error("Error deleting gastos:", gastosError);
+
+          // Delete reposicion
+          const { error } = await supabase
+            .from("reposiciones")
+            .delete()
+            .eq("id", tramiteId);
+          
+          if (error) throw error;
+        }
+        
+        toast.success(`${tramiteTipo} eliminada permanentemente`);
+      } else {
+        // Soft delete for non-superadmins (requisiciones only)
+        const { error } = await supabase
+          .from("requisiciones")
+          .update({ deleted_at: new Date().toISOString() })
+          .eq("id", tramiteId);
+
+        if (error) throw error;
+        toast.success("Requisición eliminada exitosamente");
+      }
+      
       onUpdated?.();
       onOpenChange(false);
     } catch (error) {
       console.error("Error deleting:", error);
-      toast.error("Error al eliminar la requisición");
+      toast.error(`Error al eliminar ${tramiteTipo?.toLowerCase()}`);
     } finally {
       setDeleteLoading(false);
     }
@@ -2029,10 +2091,23 @@ const TramiteDetailDialog = ({
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar requisición?</AlertDialogTitle>
+            <AlertDialogTitle className={isSuperadmin ? "flex items-center gap-2" : ""}>
+              {isSuperadmin && <AlertTriangle className="w-5 h-5 text-destructive" />}
+              ¿Eliminar {tramiteTipo?.toLowerCase()}?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará la requisición <strong>{requisicion?.folio}</strong>. 
-              Solo el superadmin podrá restaurarla posteriormente.
+              {isSuperadmin ? (
+                <>
+                  <strong className="text-destructive">Esta acción es permanente e irreversible.</strong>
+                  <br />
+                  El trámite <strong>{reposicion?.folio || requisicion?.folio}</strong> y todos sus datos relacionados serán eliminados definitivamente.
+                </>
+              ) : (
+                <>
+                  Esta acción eliminará la requisición <strong>{requisicion?.folio}</strong>. 
+                  Solo el superadmin podrá restaurarla posteriormente.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2044,7 +2119,7 @@ const TramiteDetailDialog = ({
                 handleDelete();
               }}
             >
-              Eliminar
+              {isSuperadmin ? "Eliminar Permanentemente" : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
