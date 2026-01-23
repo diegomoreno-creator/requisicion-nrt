@@ -18,8 +18,13 @@ import {
   LineChart,
   Line
 } from "recharts";
-import { format, differenceInHours, differenceInDays, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, differenceInHours, differenceInDays, subMonths, subWeeks, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
 import { es } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface RequisicionStats {
   id: string;
@@ -42,6 +47,16 @@ interface TimeStats {
 }
 
 type TimeUnit = "minutes" | "hours" | "days";
+type VolumePeriod = "week" | "month" | "3months" | "6months" | "year" | "custom";
+
+const periodLabels: Record<VolumePeriod, string> = {
+  week: "Última semana",
+  month: "Último mes",
+  "3months": "3 meses",
+  "6months": "6 meses",
+  year: "1 año",
+  custom: "Personalizado",
+};
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
@@ -66,10 +81,22 @@ const AdminStatistics = () => {
   const [avgTotalTime, setAvgTotalTime] = useState<number>(0);
   const [bottleneck, setBottleneck] = useState<string>("");
   const [timeUnit, setTimeUnit] = useState<TimeUnit>("hours");
+  const [volumePeriod, setVolumePeriod] = useState<VolumePeriod>("6months");
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
 
   useEffect(() => {
     fetchStatistics();
   }, []);
+
+  // Recalculate volume when period or custom range changes
+  useEffect(() => {
+    if (requisiciones.length > 0 || reposiciones.length > 0) {
+      calculateVolumeByPeriod(requisiciones, reposiciones, volumePeriod, customDateRange);
+    }
+  }, [volumePeriod, customDateRange, requisiciones, reposiciones]);
 
   const fetchStatistics = async () => {
     setLoading(true);
@@ -94,9 +121,9 @@ const AdminStatistics = () => {
         setReposiciones(repoData);
       }
 
-      // Calculate monthly volume
+      // Calculate volume - will be handled by useEffect
       if (reqData && repoData) {
-        calculateMonthlyVolume(reqData, repoData);
+        calculateVolumeByPeriod(reqData, repoData, volumePeriod, customDateRange);
       }
     } catch (error) {
       console.error("Error fetching statistics:", error);
@@ -196,33 +223,110 @@ const AdminStatistics = () => {
     setStatusDistribution(result);
   };
 
-  const calculateMonthlyVolume = (reqData: RequisicionStats[], repoData: any[]) => {
-    const months: { month: string; requisiciones: number; reposiciones: number }[] = [];
-    
-    for (let i = 5; i >= 0; i--) {
-      const date = subMonths(new Date(), i);
-      const start = startOfMonth(date);
-      const end = endOfMonth(date);
-      const monthLabel = format(date, "MMM ''yy", { locale: es });
+  const calculateVolumeByPeriod = (
+    reqData: RequisicionStats[], 
+    repoData: any[], 
+    period: VolumePeriod,
+    dateRange: { from: Date | undefined; to: Date | undefined }
+  ) => {
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date = endOfDay(now);
+    let intervals: Date[];
+    let labelFormat: string;
+    let groupBy: "day" | "week" | "month";
+
+    switch (period) {
+      case "week":
+        startDate = startOfDay(subWeeks(now, 1));
+        intervals = eachDayOfInterval({ start: startDate, end: endDate });
+        labelFormat = "EEE d";
+        groupBy = "day";
+        break;
+      case "month":
+        startDate = startOfDay(subMonths(now, 1));
+        intervals = eachDayOfInterval({ start: startDate, end: endDate });
+        labelFormat = "d MMM";
+        groupBy = "day";
+        break;
+      case "3months":
+        startDate = startOfMonth(subMonths(now, 2));
+        intervals = eachWeekOfInterval({ start: startDate, end: endDate }, { locale: es });
+        labelFormat = "d MMM";
+        groupBy = "week";
+        break;
+      case "6months":
+        startDate = startOfMonth(subMonths(now, 5));
+        intervals = eachMonthOfInterval({ start: startDate, end: endDate });
+        labelFormat = "MMM ''yy";
+        groupBy = "month";
+        break;
+      case "year":
+        startDate = startOfMonth(subMonths(now, 11));
+        intervals = eachMonthOfInterval({ start: startDate, end: endDate });
+        labelFormat = "MMM ''yy";
+        groupBy = "month";
+        break;
+      case "custom":
+        if (!dateRange.from || !dateRange.to) {
+          setMonthlyVolume([]);
+          return;
+        }
+        startDate = startOfDay(dateRange.from);
+        endDate = endOfDay(dateRange.to);
+        const daysDiff = differenceInDays(endDate, startDate);
+        
+        if (daysDiff <= 14) {
+          intervals = eachDayOfInterval({ start: startDate, end: endDate });
+          labelFormat = "d MMM";
+          groupBy = "day";
+        } else if (daysDiff <= 90) {
+          intervals = eachWeekOfInterval({ start: startDate, end: endDate }, { locale: es });
+          labelFormat = "d MMM";
+          groupBy = "week";
+        } else {
+          intervals = eachMonthOfInterval({ start: startDate, end: endDate });
+          labelFormat = "MMM ''yy";
+          groupBy = "month";
+        }
+        break;
+      default:
+        return;
+    }
+
+    const volumeData = intervals.map((intervalStart, index) => {
+      let intervalEnd: Date;
+      
+      if (groupBy === "day") {
+        intervalEnd = endOfDay(intervalStart);
+      } else if (groupBy === "week") {
+        intervalEnd = index < intervals.length - 1 
+          ? subDays(intervals[index + 1], 1)
+          : endDate;
+        intervalEnd = endOfDay(intervalEnd);
+      } else {
+        intervalEnd = endOfMonth(intervalStart);
+        if (intervalEnd > endDate) intervalEnd = endDate;
+      }
 
       const reqCount = reqData.filter(r => {
         const created = new Date(r.created_at);
-        return created >= start && created <= end;
+        return created >= intervalStart && created <= intervalEnd;
       }).length;
 
       const repoCount = repoData.filter(r => {
         const created = new Date(r.created_at);
-        return created >= start && created <= end;
+        return created >= intervalStart && created <= intervalEnd;
       }).length;
 
-      months.push({
-        month: monthLabel,
+      return {
+        month: format(intervalStart, labelFormat, { locale: es }),
         requisiciones: reqCount,
         reposiciones: repoCount,
-      });
-    }
+      };
+    });
 
-    setMonthlyVolume(months);
+    setMonthlyVolume(volumeData);
   };
 
   if (loading) {
@@ -447,19 +551,76 @@ const AdminStatistics = () => {
         </Card>
       </div>
 
-      {/* Monthly Volume Chart */}
+      {/* Volume Chart */}
       <Card className="border-border bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Volumen Mensual de Trámites
-          </CardTitle>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Volumen de Trámites
+            </CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={volumePeriod} onValueChange={(value: VolumePeriod) => setVolumePeriod(value)}>
+                <SelectTrigger className="w-36 h-8 text-xs bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="week">Última semana</SelectItem>
+                  <SelectItem value="month">Último mes</SelectItem>
+                  <SelectItem value="3months">3 meses</SelectItem>
+                  <SelectItem value="6months">6 meses</SelectItem>
+                  <SelectItem value="year">1 año</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {volumePeriod === "custom" && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "h-8 text-xs justify-start text-left font-normal",
+                        !customDateRange.from && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-3 w-3" />
+                      {customDateRange.from ? (
+                        customDateRange.to ? (
+                          <>
+                            {format(customDateRange.from, "d MMM", { locale: es })} -{" "}
+                            {format(customDateRange.to, "d MMM yy", { locale: es })}
+                          </>
+                        ) : (
+                          format(customDateRange.from, "d MMM yy", { locale: es })
+                        )
+                      ) : (
+                        "Seleccionar fechas"
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-card border-border" align="end">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={customDateRange.from}
+                      selected={{ from: customDateRange.from, to: customDateRange.to }}
+                      onSelect={(range) => setCustomDateRange({ from: range?.from, to: range?.to })}
+                      numberOfMonths={2}
+                      locale={es}
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {monthlyVolume.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={monthlyVolume}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <Tooltip 
                   contentStyle={{ 
@@ -489,7 +650,9 @@ const AdminStatistics = () => {
             </ResponsiveContainer>
           ) : (
             <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-              No hay datos disponibles
+              {volumePeriod === "custom" && (!customDateRange.from || !customDateRange.to) 
+                ? "Selecciona un rango de fechas"
+                : "No hay datos disponibles"}
             </div>
           )}
         </CardContent>
