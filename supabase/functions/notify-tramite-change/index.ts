@@ -242,6 +242,7 @@ serve(async (req) => {
     const notificationBody = `${estadoLabel} • ${folio}`;
     
     console.log(`[Notify] Sending OneSignal notification to ${usersWithNotifs.length} users`);
+    console.log(`[Notify] User IDs (external_id):`, JSON.stringify(usersWithNotifs));
     console.log(`[Notify] Title: ${notificationTitle}, Body: ${notificationBody}`);
 
     // Send notification via OneSignal API using external_user_ids
