@@ -326,8 +326,38 @@ const Requisicion = () => {
       return;
     }
 
-    if (!asunto.trim()) {
-      toast.error("El campo Asunto es obligatorio");
+    // Validar campos obligatorios del formulario principal
+    const requiredErrors: string[] = [];
+    
+    if (!tipoRequisicion) requiredErrors.push("Tipo de requisición");
+    if (!empresa) requiredErrors.push("Empresa");
+    if (!unidadNegocio) requiredErrors.push("Unidad de Negocio");
+    if (!autorizadorId) requiredErrors.push("Autorizador");
+    if (!departamentoSolicitante.trim()) requiredErrors.push("Departamento Solicitante");
+    if (!asunto.trim()) requiredErrors.push("Asunto");
+    if (!justificacion.trim()) requiredErrors.push("Justificación");
+
+    // Validar campos obligatorios de cada partida
+    const partidasErrors: string[] = [];
+    partidas.forEach((partida, index) => {
+      const partidaNum = index + 1;
+      if (!partida.descripcion.trim()) {
+        partidasErrors.push(`Partida ${partidaNum}: Descripción`);
+      }
+      if (!partida.cantidad || partida.cantidad <= 0) {
+        partidasErrors.push(`Partida ${partidaNum}: Cantidad`);
+      }
+      if (!partida.tipo_gasto) {
+        partidasErrors.push(`Partida ${partidaNum}: Tipo de gasto`);
+      }
+      if (!partida.categoria_gasto) {
+        partidasErrors.push(`Partida ${partidaNum}: Categoría de gasto`);
+      }
+    });
+
+    if (requiredErrors.length > 0 || partidasErrors.length > 0) {
+      const allErrors = [...requiredErrors, ...partidasErrors];
+      toast.error(`Campos obligatorios faltantes: ${allErrors.slice(0, 3).join(", ")}${allErrors.length > 3 ? ` y ${allErrors.length - 3} más` : ""}`);
       return;
     }
 
@@ -541,7 +571,7 @@ const Requisicion = () => {
               {/* Tipo de requisición y Asunto */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-foreground">Tipo de requisición</Label>
+                  <Label className="text-foreground">Tipo de requisición <span className="text-destructive">*</span></Label>
                   <Select value={tipoRequisicion} onValueChange={setTipoRequisicion}>
                     <SelectTrigger className="bg-input border-border">
                       <SelectValue placeholder="Seleccione un tipo de requisición" />
@@ -576,7 +606,7 @@ const Requisicion = () => {
               {/* Row: Empresa, Unidad de Negocio, Folio, Fecha */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-foreground">Empresa</Label>
+                  <Label className="text-foreground">Empresa <span className="text-destructive">*</span></Label>
                   <Select 
                     value={empresa} 
                     onValueChange={(value) => {
@@ -598,7 +628,7 @@ const Requisicion = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-foreground">Unidad de negocio</Label>
+                  <Label className="text-foreground">Unidad de negocio <span className="text-destructive">*</span></Label>
                   <Select 
                     value={unidadNegocio} 
                     onValueChange={setUnidadNegocio}
@@ -675,7 +705,7 @@ const Requisicion = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-foreground">Autorizador</Label>
+                  <Label className="text-foreground">Autorizador <span className="text-destructive">*</span></Label>
                   <Select value={autorizadorId} onValueChange={setAutorizadorId}>
                     <SelectTrigger className="bg-input border-border">
                       <SelectValue placeholder="Seleccione un autorizador" />
@@ -691,7 +721,7 @@ const Requisicion = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-foreground">Departamento Solicitante</Label>
+                  <Label className="text-foreground">Departamento Solicitante <span className="text-destructive">*</span></Label>
                   <Input
                     value={departamentoSolicitante}
                     onChange={(e) => setDepartamentoSolicitante(e.target.value)}
@@ -717,12 +747,12 @@ const Requisicion = () => {
                     <TableHeader>
                       <TableRow className="border-border hover:bg-transparent">
                         <TableHead className="text-muted-foreground w-20">Partida</TableHead>
-                        <TableHead className="text-muted-foreground w-40">Tipo de Gasto</TableHead>
-                        <TableHead className="text-muted-foreground w-52">Categoría de Gasto</TableHead>
-                        <TableHead className="text-muted-foreground">Descripción</TableHead>
+                        <TableHead className="text-muted-foreground w-40">Tipo de Gasto <span className="text-destructive">*</span></TableHead>
+                        <TableHead className="text-muted-foreground w-52">Categoría de Gasto <span className="text-destructive">*</span></TableHead>
+                        <TableHead className="text-muted-foreground">Descripción <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground">Modelo/# Parte</TableHead>
                         <TableHead className="text-muted-foreground w-24">UM</TableHead>
-                        <TableHead className="text-muted-foreground w-24">Cantidad</TableHead>
+                        <TableHead className="text-muted-foreground w-24">Cantidad <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground w-40">Fecha de Necesidad</TableHead>
                         <TableHead className="text-muted-foreground w-12"></TableHead>
                       </TableRow>
@@ -961,7 +991,7 @@ const Requisicion = () => {
 
               {/* Justificación */}
               <div className="space-y-2">
-                <Label className="text-foreground">Justificación</Label>
+                <Label className="text-foreground">Justificación <span className="text-destructive">*</span></Label>
                 <Textarea
                   value={justificacion}
                   onChange={(e) => setJustificacion(e.target.value)}
