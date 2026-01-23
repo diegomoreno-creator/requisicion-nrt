@@ -88,12 +88,12 @@ serve(async (req) => {
     console.log("[Broadcast] Sending notification:", { title, message });
 
     // Send notification to ALL subscribed users via OneSignal
+    // Using "Total Subscriptions" segment which includes all push-enabled devices
     const oneSignalPayload = {
       app_id: oneSignalAppId,
-      included_segments: ["Subscribed Users"],
+      included_segments: ["Total Subscriptions"],
       headings: { en: title, es: title },
       contents: { en: message, es: message },
-      url: "https://requisicion-nrt.lovable.app/dashboard",
       web_url: "https://requisicion-nrt.lovable.app/dashboard",
       chrome_web_icon: "https://requisicion-nrt.lovable.app/pwa-192x192.png",
       firefox_icon: "https://requisicion-nrt.lovable.app/pwa-192x192.png",
