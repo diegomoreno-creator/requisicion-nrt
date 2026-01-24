@@ -490,9 +490,7 @@ const Perfil = () => {
                   <p className="text-sm text-muted-foreground">
                     {pushSubscribed 
                       ? "Las notificaciones push están activas en este dispositivo"
-                      : pushPermission === "denied"
-                        ? "Permisos denegados. Ve a Configuración > Safari > Sitios Web > Notificaciones para habilitarlos."
-                        : "Activa las notificaciones push para recibir alertas instantáneas"
+                      : "Activa las notificaciones push para recibir alertas instantáneas"
                     }
                   </p>
                 </div>
@@ -506,7 +504,7 @@ const Perfil = () => {
                       unsubscribeFromPush();
                     }
                   }}
-                  disabled={pushLoading || (pushPermission === "denied" && !pushSubscribed)}
+                  disabled={pushLoading}
                 />
               </div>
               {pushSubscribed && (
