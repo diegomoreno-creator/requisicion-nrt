@@ -47,6 +47,7 @@ interface Partida {
   fecha_necesidad: Date | null;
   tipo_gasto: string;
   categoria_gasto: string;
+  costo_estimado: number | null;
 }
 
 // Categorías de gasto por tipo
@@ -164,6 +165,7 @@ const Requisicion = () => {
       fecha_necesidad: new Date(),
       tipo_gasto: "",
       categoria_gasto: "",
+      costo_estimado: null,
     },
   ]);
 
@@ -256,6 +258,7 @@ const Requisicion = () => {
           fecha_necesidad: p.fecha_necesidad ? new Date(p.fecha_necesidad) : null,
           tipo_gasto: p.tipo_gasto || "",
           categoria_gasto: p.categoria_gasto || "",
+          costo_estimado: (p as any).costo_estimado ?? null,
         })));
       }
     } catch (error) {
@@ -290,6 +293,7 @@ const Requisicion = () => {
       fecha_necesidad: new Date(),
       tipo_gasto: "",
       categoria_gasto: "",
+      costo_estimado: null,
     };
     setPartidas([...partidas, newPartida]);
   };
@@ -417,6 +421,7 @@ const Requisicion = () => {
           fecha_necesidad: p.fecha_necesidad?.toISOString().split("T")[0],
           tipo_gasto: p.tipo_gasto || null,
           categoria_gasto: p.categoria_gasto || null,
+          costo_estimado: p.costo_estimado,
         }));
 
         const { error: partidasError } = await supabaseAuthed
@@ -517,6 +522,7 @@ const Requisicion = () => {
           fecha_necesidad: p.fecha_necesidad?.toISOString().split("T")[0],
           tipo_gasto: p.tipo_gasto || null,
           categoria_gasto: p.categoria_gasto || null,
+          costo_estimado: p.costo_estimado,
         }));
 
         const { error: partidasError } = await supabaseAuthed
@@ -753,6 +759,7 @@ const Requisicion = () => {
                         <TableHead className="text-muted-foreground">Modelo/# Parte</TableHead>
                         <TableHead className="text-muted-foreground w-24">UM</TableHead>
                         <TableHead className="text-muted-foreground w-24">Cantidad <span className="text-destructive">*</span></TableHead>
+                        <TableHead className="text-muted-foreground w-32">Costo Estimado</TableHead>
                         <TableHead className="text-muted-foreground w-40">Fecha de Necesidad</TableHead>
                         <TableHead className="text-muted-foreground w-12"></TableHead>
                       </TableRow>
@@ -842,6 +849,23 @@ const Requisicion = () => {
                                 )
                               }
                               className="bg-input border-border w-20"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="$"
+                              value={partida.costo_estimado ?? ""}
+                              onChange={(e) =>
+                                updatePartida(
+                                  partida.id,
+                                  "costo_estimado",
+                                  e.target.value ? parseFloat(e.target.value) : null
+                                )
+                              }
+                              className="bg-input border-border w-28"
                             />
                           </TableCell>
                           <TableCell>
