@@ -1,18 +1,32 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { ArrowLeft, Bell } from "lucide-react";
+import { ArrowLeft, Bell, Loader2 } from "lucide-react";
 import BroadcastNotification from "@/components/BroadcastNotification";
 import { PushSubscriptionsPanel } from "@/components/PushSubscriptionsPanel";
 import { PersonalNotificationPanel } from "@/components/PersonalNotificationPanel";
 
 const Notificaciones = () => {
-  const { user, isSuperadmin } = useAuth();
+  const { user, isSuperadmin, loading } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (!loading && (!user || !isSuperadmin)) {
+      navigate("/dashboard");
+    }
+  }, [user, isSuperadmin, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (!user || !isSuperadmin) {
-    navigate("/dashboard");
     return null;
   }
 
