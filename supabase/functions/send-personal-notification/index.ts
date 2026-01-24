@@ -123,10 +123,10 @@ serve(async (req) => {
     console.log("[PersonalNotif] Subscription ID:", subscriptionId);
     console.log("[PersonalNotif] User name:", userName);
 
-    // Send notification using OneSignal aliases
+    // Send notification targeting the subscription ID
     const oneSignalPayload = {
       app_id: oneSignalAppId,
-      include_aliases: { onesignal_id: [subscriptionId] },
+      include_subscription_ids: [subscriptionId],
       target_channel: "push",
       headings: { en: title, es: title },
       contents: { en: message, es: message },

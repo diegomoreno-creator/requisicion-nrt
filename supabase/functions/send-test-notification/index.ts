@@ -123,10 +123,10 @@ serve(async (req) => {
     console.log("[TestNotif] User name:", userName);
 
     // Send test notification
-    // OneSignal v11+ uses "include_aliases" with "onesignal_id" for targeting by subscription ID
+    // Target by subscription id
     const oneSignalPayload = {
       app_id: oneSignalAppId,
-      include_aliases: { onesignal_id: [subscriptionId] },
+      include_subscription_ids: [subscriptionId],
       target_channel: "push",
       headings: { en: "🔔 Notificación de Prueba", es: "🔔 Notificación de Prueba" },
       contents: { 
