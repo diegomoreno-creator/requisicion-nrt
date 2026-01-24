@@ -114,7 +114,8 @@ export const PersonalNotificationPanel = () => {
 
       if (error) throw error;
 
-      if (data?.success && data?.recipients > 0) {
+      // Check for success - either explicit success flag or presence of oneSignalId
+      if (data?.success || data?.oneSignalId) {
         toast.success(`Notificación enviada a ${targetUser.full_name || targetUser.email}`);
         setTitle("");
         setMessage("");

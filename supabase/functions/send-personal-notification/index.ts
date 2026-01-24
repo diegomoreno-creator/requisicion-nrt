@@ -163,11 +163,16 @@ serve(async (req) => {
       );
     }
 
-    const recipients = typeof oneSignalResult?.recipients === "number" ? oneSignalResult.recipients : 0;
+    // When using include_subscription_ids, OneSignal may not return recipients count
+    // If we got a 200 OK and an ID, consider it successful
+    const hasNotificationId = !!oneSignalResult?.id;
+    const recipients = typeof oneSignalResult?.recipients === "number" 
+      ? oneSignalResult.recipients 
+      : (hasNotificationId ? 1 : 0); // Assume 1 if we got an ID
 
     return new Response(
       JSON.stringify({
-        success: true,
+        success: hasNotificationId,
         recipients,
         oneSignalId: oneSignalResult.id,
         errors: oneSignalResult?.errors ?? null,
