@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,13 +23,12 @@ import {
   LogOut,
   Loader2,
   User,
-  HelpCircle
+  HelpCircle,
+  Bell
 } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import AdminStatistics from "@/components/AdminStatistics";
-import BroadcastNotification from "@/components/BroadcastNotification";
-import { PushSubscriptionsPanel } from "@/components/PushSubscriptionsPanel";
 
 const roleLabels: Record<string, string> = {
   superadmin: "Super Admin",
@@ -166,6 +164,13 @@ const Dashboard = () => {
       path: "/gestion-catalogos",
       visible: isSuperadmin,
     },
+    {
+      title: "Notificaciones",
+      description: "Envía y gestiona notificaciones push.",
+      icon: Bell,
+      path: "/notificaciones",
+      visible: isSuperadmin,
+    },
   ];
 
   if (loading) {
@@ -243,20 +248,6 @@ const Dashboard = () => {
         {(isSuperadmin || isAdmin) && (
           <div className="mb-8">
             <AdminStatistics />
-          </div>
-        )}
-
-        {/* Broadcast Notification Panel - Superadmin only */}
-        {isSuperadmin && (
-          <div className="mb-8">
-            <BroadcastNotification />
-          </div>
-        )}
-
-        {/* Push Subscriptions Panel - Superadmin only */}
-        {isSuperadmin && (
-          <div className="mb-8">
-            <PushSubscriptionsPanel />
           </div>
         )}
 

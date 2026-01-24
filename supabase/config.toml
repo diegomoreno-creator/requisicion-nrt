@@ -20,6 +20,10 @@ verify_jwt = false
 enabled = true
 verify_jwt = false
 
+[functions.send-personal-notification]
+enabled = true
+verify_jwt = false
+
 [functions.manage-users]
 enabled = true
 verify_jwt = false

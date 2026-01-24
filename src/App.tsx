@@ -15,6 +15,7 @@ import Tramites from "./pages/Tramites";
 import GestionUsuarios from "./pages/GestionUsuarios";
 import GestionCatalogos from "./pages/GestionCatalogos";
 import BulkCreateUsers from "./pages/BulkCreateUsers";
+import Notificaciones from "./pages/Notificaciones";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -115,6 +116,14 @@ const App = () => (
               element={
                 <ProtectedRoute requiresSuperadmin>
                   <BulkCreateUsers />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/notificaciones" 
+              element={
+                <ProtectedRoute requiresSuperadmin>
+                  <Notificaciones />
                 </ProtectedRoute>
               } 
             />
