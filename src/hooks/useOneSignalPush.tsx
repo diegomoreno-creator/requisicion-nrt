@@ -143,7 +143,12 @@ export const useOneSignalPush = () => {
         }
       }
 
-      const finalIsSubscribed = Boolean(currentUserId) && isPushEnabled && isSubscribedInDB;
+      // If user has a valid DB subscription, consider them subscribed even if 
+      // OneSignal reports permission issues (can happen on iOS PWA)
+      const finalIsSubscribed = Boolean(currentUserId) && isSubscribedInDB && (isPushEnabled || isOptedIn);
+      
+      // Only report "denied" if we're certain - if subscribed in DB, report as granted
+      const effectivePermission = isSubscribedInDB ? "granted" : permission;
 
       console.log(
         "[OneSignal] Sync - Permission:",
@@ -153,14 +158,16 @@ export const useOneSignalPush = () => {
         "DB:",
         isSubscribedInDB,
         "Final:",
-        finalIsSubscribed
+        finalIsSubscribed,
+        "EffectivePermission:",
+        effectivePermission
       );
 
       setState(prev => ({
         ...prev,
         isSupported: true,
         isSubscribed: finalIsSubscribed,
-        permission,
+        permission: effectivePermission,
         isLoading: false,
       }));
     } catch (error) {
