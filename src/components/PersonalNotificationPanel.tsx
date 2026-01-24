@@ -120,7 +120,18 @@ export const PersonalNotificationPanel = () => {
         setMessage("");
         setSelectedUser("");
       } else {
-        throw new Error(data?.error || "No se pudo entregar la notificación");
+        // Show detailed error reason
+        let errorReason = data?.error || "No se pudo entregar la notificación";
+        
+        // Map common OneSignal errors to user-friendly messages
+        if (data?.errors?.includes("All included players are not subscribed")) {
+          errorReason = "La suscripción del usuario está obsoleta. El usuario debe reactivar las notificaciones desde su perfil.";
+        }
+        
+        toast.error(errorReason, {
+          duration: 6000,
+          description: data?.recipients === 0 ? "0 destinatarios alcanzados" : undefined,
+        });
       }
     } catch (error: any) {
       console.error("Error sending personal notification:", error);
