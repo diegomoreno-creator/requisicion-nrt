@@ -21,8 +21,15 @@ interface OneSignalState {
   permission: NotificationPermission | null;
 }
 
-const isLovablePreviewHost = (hostname: string) =>
-  hostname.endsWith(".lovableproject.com") || hostname.startsWith("id-preview--");
+const isLovablePreviewHost = (hostname: string) => {
+  // Detectar dominios de preview de Lovable
+  // Los dominios de preview terminan en .lovableproject.com o id-preview--*.lovable.app
+  // El dominio publicado es requisicion-nrt.lovable.app (NO debe ser bloqueado)
+  if (hostname.endsWith(".lovableproject.com")) return true;
+  if (hostname.includes("id-preview--")) return true;
+  // Cualquier otro dominio .lovable.app (que no sea id-preview) es válido
+  return false;
+};
 
 const normalizeOneSignalPermission = (permission: any): NotificationPermission => {
   if (permission === true) return "granted";
@@ -69,8 +76,11 @@ export const useOneSignalPush = () => {
     if (initializedRef.current) return;
     
     const initOneSignal = async () => {
+      console.log("[OneSignal] Init starting, hostname:", window.location.hostname);
+      
       // OneSignal está restringido al dominio publicado; en dominios de preview fallará.
       if (isLovablePreviewHost(window.location.hostname)) {
+        console.log("[OneSignal] Preview host detected, skipping init");
         if (!warnedPreviewRef.current) {
           warnedPreviewRef.current = true;
           toast.info(
@@ -86,6 +96,8 @@ export const useOneSignalPush = () => {
         }));
         return;
       }
+
+      console.log("[OneSignal] Valid domain, proceeding with init");
 
       // Check if browser supports notifications
       if (!("Notification" in window)) {
@@ -128,6 +140,8 @@ export const useOneSignalPush = () => {
           if (initializedRef.current) return;
           initializedRef.current = true;
 
+          console.log("[OneSignal] Calling OneSignal.init()");
+          
           // Initialize OneSignal
           await OneSignal.init({
             appId: ONESIGNAL_APP_ID,
@@ -136,9 +150,8 @@ export const useOneSignalPush = () => {
               enable: false, // We'll use our own UI
             },
             allowLocalhostAsSecureOrigin: true,
-            // Usar el worker de OneSignal dedicado para evitar conflictos con el SW de VitePWA
-            serviceWorkerPath: "/OneSignalSDKWorker.js",
-            serviceWorkerParam: { scope: "/" },
+            // Dejar que OneSignal maneje el service worker automáticamente
+            // Esto funciona mejor en PWAs instaladas
           });
 
           console.log("[OneSignal] Initialized successfully");
@@ -209,6 +222,17 @@ export const useOneSignalPush = () => {
           setState(prev => ({ ...prev, isLoading: false }));
         }
       });
+      
+      // Timeout fallback: si OneSignal no carga en 10 segundos, marcar como no soportado
+      setTimeout(() => {
+        setState(prev => {
+          if (prev.isLoading) {
+            console.warn("[OneSignal] SDK load timeout");
+            return { ...prev, isLoading: false };
+          }
+          return prev;
+        });
+      }, 10000);
     };
 
     initOneSignal();
