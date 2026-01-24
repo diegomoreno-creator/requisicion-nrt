@@ -123,9 +123,11 @@ serve(async (req) => {
     console.log("[TestNotif] User name:", userName);
 
     // Send test notification
+    // OneSignal v11+ uses "include_aliases" with "onesignal_id" for targeting by subscription ID
     const oneSignalPayload = {
       app_id: oneSignalAppId,
-      include_subscription_ids: [subscriptionId],
+      include_aliases: { onesignal_id: [subscriptionId] },
+      target_channel: "push",
       headings: { en: "🔔 Notificación de Prueba", es: "🔔 Notificación de Prueba" },
       contents: { 
         en: `Hola ${userName}, esta es una prueba del sistema de notificaciones.`, 
@@ -135,6 +137,8 @@ serve(async (req) => {
       chrome_web_icon: "https://requisicion-nrt.lovable.app/pwa-192x192.png",
       firefox_icon: "https://requisicion-nrt.lovable.app/pwa-192x192.png",
     };
+
+    console.log("[TestNotif] OneSignal payload:", JSON.stringify(oneSignalPayload));
 
     const oneSignalResponse = await fetch("https://onesignal.com/api/v1/notifications", {
       method: "POST",
@@ -147,6 +151,7 @@ serve(async (req) => {
 
     const oneSignalResult = await oneSignalResponse.json();
 
+    console.log("[TestNotif] OneSignal response status:", oneSignalResponse.status);
     console.log("[TestNotif] OneSignal response:", JSON.stringify(oneSignalResult));
 
     if (!oneSignalResponse.ok) {
