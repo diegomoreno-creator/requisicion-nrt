@@ -334,6 +334,7 @@ export type Database = {
         Row: {
           cantidad: number | null
           categoria_gasto: string | null
+          costo_estimado: number | null
           created_at: string
           descripcion: string | null
           fecha_necesidad: string | null
@@ -347,6 +348,7 @@ export type Database = {
         Insert: {
           cantidad?: number | null
           categoria_gasto?: string | null
+          costo_estimado?: number | null
           created_at?: string
           descripcion?: string | null
           fecha_necesidad?: string | null
@@ -360,6 +362,7 @@ export type Database = {
         Update: {
           cantidad?: number | null
           categoria_gasto?: string | null
+          costo_estimado?: number | null
           created_at?: string
           descripcion?: string | null
           fecha_necesidad?: string | null
