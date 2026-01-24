@@ -117,9 +117,13 @@ export const useOneSignalPush = () => {
 
   const syncStateFromOneSignal = useCallback(async (OneSignal: any) => {
     try {
-      const permission = normalizeOneSignalPermission(await OneSignal.Notifications.permission);
+      const rawPermission = await OneSignal.Notifications.permission;
+      const permission = normalizeOneSignalPermission(rawPermission);
       const isPushEnabled = permission === "granted";
       const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
+      
+      // Also check browser's native Notification.permission as fallback
+      const browserPermission = typeof Notification !== "undefined" ? Notification.permission : "default";
 
       const currentUserId = userIdRef.current;
 
@@ -147,20 +151,31 @@ export const useOneSignalPush = () => {
       // OneSignal reports permission issues (can happen on iOS PWA)
       const finalIsSubscribed = Boolean(currentUserId) && isSubscribedInDB && (isPushEnabled || isOptedIn);
       
-      // Only report "denied" if we're certain - if subscribed in DB, report as granted
-      const effectivePermission = isSubscribedInDB ? "granted" : permission;
+      // Determine effective permission:
+      // 1. If subscribed in DB, treat as granted (iOS PWA quirk)
+      // 2. Only report "denied" if BOTH OneSignal AND browser say denied
+      // 3. Otherwise keep as default/prompt to allow user to try
+      let effectivePermission: NotificationPermission;
+      if (isSubscribedInDB) {
+        effectivePermission = "granted";
+      } else if (permission === "denied" && browserPermission === "denied") {
+        // Only truly denied if both sources confirm
+        effectivePermission = "denied";
+      } else if (permission === "granted" || browserPermission === "granted") {
+        effectivePermission = "granted";
+      } else {
+        // Default to "default" to allow user to try subscribing
+        effectivePermission = "default";
+      }
 
       console.log(
-        "[OneSignal] Sync - Permission:",
-        permission,
-        "OptedIn:",
-        isOptedIn,
-        "DB:",
-        isSubscribedInDB,
-        "Final:",
-        finalIsSubscribed,
-        "EffectivePermission:",
-        effectivePermission
+        "[OneSignal] Sync - RawPerm:", rawPermission,
+        "NormPerm:", permission,
+        "BrowserPerm:", browserPermission,
+        "OptedIn:", isOptedIn,
+        "DB:", isSubscribedInDB,
+        "Final:", finalIsSubscribed,
+        "EffectivePerm:", effectivePermission
       );
 
       setState(prev => ({
@@ -172,7 +187,8 @@ export const useOneSignalPush = () => {
       }));
     } catch (error) {
       console.error("[OneSignal] Sync error:", error);
-      setState(prev => ({ ...prev, isLoading: false }));
+      // On error, don't report denied - let user try
+      setState(prev => ({ ...prev, isLoading: false, permission: "default" }));
     }
   }, [saveSubscriptionToDatabase]);
 
