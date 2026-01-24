@@ -136,8 +136,8 @@ export const useOneSignalPush = () => {
               enable: false, // We'll use our own UI
             },
             allowLocalhostAsSecureOrigin: true,
-            // En PWA instalada, usa el SW de la PWA para evitar conflictos de scope.
-            serviceWorkerPath: "/sw.js",
+            // Usar el worker de OneSignal dedicado para evitar conflictos con el SW de VitePWA
+            serviceWorkerPath: "/OneSignalSDKWorker.js",
             serviceWorkerParam: { scope: "/" },
           });
 
