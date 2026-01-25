@@ -8,6 +8,7 @@ import BroadcastNotification from "@/components/BroadcastNotification";
 import { PushSubscriptionsPanel } from "@/components/PushSubscriptionsPanel";
 import { PersonalNotificationPanel } from "@/components/PersonalNotificationPanel";
 import { RoleNotificationPanel } from "@/components/RoleNotificationPanel";
+import { ScheduledNotificationsPanel } from "@/components/ScheduledNotificationsPanel";
 
 const Notificaciones = () => {
   const { user, isSuperadmin, loading } = useAuth();
@@ -59,6 +60,11 @@ const Notificaciones = () => {
             <PersonalNotificationPanel />
             <RoleNotificationPanel />
           </div>
+        </section>
+
+        {/* Scheduled Notifications */}
+        <section>
+          <ScheduledNotificationsPanel />
         </section>
 
         {/* Push Subscriptions Management */}

@@ -571,6 +571,54 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_notifications: {
+        Row: {
+          created_at: string
+          created_by: string
+          error_message: string | null
+          id: string
+          message: string
+          notification_type: string
+          recipients_count: number | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          target_role: string | null
+          target_user_id: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          error_message?: string | null
+          id?: string
+          message: string
+          notification_type: string
+          recipients_count?: number | null
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string
+          target_role?: string | null
+          target_user_id?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          id?: string
+          message?: string
+          notification_type?: string
+          recipients_count?: number | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          target_role?: string | null
+          target_user_id?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       sugerencias: {
         Row: {
           contenido: string
