@@ -7,6 +7,7 @@ import { ArrowLeft, Bell, Loader2 } from "lucide-react";
 import BroadcastNotification from "@/components/BroadcastNotification";
 import { PushSubscriptionsPanel } from "@/components/PushSubscriptionsPanel";
 import { PersonalNotificationPanel } from "@/components/PersonalNotificationPanel";
+import { RoleNotificationPanel } from "@/components/RoleNotificationPanel";
 
 const Notificaciones = () => {
   const { user, isSuperadmin, loading } = useAuth();
@@ -53,9 +54,10 @@ const Notificaciones = () => {
         {/* Notification Sending Section */}
         <section>
           <h2 className="text-xl font-bold text-foreground mb-4">Enviar Notificaciones</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <BroadcastNotification />
             <PersonalNotificationPanel />
+            <RoleNotificationPanel />
           </div>
         </section>
 
