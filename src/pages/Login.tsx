@@ -34,9 +34,8 @@ const Login = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        // CRITICAL: Never use async directly in onAuthStateChange callback
-        // Defer any Supabase calls with setTimeout to prevent deadlock
-        if (session?.user && isMounted) {
+        // Only redirect on SIGNED_IN event, not on SIGNED_OUT or other events
+        if (event === 'SIGNED_IN' && session?.user && isMounted) {
           setTimeout(async () => {
             if (!isMounted) return;
             const role = await checkUserRole(session.user.id);
