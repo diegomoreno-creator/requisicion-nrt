@@ -214,6 +214,47 @@ export type Database = {
         }
         Relationships: []
       }
+      reposicion_archivos: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          reposicion_id: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          reposicion_id?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          reposicion_id?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reposicion_archivos_reposicion_id_fkey"
+            columns: ["reposicion_id"]
+            isOneToOne: false
+            referencedRelation: "reposiciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reposicion_gastos: {
         Row: {
           created_at: string

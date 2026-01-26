@@ -34,6 +34,15 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import ReposicionFileUploadSection from "@/components/ReposicionFileUploadSection";
+
+interface UploadedFile {
+  id?: string;
+  file_name: string;
+  file_url: string;
+  file_type?: string;
+  file_size?: number;
+}
 
 interface Gasto {
   id: string;
@@ -94,6 +103,10 @@ const Reposicion = () => {
       importe: 0,
     },
   ]);
+
+  // Files state
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [reposicionIdForFiles, setReposicionIdForFiles] = useState<string>(crypto.randomUUID());
 
   // Calculate total
   const montoTotal = gastos.reduce((sum, g) => sum + (g.importe || 0), 0);
@@ -183,6 +196,24 @@ const Reposicion = () => {
           importe: g.importe || 0,
         })));
       }
+
+      // Fetch existing files
+      const { data: filesData } = await supabase
+        .from("reposicion_archivos" as any)
+        .select("*")
+        .eq("reposicion_id", reposicionId);
+
+      if (filesData && filesData.length > 0) {
+        setUploadedFiles(filesData.map((f: any) => ({
+          id: f.id,
+          file_name: f.file_name,
+          file_url: f.file_url,
+          file_type: f.file_type || undefined,
+          file_size: f.file_size || undefined,
+        })));
+      }
+
+      setReposicionIdForFiles(reposicionId);
 
     } catch (error) {
       console.error("Error loading reposición:", error);
@@ -300,6 +331,27 @@ const Reposicion = () => {
 
         if (gastosError) throw gastosError;
 
+        // Save files metadata - update existing
+        if (uploadedFiles.length > 0) {
+          // Delete existing file records
+          await supabase
+            .from("reposicion_archivos" as any)
+            .delete()
+            .eq("reposicion_id", originalReposicionId);
+
+          // Insert updated files
+          const filesToInsert = uploadedFiles.map((f) => ({
+            reposicion_id: originalReposicionId,
+            file_name: f.file_name,
+            file_url: f.file_url,
+            file_type: f.file_type,
+            file_size: f.file_size,
+            uploaded_by: user.id,
+          }));
+
+          await supabase.from("reposicion_archivos" as any).insert(filesToInsert);
+        }
+
         toast.success("Reposición actualizada exitosamente");
       } else {
         // Insert new reposición
@@ -343,6 +395,20 @@ const Reposicion = () => {
           .insert(gastosToInsert);
 
         if (gastosError) throw gastosError;
+
+        // Save files metadata for new reposicion
+        if (uploadedFiles.length > 0) {
+          const filesToInsert = uploadedFiles.map((f) => ({
+            reposicion_id: reposicion.id,
+            file_name: f.file_name,
+            file_url: f.file_url,
+            file_type: f.file_type,
+            file_size: f.file_size,
+            uploaded_by: user.id,
+          }));
+
+          await supabase.from("reposicion_archivos" as any).insert(filesToInsert);
+        }
 
         toast.success("Reposición guardada exitosamente");
       }
@@ -708,7 +774,16 @@ const Reposicion = () => {
                 />
               </div>
 
-              {/* Submit button */}
+              {/* Files section */}
+              {user && (
+                <ReposicionFileUploadSection
+                  reposicionId={isEditMode && originalReposicionId ? originalReposicionId : reposicionIdForFiles}
+                  userId={user.id}
+                  files={uploadedFiles}
+                  onFilesChange={setUploadedFiles}
+                  disabled={false}
+                />
+              )}
               <Button
                 type="submit"
                 disabled={isSubmitting}
