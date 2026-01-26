@@ -34,13 +34,14 @@ import { useCatalogos } from "@/hooks/useCatalogos";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { AlertTriangle, ChevronRight, Download, ExternalLink, FileText, Lightbulb, Loader2, Pencil } from "lucide-react";
+import { AlertTriangle, ChevronRight, Download, Eye, ExternalLink, FileText, Lightbulb, Loader2, Pencil } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { renderNRTHeader } from "@/lib/pdfFonts";
+import FilePreviewModal from "@/components/FilePreviewModal";
 
 interface TramiteDetailDialogProps {
   open: boolean;
@@ -193,6 +194,7 @@ const TramiteDetailDialog = ({
     estado_al_comentar?: string;
   }>>([]);
   const [montoTotalCompra, setMontoTotalCompra] = useState("");
+  const [previewFile, setPreviewFile] = useState<ArchivoAdjunto | null>(null);
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
@@ -1693,16 +1695,25 @@ const TramiteDetailDialog = ({
                           )}
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        asChild
-                      >
-                        <a href={archivo.file_url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4 mr-2" />
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPreviewFile(archivo)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
                           Ver
-                        </a>
-                      </Button>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                        >
+                          <a href={archivo.file_url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2359,6 +2370,13 @@ const TramiteDetailDialog = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de vista previa de archivos */}
+      <FilePreviewModal
+        open={!!previewFile}
+        onOpenChange={(open) => !open && setPreviewFile(null)}
+        file={previewFile}
+      />
     </Dialog>
   );
 };
