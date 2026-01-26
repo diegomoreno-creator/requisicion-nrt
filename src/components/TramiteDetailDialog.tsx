@@ -698,17 +698,32 @@ const TramiteDetailDialog = ({
     setActionLoading(true);
 
     try {
-      const table = tramiteTipo === "Reposición" ? "reposiciones" : "requisiciones";
-      const { error } = await supabase
-        .from(table)
-        .update({ 
-          estado: "aprobado",
-          autorizado_por: user.id,
-          fecha_autorizacion_real: new Date().toISOString()
-        })
-        .eq("id", tramiteId);
+      if (tramiteTipo === "Reposición") {
+        // Reposiciones don't have fecha_autorizacion_real column
+        const { error } = await supabase
+          .from("reposiciones")
+          .update({ 
+            estado: "aprobado",
+            autorizado_por: user.id,
+            fecha_autorizacion: new Date().toISOString()
+          })
+          .eq("id", tramiteId);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Requisiciones have fecha_autorizacion_real column
+        const { error } = await supabase
+          .from("requisiciones")
+          .update({ 
+            estado: "aprobado",
+            autorizado_por: user.id,
+            fecha_autorizacion_real: new Date().toISOString()
+          })
+          .eq("id", tramiteId);
+
+        if (error) throw error;
+      }
+      
       toast.success("Trámite aprobado exitosamente");
       onUpdated?.();
       onOpenChange(false);
