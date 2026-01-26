@@ -77,6 +77,7 @@ const Reposicion = () => {
   const [banco, setBanco] = useState("");
   const [cuentaClabe, setCuentaClabe] = useState("");
   const [reponerA, setReponerA] = useState("");
+  const [asunto, setAsunto] = useState("");
   const [justificacion, setJustificacion] = useState("");
 
   // Gastos state
@@ -158,6 +159,7 @@ const Reposicion = () => {
       setBanco(repo.banco || "");
       setCuentaClabe(repo.cuenta_clabe || "");
       setReponerA(repo.reponer_a || "");
+      setAsunto((repo as any).asunto || "");
       setJustificacion(repo.justificacion || "");
 
       // Fetch gastos
@@ -263,6 +265,7 @@ const Reposicion = () => {
             banco: tipoReposicion === "colaborador" ? banco : null,
             cuenta_clabe: tipoReposicion === "colaborador" ? cuentaClabe : null,
             reponer_a: reponerA,
+            asunto,
             justificacion,
             estado: "pendiente", // Reset to pendiente if it was rejected
           })
@@ -313,6 +316,7 @@ const Reposicion = () => {
             banco: tipoReposicion === "colaborador" ? banco : null,
             cuenta_clabe: tipoReposicion === "colaborador" ? cuentaClabe : null,
             reponer_a: reponerA,
+            asunto,
             justificacion,
             estado: "pendiente",
           })
@@ -677,6 +681,17 @@ const Reposicion = () => {
                   value={reponerA}
                   onChange={(e) => setReponerA(e.target.value)}
                   placeholder="Escriba aquí..."
+                  className="bg-input border-border"
+                />
+              </div>
+
+              {/* Asunto */}
+              <div className="space-y-2">
+                <Label className="text-foreground">Asunto:</Label>
+                <Input
+                  value={asunto}
+                  onChange={(e) => setAsunto(e.target.value)}
+                  placeholder="Describe brevemente el asunto de la reposición"
                   className="bg-input border-border"
                 />
               </div>
