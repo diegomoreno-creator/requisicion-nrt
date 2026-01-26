@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import FileUploadSection from "@/components/FileUploadSection";
 
 interface Partida {
   id: string;
@@ -153,7 +154,16 @@ const Requisicion = () => {
   const [asunto, setAsunto] = useState("");
   const [justificacion, setJustificacion] = useState("");
 
-  // Partidas state
+  // Files state
+  interface UploadedFile {
+    id?: string;
+    file_name: string;
+    file_url: string;
+    file_type?: string;
+    file_size?: number;
+  }
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [requisicionIdForFiles, setRequisicionIdForFiles] = useState<string>(crypto.randomUUID());
   const [partidas, setPartidas] = useState<Partida[]>([
     {
       id: crypto.randomUUID(),
@@ -265,6 +275,24 @@ const Requisicion = () => {
           costo_estimado: (p as any).costo_estimado ?? null,
         })));
       }
+
+      // Fetch existing files
+      const { data: filesData } = await supabase
+        .from("requisicion_archivos")
+        .select("*")
+        .eq("requisicion_id", requisicionId);
+
+      if (filesData && filesData.length > 0) {
+        setUploadedFiles(filesData.map(f => ({
+          id: f.id,
+          file_name: f.file_name,
+          file_url: f.file_url,
+          file_type: f.file_type || undefined,
+          file_size: f.file_size || undefined,
+        })));
+      }
+
+      setRequisicionIdForFiles(requisicionId);
     } catch (error) {
       console.error("Error loading requisicion:", error);
       toast.error("Error al cargar la requisición");
@@ -466,11 +494,29 @@ const Requisicion = () => {
 
         if (updateError) throw updateError;
 
+        // Save files metadata (delete existing and insert new)
+        await supabaseAuthed
+          .from("requisicion_archivos")
+          .delete()
+          .eq("requisicion_id", originalRequisicionId);
+
+        if (uploadedFiles.length > 0) {
+          const filesToInsert = uploadedFiles.map(f => ({
+            requisicion_id: originalRequisicionId,
+            file_name: f.file_name,
+            file_url: f.file_url,
+            file_type: f.file_type,
+            file_size: f.file_size,
+            uploaded_by: user.id,
+          }));
+          await supabaseAuthed.from("requisicion_archivos").insert(filesToInsert);
+        }
+
         toast.success("Requisición actualizada y reenviada exitosamente");
         navigate("/tramites");
       } else {
         // INSERT mode - create new requisicion
-        const requisicionId = crypto.randomUUID();
+        const requisicionId = requisicionIdForFiles; // Use the same ID that was used for file uploads
 
         const insertRequisicion = async () => {
           const { error } = await supabaseAuthed.from("requisiciones").insert({
@@ -534,6 +580,19 @@ const Requisicion = () => {
           .insert(partidasToInsert);
 
         if (partidasError) throw partidasError;
+
+        // Save files metadata
+        if (uploadedFiles.length > 0) {
+          const filesToInsert = uploadedFiles.map(f => ({
+            requisicion_id: requisicionId,
+            file_name: f.file_name,
+            file_url: f.file_url,
+            file_type: f.file_type,
+            file_size: f.file_size,
+            uploaded_by: user.id,
+          }));
+          await supabaseAuthed.from("requisicion_archivos").insert(filesToInsert);
+        }
 
         toast.success("Requisición guardada exitosamente");
         navigate("/tramites");
@@ -1026,6 +1085,17 @@ const Requisicion = () => {
                   className="bg-input border-border min-h-24"
                 />
               </div>
+
+              {/* File Upload Section */}
+              {user && (
+                <FileUploadSection
+                  requisicionId={isEditMode && originalRequisicionId ? originalRequisicionId : requisicionIdForFiles}
+                  userId={user.id}
+                  files={uploadedFiles}
+                  onFilesChange={setUploadedFiles}
+                  disabled={false}
+                />
+              )}
 
               {/* Submit button */}
               <Button
