@@ -38,6 +38,15 @@ const FileUploadSection = ({
     setIsUploading(true);
     const newFiles: UploadedFile[] = [];
 
+    // Function to sanitize file names for storage
+    const sanitizeFileName = (name: string): string => {
+      return name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove accents
+        .replace(/[^a-zA-Z0-9._-]/g, '_') // Replace special chars with underscore
+        .replace(/_+/g, '_'); // Collapse multiple underscores
+    };
+
     try {
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
@@ -52,9 +61,9 @@ const FileUploadSection = ({
           continue;
         }
 
-        // Generate unique file path
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${userId}/${requisicionId}/${Date.now()}_${file.name}`;
+        // Generate unique file path with sanitized name
+        const sanitizedName = sanitizeFileName(file.name);
+        const fileName = `${userId}/${requisicionId}/${Date.now()}_${sanitizedName}`;
 
         // Upload to storage
         const { error: uploadError } = await supabase.storage
