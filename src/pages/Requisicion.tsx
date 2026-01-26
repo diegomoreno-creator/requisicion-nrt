@@ -203,15 +203,19 @@ const Requisicion = () => {
         return;
       }
 
-      // Check if user owns this requisition and it's rejected (has justificacion_rechazo)
+      // Check if user owns this requisition
       if (req.solicitado_por !== user?.id) {
         toast.error("No tienes permiso para editar esta requisición");
         navigate("/tramites");
         return;
       }
 
-      if (!req.justificacion_rechazo) {
-        toast.error("Solo puedes editar requisiciones rechazadas");
+      // Can edit if pending (not yet authorized) or rejected
+      const isPending = req.estado === "pendiente" && !req.justificacion_rechazo && !req.deleted_at;
+      const isRejected = !!req.justificacion_rechazo && req.estado === "pendiente";
+      
+      if (!isPending && !isRejected) {
+        toast.error("Solo puedes editar requisiciones pendientes o rechazadas");
         navigate("/tramites");
         return;
       }
