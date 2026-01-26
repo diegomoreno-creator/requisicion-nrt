@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCatalogos } from "@/hooks/useCatalogos";
@@ -55,17 +55,21 @@ interface AutorizadorOption {
 
 const Reposicion = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading, canAccessApp } = useAuth();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditMode = !!editId;
+  const { user, loading: authLoading, canAccessApp, isSolicitador, isSuperadmin, isAdmin } = useAuth();
   const { 
     empresas, 
     getUnidadesByEmpresa,
     loading: catalogosLoading 
   } = useCatalogos();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
   const [autorizadores, setAutorizadores] = useState<AutorizadorOption[]>([]);
+  const [originalReposicionId, setOriginalReposicionId] = useState<string | null>(null);
 
   // Form state
-  const [folio] = useState(`FOL-${Date.now()}`);
+  const [folio, setFolio] = useState(`FOL-${Date.now()}`);
   const [fechaSolicitud, setFechaSolicitud] = useState<Date>(new Date());
   const [gastosSemana, setGastosSemana] = useState("");
   const [autorizadorId, setAutorizadorId] = useState("");
@@ -102,6 +106,90 @@ const Reposicion = () => {
   useEffect(() => {
     fetchAutorizadores();
   }, []);
+
+  // Load existing reposición data for editing
+  useEffect(() => {
+    if (editId && user) {
+      loadReposicionForEdit(editId);
+    }
+  }, [editId, user]);
+
+  const loadReposicionForEdit = async (reposicionId: string) => {
+    setIsLoadingEdit(true);
+    try {
+      // Fetch reposición
+      const { data: repo, error: repoError } = await supabase
+        .from("reposiciones")
+        .select("*")
+        .eq("id", reposicionId)
+        .single();
+
+      if (repoError) throw repoError;
+      if (!repo) {
+        toast.error("Reposición no encontrada");
+        navigate("/tramites");
+        return;
+      }
+
+      // Check if user owns this reposición
+      if (repo.solicitado_por !== user?.id) {
+        toast.error("No tienes permiso para editar esta reposición");
+        navigate("/tramites");
+        return;
+      }
+
+      // Can edit if pending or rejected
+      const isPending = repo.estado === "pendiente";
+      const isRejected = repo.estado === "rechazado";
+      
+      if (!isPending && !isRejected) {
+        toast.error("Solo puedes editar reposiciones pendientes o rechazadas");
+        navigate("/tramites");
+        return;
+      }
+
+      // Load reposición data into form
+      setFolio(repo.folio);
+      setOriginalReposicionId(repo.id);
+      setFechaSolicitud(new Date(repo.fecha_solicitud));
+      setGastosSemana(repo.gastos_semana?.toString() || "");
+      setAutorizadorId(repo.autorizador_id || "");
+      setTipoReposicion(repo.tipo_reposicion || "gastos_semanales");
+      setBanco(repo.banco || "");
+      setCuentaClabe(repo.cuenta_clabe || "");
+      setReponerA(repo.reponer_a || "");
+      setJustificacion(repo.justificacion || "");
+
+      // Fetch gastos
+      const { data: gastosData, error: gastosError } = await supabase
+        .from("reposicion_gastos")
+        .select("*")
+        .eq("reposicion_id", reposicionId);
+
+      if (gastosError) throw gastosError;
+
+      if (gastosData && gastosData.length > 0) {
+        setGastos(gastosData.map(g => ({
+          id: g.id,
+          unidad_negocio_id: g.unidad_negocio_id || "",
+          empresa_id: g.empresa_id || "",
+          descripcion: g.descripcion || "",
+          departamento: g.departamento || "",
+          proveedor_negocio: g.proveedor_negocio || "",
+          fecha_gasto: g.fecha_gasto ? new Date(g.fecha_gasto) : null,
+          factura_no: g.factura_no || "",
+          importe: g.importe || 0,
+        })));
+      }
+
+    } catch (error) {
+      console.error("Error loading reposición:", error);
+      toast.error("Error al cargar la reposición");
+      navigate("/tramites");
+    } finally {
+      setIsLoadingEdit(false);
+    }
+  };
 
   const fetchAutorizadores = async () => {
     try {
@@ -162,48 +250,99 @@ const Reposicion = () => {
     setIsSubmitting(true);
 
     try {
-      // Insert reposicion
-      const { data: reposicion, error: repoError } = await supabase
-        .from("reposiciones")
-        .insert({
-          folio,
-          fecha_solicitud: fechaSolicitud?.toISOString().split("T")[0],
-          solicitado_por: user.id,
-          gastos_semana: gastosSemana ? parseFloat(gastosSemana) : 0,
-          autorizador_id: autorizadorId || null,
-          monto_total: montoTotal,
-          tipo_reposicion: tipoReposicion,
-          banco: tipoReposicion === "colaborador" ? banco : null,
-          cuenta_clabe: tipoReposicion === "colaborador" ? cuentaClabe : null,
-          reponer_a: reponerA,
-          justificacion,
-          estado: "pendiente",
-        })
-        .select()
-        .single();
+      if (isEditMode && originalReposicionId) {
+        // Update existing reposición
+        const { error: repoError } = await supabase
+          .from("reposiciones")
+          .update({
+            fecha_solicitud: fechaSolicitud?.toISOString().split("T")[0],
+            gastos_semana: gastosSemana ? parseFloat(gastosSemana) : 0,
+            autorizador_id: autorizadorId || null,
+            monto_total: montoTotal,
+            tipo_reposicion: tipoReposicion,
+            banco: tipoReposicion === "colaborador" ? banco : null,
+            cuenta_clabe: tipoReposicion === "colaborador" ? cuentaClabe : null,
+            reponer_a: reponerA,
+            justificacion,
+            estado: "pendiente", // Reset to pendiente if it was rejected
+          })
+          .eq("id", originalReposicionId);
 
-      if (repoError) throw repoError;
+        if (repoError) throw repoError;
 
-      // Insert gastos
-      const gastosToInsert = gastos.map((g) => ({
-        reposicion_id: reposicion.id,
-        unidad_negocio_id: g.unidad_negocio_id || null,
-        empresa_id: g.empresa_id || null,
-        descripcion: g.descripcion,
-        departamento: g.departamento,
-        proveedor_negocio: g.proveedor_negocio,
-        fecha_gasto: g.fecha_gasto?.toISOString().split("T")[0],
-        factura_no: g.factura_no,
-        importe: g.importe,
-      }));
+        // Delete existing gastos and re-insert
+        const { error: deleteGastosError } = await supabase
+          .from("reposicion_gastos")
+          .delete()
+          .eq("reposicion_id", originalReposicionId);
 
-      const { error: gastosError } = await supabase
-        .from("reposicion_gastos")
-        .insert(gastosToInsert);
+        if (deleteGastosError) throw deleteGastosError;
 
-      if (gastosError) throw gastosError;
+        // Insert updated gastos
+        const gastosToInsert = gastos.map((g) => ({
+          reposicion_id: originalReposicionId,
+          unidad_negocio_id: g.unidad_negocio_id || null,
+          empresa_id: g.empresa_id || null,
+          descripcion: g.descripcion,
+          departamento: g.departamento,
+          proveedor_negocio: g.proveedor_negocio,
+          fecha_gasto: g.fecha_gasto?.toISOString().split("T")[0],
+          factura_no: g.factura_no,
+          importe: g.importe,
+        }));
 
-      toast.success("Reposición guardada exitosamente");
+        const { error: gastosError } = await supabase
+          .from("reposicion_gastos")
+          .insert(gastosToInsert);
+
+        if (gastosError) throw gastosError;
+
+        toast.success("Reposición actualizada exitosamente");
+      } else {
+        // Insert new reposición
+        const { data: reposicion, error: repoError } = await supabase
+          .from("reposiciones")
+          .insert({
+            folio,
+            fecha_solicitud: fechaSolicitud?.toISOString().split("T")[0],
+            solicitado_por: user.id,
+            gastos_semana: gastosSemana ? parseFloat(gastosSemana) : 0,
+            autorizador_id: autorizadorId || null,
+            monto_total: montoTotal,
+            tipo_reposicion: tipoReposicion,
+            banco: tipoReposicion === "colaborador" ? banco : null,
+            cuenta_clabe: tipoReposicion === "colaborador" ? cuentaClabe : null,
+            reponer_a: reponerA,
+            justificacion,
+            estado: "pendiente",
+          })
+          .select()
+          .single();
+
+        if (repoError) throw repoError;
+
+        // Insert gastos
+        const gastosToInsert = gastos.map((g) => ({
+          reposicion_id: reposicion.id,
+          unidad_negocio_id: g.unidad_negocio_id || null,
+          empresa_id: g.empresa_id || null,
+          descripcion: g.descripcion,
+          departamento: g.departamento,
+          proveedor_negocio: g.proveedor_negocio,
+          fecha_gasto: g.fecha_gasto?.toISOString().split("T")[0],
+          factura_no: g.factura_no,
+          importe: g.importe,
+        }));
+
+        const { error: gastosError } = await supabase
+          .from("reposicion_gastos")
+          .insert(gastosToInsert);
+
+        if (gastosError) throw gastosError;
+
+        toast.success("Reposición guardada exitosamente");
+      }
+      
       navigate("/tramites");
     } catch (error: any) {
       console.error("Error saving reposicion:", error);
@@ -213,7 +352,7 @@ const Reposicion = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || isLoadingEdit) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -234,7 +373,7 @@ const Reposicion = () => {
             Volver
           </Button>
           <h1 className="text-2xl font-bold text-primary">
-            Formato de Reposición
+            {isEditMode ? "Editar Reposición" : "Formato de Reposición"}
           </h1>
         </div>
 
