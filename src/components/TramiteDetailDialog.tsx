@@ -510,6 +510,23 @@ const TramiteDetailDialog = ({
     return isOwner && hasRejection && isPending;
   };
 
+  // Solicitador can edit their own pending requisitions (before authorization)
+  const canEditPending = () => {
+    if (!requisicion || !user) return false;
+    const isOwner = requisicion.solicitado_por === user.id;
+    const isPending = requisicion.estado === "pendiente";
+    const notRejected = !requisicion.justificacion_rechazo;
+    const notDeleted = !requisicion.deleted_at;
+    return isOwner && isPending && notRejected && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
+  };
+
+  const handleEditPending = () => {
+    if (requisicion) {
+      onOpenChange(false);
+      navigate(`/requisicion/${requisicion.id}`);
+    }
+  };
+
   const handleEditRejected = () => {
     if (requisicion) {
       onOpenChange(false);
@@ -1931,6 +1948,15 @@ const TramiteDetailDialog = ({
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cerrar
               </Button>
+              {canEditPending() && (
+                <Button
+                  variant="outline"
+                  onClick={handleEditPending}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Editar
+                </Button>
+              )}
               {canEditRejected() && (
                 <Button
                   className="bg-amber-600 hover:bg-amber-700 text-white"
