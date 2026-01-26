@@ -297,6 +297,23 @@ const TramiteDetailDialog = ({
         setGastos(gastosData || []);
         setPartidas([]);
 
+        // Fetch archivos adjuntos for reposicion
+        const { data: archivosData } = await supabase
+          .from("reposicion_archivos" as any)
+          .select("*")
+          .eq("reposicion_id", tramiteId);
+        if (archivosData) {
+          setArchivosAdjuntos((archivosData as any[]).map((a: any) => ({
+            id: a.id,
+            file_name: a.file_name,
+            file_url: a.file_url,
+            file_type: a.file_type,
+            file_size: a.file_size,
+          })));
+        } else {
+          setArchivosAdjuntos([]);
+        }
+
         // Fetch user emails
         await fetchUserEmails(repo.solicitado_por, repo.autorizador_id);
       } else {
@@ -1552,6 +1569,10 @@ const TramiteDetailDialog = ({
                       <p className="text-muted-foreground text-sm">Reposición de:</p>
                       <p className="text-foreground">{reposicion.tipo_reposicion}</p>
                     </div>
+                    <div>
+                      <p className="text-muted-foreground text-sm">Asunto:</p>
+                      <p className="text-foreground">{(reposicion as any).asunto || "-"}</p>
+                    </div>
                     {reposicion.tipo_reposicion === "colaborador" && (
                       <>
                         <div>
@@ -1700,7 +1721,7 @@ const TramiteDetailDialog = ({
             )}
 
             {/* Archivos Adjuntos */}
-            {requisicion && archivosAdjuntos.length > 0 && (
+            {archivosAdjuntos.length > 0 && (
               <div className="bg-muted/30 rounded-lg p-4">
                 <h3 className="text-primary font-semibold mb-4">Archivos de Referencia</h3>
                 <div className="space-y-2">
