@@ -504,11 +504,18 @@ const TramiteDetailDialog = ({
     // Superadmin can delete any tramite regardless of status
     if (isSuperadmin && notDeleted) return true;
     
-    // For requisiciones only: owner can soft delete if pending
+    // For requisiciones: owner can soft delete if pending
     if (tramiteTipo === "Requisición" && requisicion) {
       const isOwner = requisicion.solicitado_por === user.id;
       const isPending = requisicion.estado === "pendiente";
       return isOwner && isPending && notDeleted && (isSolicitador || isAdmin);
+    }
+    
+    // For reposiciones: owner can delete if pending (permanent delete since no soft-delete support)
+    if (tramiteTipo === "Reposición" && reposicion) {
+      const isOwner = reposicion.solicitado_por === user.id;
+      const isPending = reposicion.estado === "pendiente";
+      return isOwner && isPending && (isSolicitador || isAdmin);
     }
     
     return false;
@@ -522,34 +529,56 @@ const TramiteDetailDialog = ({
 
   // Solicitador can edit their own rejected requisitions
   const canEditRejected = () => {
-    if (!requisicion || !user) return false;
-    const isOwner = requisicion.solicitado_por === user.id;
-    const hasRejection = !!requisicion.justificacion_rechazo;
-    const isPending = requisicion.estado === "pendiente";
-    return isOwner && hasRejection && isPending;
+    // For requisiciones
+    if (requisicion && user) {
+      const isOwner = requisicion.solicitado_por === user.id;
+      const hasRejection = !!requisicion.justificacion_rechazo;
+      const isPending = requisicion.estado === "pendiente";
+      return isOwner && hasRejection && isPending;
+    }
+    // For reposiciones - check if rejected
+    if (reposicion && user) {
+      const isOwner = reposicion.solicitado_por === user.id;
+      const isRejected = reposicion.estado === "rechazado";
+      return isOwner && isRejected;
+    }
+    return false;
   };
 
-  // Solicitador can edit their own pending requisitions (before authorization)
+  // Solicitador can edit their own pending requisitions/reposiciones (before authorization)
   const canEditPending = () => {
-    if (!requisicion || !user) return false;
-    const isOwner = requisicion.solicitado_por === user.id;
-    const isPending = requisicion.estado === "pendiente";
-    const notRejected = !requisicion.justificacion_rechazo;
-    const notDeleted = !requisicion.deleted_at;
-    return isOwner && isPending && notRejected && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
+    // For requisiciones
+    if (requisicion && user) {
+      const isOwner = requisicion.solicitado_por === user.id;
+      const isPending = requisicion.estado === "pendiente";
+      const notRejected = !requisicion.justificacion_rechazo;
+      const notDeleted = !requisicion.deleted_at;
+      return isOwner && isPending && notRejected && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
+    }
+    // For reposiciones
+    if (reposicion && user) {
+      const isOwner = reposicion.solicitado_por === user.id;
+      const isPending = reposicion.estado === "pendiente";
+      return isOwner && isPending && (isSolicitador || isAdmin || isSuperadmin);
+    }
+    return false;
   };
 
   const handleEditPending = () => {
+    onOpenChange(false);
     if (requisicion) {
-      onOpenChange(false);
       navigate(`/requisicion/${requisicion.id}`);
+    } else if (reposicion) {
+      navigate(`/reposicion/${reposicion.id}`);
     }
   };
 
   const handleEditRejected = () => {
+    onOpenChange(false);
     if (requisicion) {
-      onOpenChange(false);
       navigate(`/requisicion/${requisicion.id}`);
+    } else if (reposicion) {
+      navigate(`/reposicion/${reposicion.id}`);
     }
   };
 

@@ -80,6 +80,14 @@ const App = () => (
               } 
             />
             <Route 
+              path="/reposicion/:id" 
+              element={
+                <ProtectedRoute>
+                  <Reposicion />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/pago-sin-oc" 
               element={
                 <ProtectedRoute requiresFormAccess>
