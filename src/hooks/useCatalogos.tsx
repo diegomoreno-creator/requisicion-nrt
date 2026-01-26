@@ -33,6 +33,15 @@ export const useCatalogos = () => {
     fetchCatalogos();
   }, []);
 
+  // Refetch when window regains focus to get latest data
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchCatalogos();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
   const fetchCatalogos = async () => {
     try {
       const [tiposRes, unidadesRes, empresasRes, sucursalesRes] = await Promise.all([
