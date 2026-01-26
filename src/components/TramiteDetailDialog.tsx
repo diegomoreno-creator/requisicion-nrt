@@ -34,7 +34,7 @@ import { useCatalogos } from "@/hooks/useCatalogos";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { AlertTriangle, ChevronRight, Download, Lightbulb, Loader2, Pencil } from "lucide-react";
+import { AlertTriangle, ChevronRight, Download, ExternalLink, FileText, Lightbulb, Loader2, Pencil } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -120,6 +120,14 @@ interface Partida {
   categoria_gasto: string | null;
 }
 
+interface ArchivoAdjunto {
+  id: string;
+  file_name: string;
+  file_url: string;
+  file_type?: string | null;
+  file_size?: number | null;
+}
+
 const timelineSteps = [
   { key: "pendiente", label: "Requisición\nPendiente" },
   { key: "aprobado", label: "Requisición\nAutorizada" },
@@ -154,6 +162,7 @@ const TramiteDetailDialog = ({
   const [actionLoading, setActionLoading] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [archivosAdjuntos, setArchivosAdjuntos] = useState<ArchivoAdjunto[]>([]);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -264,6 +273,7 @@ const TramiteDetailDialog = ({
     setPartidas([]);
     setGastos([]);
     setTextoComprasHistorial([]);
+    setArchivosAdjuntos([]);
 
     try {
       if (tramiteTipo === "Reposición") {
@@ -339,6 +349,13 @@ const TramiteDetailDialog = ({
           .order("numero_partida");
         setPartidas(partidasData || []);
         setGastos([]);
+
+        // Fetch archivos adjuntos
+        const { data: archivosData } = await supabase
+          .from("requisicion_archivos")
+          .select("*")
+          .eq("requisicion_id", tramiteId);
+        setArchivosAdjuntos(archivosData || []);
 
         // Fetch user emails
         await fetchUserEmails(req.solicitado_por, req.autorizador_id);
@@ -1647,6 +1664,47 @@ const TramiteDetailDialog = ({
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              </div>
+            )}
+
+            {/* Archivos Adjuntos */}
+            {requisicion && archivosAdjuntos.length > 0 && (
+              <div className="bg-muted/30 rounded-lg p-4">
+                <h3 className="text-primary font-semibold mb-4">Archivos de Referencia</h3>
+                <div className="space-y-2">
+                  {archivosAdjuntos.map((archivo) => (
+                    <div
+                      key={archivo.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-background"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{archivo.file_name}</p>
+                          {archivo.file_size && (
+                            <p className="text-xs text-muted-foreground">
+                              {archivo.file_size < 1024 
+                                ? `${archivo.file_size} B` 
+                                : archivo.file_size < 1024 * 1024 
+                                  ? `${(archivo.file_size / 1024).toFixed(1)} KB`
+                                  : `${(archivo.file_size / (1024 * 1024)).toFixed(1)} MB`}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                      >
+                        <a href={archivo.file_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Ver
+                        </a>
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
