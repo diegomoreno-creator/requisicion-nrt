@@ -145,7 +145,7 @@ const Tramites = () => {
       // Fetch reposiciones - RLS policies will handle visibility
       const { data: reposiciones, error: repoError } = await supabase
         .from("reposiciones")
-        .select("id, folio, fecha_solicitud, solicitado_por, estado, autorizado_por, pagado_por")
+        .select("id, folio, fecha_solicitud, solicitado_por, estado, asunto, autorizado_por, pagado_por")
         .order("created_at", { ascending: false });
 
       if (repoError) {
@@ -225,6 +225,7 @@ const Tramites = () => {
           id: r.id,
           folio: r.folio,
           tipo: "Reposición",
+          asunto: r.asunto,
           fecha: r.fecha_solicitud,
           solicitante: userMap.get(r.solicitado_por) || "Usuario",
           estado: r.estado || "borrador",
