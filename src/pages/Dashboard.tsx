@@ -24,11 +24,11 @@ import {
   Loader2,
   User,
   HelpCircle,
-  Bell
+  Bell,
+  BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import AdminStatistics from "@/components/AdminStatistics";
 
 const roleLabels: Record<string, string> = {
   superadmin: "Super Admin",
@@ -171,6 +171,13 @@ const Dashboard = () => {
       path: "/notificaciones",
       visible: isSuperadmin,
     },
+    {
+      title: "Estadísticas",
+      description: "Visualiza métricas y tiempos de trámites.",
+      icon: BarChart3,
+      path: "/estadisticas",
+      visible: isSuperadmin || isAdmin,
+    },
   ];
 
   if (loading) {
@@ -243,13 +250,6 @@ const Dashboard = () => {
         <h1 className="text-3xl font-bold text-foreground mb-8">
           Bienvenido, <span className="text-primary">{getUserName()}</span>
         </h1>
-
-        {/* Admin Statistics Panel */}
-        {(isSuperadmin || isAdmin) && (
-          <div className="mb-8">
-            <AdminStatistics />
-          </div>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {menuItems.filter(item => item.visible).map((item) => (
