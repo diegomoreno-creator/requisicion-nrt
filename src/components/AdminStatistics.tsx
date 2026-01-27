@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, TrendingUp, Clock, AlertTriangle, CheckCircle, FileText, DollarSign, Users, BarChart3 } from "lucide-react";
+import { Loader2, TrendingUp, Clock, AlertTriangle, CheckCircle, FileText, DollarSign, Users, BarChart3, Zap, Timer, ArrowDown, ArrowUp } from "lucide-react";
 import { 
   BarChart, 
   Bar, 
@@ -44,6 +44,9 @@ interface TimeStats {
   avgMinutes: number;
   avgHours: number;
   avgDays: number;
+  minHours: number;
+  maxHours: number;
+  count: number;
 }
 
 type TimeUnit = "minutes" | "hours" | "days";
@@ -177,11 +180,16 @@ const AdminStatistics = () => {
       .filter(([_, times]) => times.length > 0)
       .map(([stage, times]) => {
         const avgHours = times.reduce((a, b) => a + b, 0) / times.length;
+        const minHours = Math.min(...times);
+        const maxHours = Math.max(...times);
         return {
           stage,
           avgMinutes: Math.round(avgHours * 60),
           avgHours: Math.round(avgHours),
           avgDays: Math.round(avgHours / 24 * 10) / 10,
+          minHours: Math.round(minHours),
+          maxHours: Math.round(maxHours),
+          count: times.length,
         };
       });
 
@@ -384,8 +392,8 @@ const AdminStatistics = () => {
         <Card className="border-border bg-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-yellow-500/10">
-                <Clock className="w-5 h-5 text-yellow-500" />
+              <div className="p-2 rounded-lg bg-chart-4/10">
+                <Clock className="w-5 h-5 text-chart-4" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{pendientes}</p>
@@ -398,8 +406,8 @@ const AdminStatistics = () => {
         <Card className="border-border bg-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <CheckCircle className="w-5 h-5 text-green-500" />
+              <div className="p-2 rounded-lg bg-chart-3/10">
+                <CheckCircle className="w-5 h-5 text-chart-3" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{completados}</p>
@@ -410,8 +418,8 @@ const AdminStatistics = () => {
         </Card>
       </div>
 
-      {/* Time Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Time Metrics Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-border bg-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -426,20 +434,124 @@ const AdminStatistics = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-border bg-card col-span-2">
+        <Card className="border-border bg-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-destructive/10">
                 <AlertTriangle className="w-5 h-5 text-destructive" />
               </div>
               <div>
-                <p className="text-lg font-bold text-foreground">{bottleneck || "Sin datos"}</p>
-                <p className="text-xs text-muted-foreground">Cuello de botella (etapa más lenta)</p>
+                <p className="text-sm font-bold text-foreground truncate">{bottleneck || "Sin datos"}</p>
+                <p className="text-xs text-muted-foreground">Cuello de botella</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-chart-3/10">
+                <Zap className="w-5 h-5 text-chart-3" />
+              </div>
+              <div>
+                {timeStats.length > 0 ? (
+                  <>
+                    <p className="text-sm font-bold text-foreground truncate">
+                      {timeStats.reduce((prev, curr) => prev.avgHours < curr.avgHours ? prev : curr).stage}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Etapa más rápida</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-bold text-foreground">Sin datos</p>
+                    <p className="text-xs text-muted-foreground">Etapa más rápida</p>
+                  </>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-chart-4/10">
+                <Timer className="w-5 h-5 text-chart-4" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">
+                  {timeStats.length > 0 ? timeStats.reduce((a, b) => a + b.count, 0) : 0}
+                </p>
+                <p className="text-xs text-muted-foreground">Transiciones medidas</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Detailed Time Stats per Stage */}
+      {timeStats.length > 0 && (
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Métricas Detalladas por Etapa
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+              {timeStats.map((stat, index) => (
+                <div 
+                  key={stat.stage} 
+                  className={cn(
+                    "p-3 rounded-lg border border-border bg-muted/30",
+                    stat.stage === bottleneck && "border-destructive/50 bg-destructive/5"
+                  )}
+                >
+                  <p className="text-xs font-medium text-foreground mb-2 truncate" title={stat.stage}>
+                    {stat.stage}
+                  </p>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Promedio:</span>
+                      <span className="font-semibold text-foreground">
+                        {stat.avgHours < 24 
+                          ? `${stat.avgHours}h` 
+                          : `${stat.avgDays}d`}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <ArrowDown className="w-3 h-3 text-chart-3" /> Mín:
+                      </span>
+                      <span className="text-chart-3 font-medium">
+                        {stat.minHours < 24 
+                          ? `${stat.minHours}h` 
+                          : `${Math.round(stat.minHours / 24 * 10) / 10}d`}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <ArrowUp className="w-3 h-3 text-destructive" /> Máx:
+                      </span>
+                      <span className="text-destructive font-medium">
+                        {stat.maxHours < 24 
+                          ? `${stat.maxHours}h` 
+                          : `${Math.round(stat.maxHours / 24 * 10) / 10}d`}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
+                      <span className="text-muted-foreground">Muestra:</span>
+                      <span className="text-muted-foreground">{stat.count} trámites</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
