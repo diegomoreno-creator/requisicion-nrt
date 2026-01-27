@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { SuperadminSidebar } from "@/components/SuperadminSidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,14 +20,10 @@ import {
   RefreshCw, 
   FileText, 
   FolderSearch,
-  Users,
-  Settings,
   LogOut,
   Loader2,
   User,
-  HelpCircle,
-  Bell,
-  BarChart3
+  HelpCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -150,34 +148,6 @@ const Dashboard = () => {
       path: "/tramites",
       visible: true,
     },
-    {
-      title: "Gestión de Usuarios",
-      description: "Administra usuarios y roles del sistema.",
-      icon: Users,
-      path: "/gestion-usuarios",
-      visible: isSuperadmin,
-    },
-    {
-      title: "Gestión de Catálogos",
-      description: "Administra tipos, empresas, sucursales y más.",
-      icon: Settings,
-      path: "/gestion-catalogos",
-      visible: isSuperadmin,
-    },
-    {
-      title: "Notificaciones",
-      description: "Envía y gestiona notificaciones push.",
-      icon: Bell,
-      path: "/notificaciones",
-      visible: isSuperadmin,
-    },
-    {
-      title: "Estadísticas",
-      description: "Visualiza métricas y tiempos de trámites.",
-      icon: BarChart3,
-      path: "/estadisticas",
-      visible: isSuperadmin || isAdmin,
-    },
   ];
 
   if (loading) {
@@ -190,8 +160,8 @@ const Dashboard = () => {
 
   if (!user || !canAccessApp) return null;
 
-  return (
-    <div className="min-h-screen bg-background">
+  const dashboardContent = (
+    <div className="min-h-screen bg-background flex flex-col w-full">
       {/* Header */}
       <header className="border-b border-border px-6 py-4 font-barlow">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -246,7 +216,7 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-10 pb-24">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10 pb-24">
         <h1 className="text-3xl font-bold text-foreground mb-8">
           Bienvenido, <span className="text-primary">{getUserName()}</span>
         </h1>
@@ -277,7 +247,7 @@ const Dashboard = () => {
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 border-t border-border py-4 bg-background font-barlow">
+      <footer className="border-t border-border py-4 bg-background font-barlow mt-auto">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <p className="text-muted-foreground text-sm">
             Desarrollado por{" "}
@@ -289,6 +259,20 @@ const Dashboard = () => {
       </footer>
     </div>
   );
+
+  // Wrap with sidebar for superadmin only
+  if (isSuperadmin) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <SuperadminSidebar />
+          {dashboardContent}
+        </div>
+      </SidebarProvider>
+    );
+  }
+
+  return dashboardContent;
 };
 
 export default Dashboard;
