@@ -16,6 +16,7 @@ import GestionUsuarios from "./pages/GestionUsuarios";
 import GestionCatalogos from "./pages/GestionCatalogos";
 import BulkCreateUsers from "./pages/BulkCreateUsers";
 import Notificaciones from "./pages/Notificaciones";
+import Estadisticas from "./pages/Estadisticas";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -132,6 +133,14 @@ const App = () => (
               element={
                 <ProtectedRoute requiresSuperadmin>
                   <Notificaciones />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/estadisticas" 
+              element={
+                <ProtectedRoute>
+                  <Estadisticas />
                 </ProtectedRoute>
               } 
             />
