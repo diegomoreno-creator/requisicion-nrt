@@ -133,13 +133,13 @@ Deno.serve(async (req) => {
 
       if (createError) {
         console.error('Create user error:', createError);
-        if (createError.message.includes('already been registered')) {
-          return new Response(
-            JSON.stringify({ error: 'Este correo ya está registrado' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        throw createError;
+        const errorMessage = createError.message.includes('already been registered') 
+          ? 'Este correo ya está registrado' 
+          : createError.message;
+        return new Response(
+          JSON.stringify({ error: errorMessage }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       console.log('User created:', newUser.user?.id);

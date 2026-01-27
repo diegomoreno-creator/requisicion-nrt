@@ -184,12 +184,16 @@ const GestionUsuarios = () => {
         }
       });
 
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
+      // Check for error in response data first (backend returns error in body)
       if (response.data?.error) {
         throw new Error(response.data.error);
+      }
+
+      // Then check for network/invoke errors
+      if (response.error) {
+        // Try to extract error message from the error context
+        const errorMsg = response.error.message || "Error al crear usuario";
+        throw new Error(errorMsg);
       }
 
       toast.success("Usuario creado correctamente");
