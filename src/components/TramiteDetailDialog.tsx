@@ -79,12 +79,19 @@ interface RequisicionDetail {
   texto_compras_editado_por: string | null;
   texto_compras_editado_at: string | null;
   monto_total_compra: number | null;
+  // Timestamp fields for timeline
+  fecha_autorizacion_real: string | null;
+  fecha_licitacion: string | null;
+  fecha_pedido_colocado: string | null;
+  fecha_pedido_autorizado: string | null;
+  fecha_pago: string | null;
 }
 
 interface ReposicionDetail {
   id: string;
   folio: string;
   fecha_solicitud: string;
+  created_at: string;
   solicitado_por: string;
   autorizador_id: string | null;
   estado: string;
@@ -95,6 +102,9 @@ interface ReposicionDetail {
   banco: string | null;
   cuenta_clabe: string | null;
   justificacion: string | null;
+  // Timestamp fields for timeline
+  fecha_autorizacion: string | null;
+  fecha_pago: string | null;
 }
 
 interface Gasto {
@@ -141,6 +151,53 @@ const timelineSteps = [
 const getStepIndex = (estado: string): number => {
   const index = timelineSteps.findIndex((s) => s.key === estado);
   return index >= 0 ? index : 0;
+};
+
+// Helper function to get the timestamp for each timeline step
+const getStepTimestamp = (
+  stepKey: string, 
+  requisicion: RequisicionDetail | null, 
+  reposicion: ReposicionDetail | null
+): string | null => {
+  if (requisicion) {
+    switch (stepKey) {
+      case "pendiente":
+        return requisicion.created_at;
+      case "aprobado":
+        return requisicion.fecha_autorizacion_real;
+      case "en_licitacion":
+        return requisicion.fecha_licitacion;
+      case "pedido_colocado":
+        return requisicion.fecha_pedido_colocado;
+      case "pedido_autorizado":
+        return requisicion.fecha_pedido_autorizado;
+      case "pedido_pagado":
+        return requisicion.fecha_pago;
+      default:
+        return null;
+    }
+  } else if (reposicion) {
+    switch (stepKey) {
+      case "pendiente":
+        return reposicion.created_at;
+      case "aprobado":
+        return reposicion.fecha_autorizacion;
+      case "pedido_pagado":
+        return reposicion.fecha_pago;
+      default:
+        return null;
+    }
+  }
+  return null;
+};
+
+const formatTimestamp = (timestamp: string | null): string => {
+  if (!timestamp) return "";
+  try {
+    return format(new Date(timestamp), "d/MMM/yy HH:mm", { locale: es });
+  } catch {
+    return "";
+  }
 };
 
 const TramiteDetailDialog = ({
@@ -1496,43 +1553,54 @@ const TramiteDetailDialog = ({
                 Línea de Tiempo del Proceso
               </h3>
               <div className="flex items-center justify-between overflow-x-auto pb-2">
-                {timelineSteps.map((step, index) => (
-                  <div key={step.key} className="flex items-center">
-                    <div className="flex flex-col items-center min-w-[80px]">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                          index < currentStep
-                            ? "bg-muted border-muted-foreground/50"
-                            : index === currentStep
-                            ? "bg-transparent border-red-500"
-                            : "bg-muted border-muted-foreground/30"
-                        }`}
-                      >
-                        {index === currentStep && (
-                          <div className="w-3 h-3 rounded-full bg-red-500" />
+                {timelineSteps.map((step, index) => {
+                  const stepTimestamp = getStepTimestamp(step.key, requisicion, reposicion);
+                  const formattedTime = formatTimestamp(stepTimestamp);
+                  const hasTimestamp = stepTimestamp && index <= currentStep;
+                  
+                  return (
+                    <div key={step.key} className="flex items-center">
+                      <div className="flex flex-col items-center min-w-[90px]">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                            index < currentStep
+                              ? "bg-muted border-muted-foreground/50"
+                              : index === currentStep
+                              ? "bg-transparent border-destructive"
+                              : "bg-muted border-muted-foreground/30"
+                          }`}
+                        >
+                          {index === currentStep && (
+                            <div className="w-3 h-3 rounded-full bg-destructive" />
+                          )}
+                        </div>
+                        <span
+                          className={`text-xs mt-2 text-center whitespace-pre-line ${
+                            index === currentStep
+                              ? "text-foreground font-medium"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {step.label}
+                        </span>
+                        {hasTimestamp && (
+                          <span className="text-[10px] text-primary mt-1 text-center font-medium">
+                            {formattedTime}
+                          </span>
                         )}
                       </div>
-                      <span
-                        className={`text-xs mt-2 text-center whitespace-pre-line ${
-                          index === currentStep
-                            ? "text-foreground font-medium"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {step.label}
-                      </span>
+                      {index < timelineSteps.length - 1 && (
+                        <ChevronRight
+                          className={`w-4 h-4 mx-1 flex-shrink-0 ${
+                            index < currentStep
+                              ? "text-muted-foreground"
+                              : "text-muted-foreground/30"
+                          }`}
+                        />
+                      )}
                     </div>
-                    {index < timelineSteps.length - 1 && (
-                      <ChevronRight
-                        className={`w-4 h-4 mx-1 flex-shrink-0 ${
-                          index < currentStep
-                            ? "text-muted-foreground"
-                            : "text-muted-foreground/30"
-                        }`}
-                      />
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
