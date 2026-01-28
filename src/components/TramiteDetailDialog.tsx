@@ -79,6 +79,10 @@ interface RequisicionDetail {
   texto_compras_editado_por: string | null;
   texto_compras_editado_at: string | null;
   monto_total_compra: number | null;
+  // Additional form fields
+  se_dividira_gasto: boolean | null;
+  un_division_gasto: string | null;
+  porcentaje_cada_un: string | null;
   // Timestamp fields for timeline
   fecha_autorizacion_real: string | null;
   fecha_licitacion: string | null;
@@ -209,7 +213,7 @@ const TramiteDetailDialog = ({
 }: TramiteDetailDialogProps) => {
   const navigate = useNavigate();
   const { user, isAutorizador, isSuperadmin, isAdmin, isComprador, isPresupuestos, isTesoreria, isSolicitador } = useAuth();
-  const { empresas, unidadesNegocio, sucursales } = useCatalogos();
+  const { empresas, unidadesNegocio, sucursales, getTipoNombre } = useCatalogos();
   const [loading, setLoading] = useState(true);
   const [requisicion, setRequisicion] = useState<RequisicionDetail | null>(null);
   const [reposicion, setReposicion] = useState<ReposicionDetail | null>(null);
@@ -1677,6 +1681,10 @@ const TramiteDetailDialog = ({
                 {requisicion && (
                   <>
                     <div>
+                      <p className="text-muted-foreground text-sm">Tipo de Requisición:</p>
+                      <p className="text-foreground">{getTipoNombre(requisicion.tipo_requisicion || "") || requisicion.tipo_requisicion || "-"}</p>
+                    </div>
+                    <div>
                       <p className="text-muted-foreground text-sm">Empresa:</p>
                       <p className="text-foreground">{getEmpresaNombre(requisicion.empresa)}</p>
                     </div>
@@ -1726,6 +1734,36 @@ const TramiteDetailDialog = ({
                         {requisicion.asunto || "-"}
                       </p>
                     </div>
+                    {/* División de gasto */}
+                    <div>
+                      <p className="text-muted-foreground text-sm">¿Se dividirá gasto?:</p>
+                      <p className="text-foreground">{requisicion.se_dividira_gasto ? "Sí" : "No"}</p>
+                    </div>
+                    {requisicion.se_dividira_gasto && (
+                      <>
+                        <div>
+                          <p className="text-muted-foreground text-sm">División UN:</p>
+                          <p className="text-foreground">{requisicion.un_division_gasto || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-sm">Porcentaje c/UN:</p>
+                          <p className="text-foreground">{requisicion.porcentaje_cada_un || "-"}</p>
+                        </div>
+                      </>
+                    )}
+                    {/* Datos Proveedor y Banco */}
+                    {requisicion.datos_proveedor && (
+                      <div className="md:col-span-3">
+                        <p className="text-muted-foreground text-sm">Datos del Proveedor:</p>
+                        <p className="text-foreground whitespace-pre-wrap">{requisicion.datos_proveedor}</p>
+                      </div>
+                    )}
+                    {requisicion.datos_banco && (
+                      <div className="md:col-span-3">
+                        <p className="text-muted-foreground text-sm">Datos Bancarios:</p>
+                        <p className="text-foreground whitespace-pre-wrap">{requisicion.datos_banco}</p>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
