@@ -33,7 +33,10 @@ import {
   Loader2,
   User,
   HelpCircle,
-  Calculator
+  Calculator,
+  TrendingDown,
+  TrendingUp,
+  Lock
 } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -62,6 +65,7 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [pendingSugerencias, setPendingSugerencias] = useState(0);
   const [showReposicionAlert, setShowReposicionAlert] = useState(false);
+  const [showIngresosAlert, setShowIngresosAlert] = useState(false);
 
   // Enable realtime notifications for status changes
   useRealtimeNotifications();
@@ -132,8 +136,10 @@ const Dashboard = () => {
   // Only solicitador, admin, and superadmin can create requisitions
   const canCreateRequisitions = isSolicitador || isAdmin || isSuperadmin;
 
-  // Check if user has contabilidad_gastos role
+  // Check if user has contabilidad roles
   const hasContabilidadGastos = hasRole('contabilidad_gastos') || isSuperadmin;
+  const hasContabilidadIngresos = hasRole('contabilidad_ingresos') || isSuperadmin;
+  const hasContabilidadAccess = hasContabilidadGastos || hasContabilidadIngresos;
 
   const menuItems = [
     {
@@ -166,14 +172,6 @@ const Dashboard = () => {
       icon: FolderSearch,
       path: "/tramites",
       visible: true,
-      blocked: false,
-    },
-    {
-      title: "Contabilidad Gastos",
-      description: "Registra gastos para el módulo de contabilidad.",
-      icon: Calculator,
-      path: "/contabilidad-gastos",
-      visible: hasContabilidadGastos,
       blocked: false,
     },
   ];
@@ -287,6 +285,62 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           ))}
+
+          {/* Contabilidad Card with sub-buttons */}
+          {hasContabilidadAccess && (
+            <Card className="border-border bg-card md:col-span-2">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Calculator className="w-6 h-6 text-primary" />
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Contabilidad
+                  </h3>
+                </div>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Módulo de contabilidad para registro de gastos e ingresos.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Gastos Button */}
+                  <button
+                    onClick={() => navigate("/contabilidad-gastos")}
+                    disabled={!hasContabilidadGastos}
+                    className={`flex items-center gap-3 p-4 rounded-lg border transition-colors ${
+                      hasContabilidadGastos
+                        ? "border-border bg-card hover:border-primary/50 hover:bg-accent cursor-pointer"
+                        : "border-border/50 bg-muted/30 opacity-60 cursor-not-allowed"
+                    }`}
+                  >
+                    <TrendingDown className={`w-5 h-5 ${hasContabilidadGastos ? "text-rose-500" : "text-muted-foreground"}`} />
+                    <div className="text-left">
+                      <p className={`font-medium ${hasContabilidadGastos ? "text-foreground" : "text-muted-foreground"}`}>
+                        Gastos
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Registra gastos contables
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Ingresos Button - Blocked */}
+                  <button
+                    onClick={() => setShowIngresosAlert(true)}
+                    className="flex items-center gap-3 p-4 rounded-lg border border-border/50 bg-muted/30 opacity-60 cursor-pointer hover:border-destructive/50 transition-colors"
+                  >
+                    <TrendingUp className="w-5 h-5 text-muted-foreground" />
+                    <div className="text-left flex-1">
+                      <p className="font-medium text-muted-foreground flex items-center gap-2">
+                        Ingresos
+                        <Lock className="w-3 h-3" />
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Próximamente disponible
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Alert Dialog for blocked Reposición */}
@@ -296,6 +350,21 @@ const Dashboard = () => {
               <AlertDialogTitle>Aviso Importante</AlertDialogTitle>
               <AlertDialogDescription className="text-base">
                 Este día 28 y 29 de enero de 2025 favor de realizar trámite de manera convencional.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction>Entendido</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Alert Dialog for blocked Ingresos */}
+        <AlertDialog open={showIngresosAlert} onOpenChange={setShowIngresosAlert}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Módulo en Desarrollo</AlertDialogTitle>
+              <AlertDialogDescription className="text-base">
+                El módulo de Ingresos estará disponible próximamente.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
