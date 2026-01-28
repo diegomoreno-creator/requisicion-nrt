@@ -134,6 +134,7 @@ const Requisicion = () => {
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
   const [autorizadores, setAutorizadores] = useState<UserOption[]>([]);
   const [originalRequisicionId, setOriginalRequisicionId] = useState<string | null>(null);
+  const [wasRejected, setWasRejected] = useState(false); // Track if editing a rejected requisition
 
   // Form state
   const [folio, setFolio] = useState(`REQ-${Date.now()}`);
@@ -229,6 +230,9 @@ const Requisicion = () => {
         navigate("/tramites");
         return;
       }
+
+      // Track if this is a rejected requisition being resubmitted
+      setWasRejected(isRejected);
 
       // Load requisicion data into form
       setFolio(req.folio);
@@ -462,7 +466,11 @@ const Requisicion = () => {
 
         if (partidasError) throw partidasError;
 
-        // Step 3: Update requisicion - set estado to 'aprobado' so it goes back to the Comprador
+        // Step 3: Update requisicion
+        // If it was rejected → set estado to 'aprobado' so it goes back to Comprador
+        // If it was just pending (not rejected) → keep it 'pendiente' so it stays with Autorizador
+        const newEstado = wasRejected ? "aprobado" : "pendiente";
+        
         const updateData = {
           tipo_requisicion: tipoRequisicion,
           unidad_negocio: unidadNegocio,
@@ -482,8 +490,8 @@ const Requisicion = () => {
           nombre_proyecto: nombreProyecto,
           asunto,
           justificacion,
-          justificacion_rechazo: null, // Clear rejection justification on resubmit
-          estado: "aprobado" as const, // Goes back to Comprador, not Autorizador
+          justificacion_rechazo: wasRejected ? null : undefined, // Only clear if was rejected
+          estado: newEstado as any,
           updated_at: new Date().toISOString(),
         };
 
