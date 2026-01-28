@@ -54,7 +54,11 @@ interface UserWithRoles {
   roles: AppRole[];
 }
 
-const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo'];
+const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo', 'contabilidad1', 'contabilidad_gastos', 'contabilidad_ingresos'];
+
+// Role groupings for UI
+const compraPagoRoles: AppRole[] = ['admin', 'autorizador', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo'];
+const contabilidadRoles: AppRole[] = ['contabilidad_gastos', 'contabilidad_ingresos'];
 
 const roleLabels: Record<AppRole, string> = {
   superadmin: "Super Admin",
@@ -65,6 +69,9 @@ const roleLabels: Record<AppRole, string> = {
   tesoreria: "Tesorería",
   solicitador: "Solicitador",
   inactivo: "Inactivo",
+  contabilidad1: "Contabilidad",
+  contabilidad_gastos: "Gastos",
+  contabilidad_ingresos: "Ingresos",
 };
 
 const roleColors: Record<AppRole, string> = {
@@ -76,6 +83,9 @@ const roleColors: Record<AppRole, string> = {
   tesoreria: "bg-teal-600 text-white",
   solicitador: "bg-yellow-600 text-white",
   inactivo: "bg-muted text-muted-foreground",
+  contabilidad1: "bg-indigo-600 text-white",
+  contabilidad_gastos: "bg-rose-600 text-white",
+  contabilidad_ingresos: "bg-emerald-600 text-white",
 };
 
 const GestionUsuarios = () => {
@@ -502,22 +512,66 @@ const GestionUsuarios = () => {
 
                   <div className="space-y-2">
                     <Label className="text-foreground">Roles</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {allRoles.map(role => (
-                        <div key={role} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`new-${role}`}
-                            checked={newUserRoles.includes(role)}
-                            onCheckedChange={() => toggleRole(role, newUserRoles, setNewUserRoles)}
-                          />
-                          <label
-                            htmlFor={`new-${role}`}
-                            className="text-sm text-foreground cursor-pointer"
-                          >
-                            {roleLabels[role]}
-                          </label>
-                        </div>
-                      ))}
+                    
+                    {/* Superadmin - Separate */}
+                    <div className="p-3 rounded-md border border-border bg-muted/30">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="new-superadmin"
+                          checked={newUserRoles.includes('superadmin')}
+                          onCheckedChange={() => toggleRole('superadmin', newUserRoles, setNewUserRoles)}
+                        />
+                        <label
+                          htmlFor="new-superadmin"
+                          className="text-sm text-foreground cursor-pointer font-medium"
+                        >
+                          Super Admin
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Compra-Pago Section */}
+                    <div className="p-3 rounded-md border border-border">
+                      <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Compra-Pago</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {compraPagoRoles.map(role => (
+                          <div key={role} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`new-${role}`}
+                              checked={newUserRoles.includes(role)}
+                              onCheckedChange={() => toggleRole(role, newUserRoles, setNewUserRoles)}
+                            />
+                            <label
+                              htmlFor={`new-${role}`}
+                              className="text-sm text-foreground cursor-pointer"
+                            >
+                              {roleLabels[role]}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Contabilidad Section */}
+                    <div className="p-3 rounded-md border border-border">
+                      <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Contabilidad</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {contabilidadRoles.map(role => (
+                          <div key={role} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`new-${role}`}
+                              checked={newUserRoles.includes(role)}
+                              onCheckedChange={() => toggleRole(role, newUserRoles, setNewUserRoles)}
+                            />
+                            <label
+                              htmlFor={`new-${role}`}
+                              className="text-sm text-foreground cursor-pointer"
+                            >
+                              {roleLabels[role]}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -783,22 +837,66 @@ const GestionUsuarios = () => {
 
             <div className="space-y-2">
               <Label className="text-foreground">Roles</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {allRoles.map(role => (
-                  <div key={role} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`edit-${role}`}
-                      checked={editRoles.includes(role)}
-                      onCheckedChange={() => toggleRole(role, editRoles, setEditRoles)}
-                    />
-                    <label
-                      htmlFor={`edit-${role}`}
-                      className="text-sm text-foreground cursor-pointer"
-                    >
-                      {roleLabels[role]}
-                    </label>
-                  </div>
-                ))}
+              
+              {/* Superadmin - Separate */}
+              <div className="p-3 rounded-md border border-border bg-muted/30">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="edit-superadmin"
+                    checked={editRoles.includes('superadmin')}
+                    onCheckedChange={() => toggleRole('superadmin', editRoles, setEditRoles)}
+                  />
+                  <label
+                    htmlFor="edit-superadmin"
+                    className="text-sm text-foreground cursor-pointer font-medium"
+                  >
+                    Super Admin
+                  </label>
+                </div>
+              </div>
+
+              {/* Compra-Pago Section */}
+              <div className="p-3 rounded-md border border-border">
+                <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Compra-Pago</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {compraPagoRoles.map(role => (
+                    <div key={role} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-${role}`}
+                        checked={editRoles.includes(role)}
+                        onCheckedChange={() => toggleRole(role, editRoles, setEditRoles)}
+                      />
+                      <label
+                        htmlFor={`edit-${role}`}
+                        className="text-sm text-foreground cursor-pointer"
+                      >
+                        {roleLabels[role]}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Contabilidad Section */}
+              <div className="p-3 rounded-md border border-border">
+                <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Contabilidad</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {contabilidadRoles.map(role => (
+                    <div key={role} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-${role}`}
+                        checked={editRoles.includes(role)}
+                        onCheckedChange={() => toggleRole(role, editRoles, setEditRoles)}
+                      />
+                      <label
+                        htmlFor={`edit-${role}`}
+                        className="text-sm text-foreground cursor-pointer"
+                      >
+                        {roleLabels[role]}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

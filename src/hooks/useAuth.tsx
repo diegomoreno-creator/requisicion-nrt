@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 
-export type AppRole = 'superadmin' | 'admin' | 'comprador' | 'solicitador' | 'autorizador' | 'presupuestos' | 'tesoreria' | 'inactivo';
+export type AppRole = 'superadmin' | 'admin' | 'comprador' | 'solicitador' | 'autorizador' | 'presupuestos' | 'tesoreria' | 'inactivo' | 'contabilidad1' | 'contabilidad_gastos' | 'contabilidad_ingresos';
 
 interface AuthState {
   user: User | null;
