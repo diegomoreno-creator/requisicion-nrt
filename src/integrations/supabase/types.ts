@@ -814,6 +814,7 @@ export type Database = {
         | "autorizador"
         | "presupuestos"
         | "tesoreria"
+        | "contabilidad1"
       requisition_status:
         | "borrador"
         | "pendiente"
@@ -961,6 +962,7 @@ export const Constants = {
         "autorizador",
         "presupuestos",
         "tesoreria",
+        "contabilidad1",
       ],
       requisition_status: [
         "borrador",
