@@ -211,12 +211,12 @@ const Tramites = () => {
           // For comprador: items they rejected (any item with justificacion_rechazo)
           // For autorizador: items they authorized that have justificacion_rechazo_presupuestos
           rejected.push(tramite);
-        } else if (isComprador && r.pedido_colocado_por === user.id) {
-          // Comprador: items where they placed the order go to Atendidos
-          attended.push(tramite);
         } else if (isComprador && ['pedido_autorizado', 'pedido_pagado'].includes(r.estado || '')) {
           // Comprador: items that are beyond their workflow (authorized or paid) go to Atendidos
-          // These items are done from the Comprador's perspective
+          // These items are done from the Comprador's perspective - regardless of who processed them
+          attended.push(tramite);
+        } else if (isComprador && r.pedido_colocado_por === user.id) {
+          // Comprador: items where THEY placed the order go to Atendidos
           attended.push(tramite);
         } else if (processorField && (r as any)[processorField] === user.id) {
           // User processed this tramite - goes to Atendidos
