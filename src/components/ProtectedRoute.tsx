@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, AppRole } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import AccessDenied from "@/pages/AccessDenied";
 
@@ -7,17 +7,30 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requiresFormAccess?: boolean;
   requiresSuperadmin?: boolean;
+  requiresRole?: AppRole | AppRole[];
 }
 
 const ProtectedRoute = ({ 
   children, 
   requiresFormAccess = false,
-  requiresSuperadmin = false 
+  requiresSuperadmin = false,
+  requiresRole
 }: ProtectedRouteProps) => {
-  const { user, loading, isSuperadmin, isAdmin, isSolicitador, canAccessApp } = useAuth();
+  const { user, loading, isSuperadmin, isAdmin, isSolicitador, canAccessApp, hasRole } = useAuth();
   const [deniedType, setDeniedType] = useState<"unauthenticated" | "unauthorized" | "inactive" | null>(null);
 
   const canAccessForms = isSolicitador || isAdmin || isSuperadmin;
+
+  // Check if user has required role(s)
+  const hasRequiredRole = () => {
+    if (!requiresRole) return true;
+    if (isSuperadmin) return true; // Superadmin bypasses role checks
+    
+    if (Array.isArray(requiresRole)) {
+      return requiresRole.some(role => hasRole(role));
+    }
+    return hasRole(requiresRole);
+  };
 
   useEffect(() => {
     if (loading) {
@@ -45,8 +58,13 @@ const ProtectedRoute = ({
       return;
     }
 
+    if (requiresRole && !hasRequiredRole()) {
+      setDeniedType("unauthorized");
+      return;
+    }
+
     setDeniedType(null);
-  }, [loading, user, canAccessApp, isSuperadmin, canAccessForms, requiresFormAccess, requiresSuperadmin]);
+  }, [loading, user, canAccessApp, isSuperadmin, canAccessForms, requiresFormAccess, requiresSuperadmin, requiresRole]);
 
   if (loading) {
     return (

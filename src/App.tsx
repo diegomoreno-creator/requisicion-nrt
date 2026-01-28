@@ -17,6 +17,7 @@ import GestionCatalogos from "./pages/GestionCatalogos";
 import BulkCreateUsers from "./pages/BulkCreateUsers";
 import Notificaciones from "./pages/Notificaciones";
 import Estadisticas from "./pages/Estadisticas";
+import ContabilidadGastos from "./pages/ContabilidadGastos";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -141,6 +142,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Estadisticas />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/contabilidad-gastos" 
+              element={
+                <ProtectedRoute requiresRole="contabilidad_gastos">
+                  <ContabilidadGastos />
                 </ProtectedRoute>
               } 
             />
