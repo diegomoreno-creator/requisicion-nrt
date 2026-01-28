@@ -136,6 +136,11 @@ const Dashboard = () => {
   // Only solicitador, admin, and superadmin can create requisitions
   const canCreateRequisitions = isSolicitador || isAdmin || isSuperadmin;
 
+  // Check if user has Compra-Pago module access
+  const hasCompraPagoAccess = isSuperadmin || isAdmin || isSolicitador || 
+    hasRole('comprador') || hasRole('autorizador') || 
+    hasRole('presupuestos') || hasRole('tesoreria');
+
   // Check if user has contabilidad roles
   const hasContabilidadGastos = hasRole('contabilidad_gastos') || isSuperadmin;
   const hasContabilidadIngresos = hasRole('contabilidad_ingresos') || isSuperadmin;
@@ -171,7 +176,7 @@ const Dashboard = () => {
       description: "Consulta el estado de todos tus trámites.",
       icon: FolderSearch,
       path: "/tramites",
-      visible: true,
+      visible: hasCompraPagoAccess, // Only Compra-Pago module users
       blocked: false,
     },
   ];
