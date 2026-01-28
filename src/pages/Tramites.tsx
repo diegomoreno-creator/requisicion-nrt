@@ -144,14 +144,20 @@ const Tramites = () => {
         console.error("Error fetching requisiciones:", reqError);
       }
 
-      // Fetch reposiciones - RLS policies will handle visibility
-      const { data: reposiciones, error: repoError } = await supabase
-        .from("reposiciones")
-        .select("id, folio, fecha_solicitud, solicitado_por, estado, asunto, autorizado_por, pagado_por")
-        .order("created_at", { ascending: false });
+      // Fetch reposiciones - RLS policies will handle visibility.
+      // Para Comprador (Compras), no mostramos Reposiciones en esta pantalla.
+      let reposiciones: any[] = [];
+      if (!isComprador) {
+        const { data: reposicionesData, error: repoError } = await supabase
+          .from("reposiciones")
+          .select("id, folio, fecha_solicitud, solicitado_por, estado, asunto, autorizado_por, pagado_por")
+          .order("created_at", { ascending: false });
 
-      if (repoError) {
-        console.error("Error fetching reposiciones:", repoError);
+        if (repoError) {
+          console.error("Error fetching reposiciones:", repoError);
+        }
+
+        reposiciones = reposicionesData || [];
       }
 
       // Get all unique user IDs to fetch their names using security definer function
