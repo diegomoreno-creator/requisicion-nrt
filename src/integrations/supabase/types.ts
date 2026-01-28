@@ -127,6 +127,87 @@ export type Database = {
           },
         ]
       }
+      contabilidad_gastos: {
+        Row: {
+          created_at: string
+          id: string
+          importe_16: number | null
+          importe_8: number | null
+          importe_exento: number | null
+          ispt: number | null
+          isr_ret_arre: number | null
+          isr_ret_hono: number | null
+          isr_ret_resico: number | null
+          iva_acred_16: number | null
+          iva_acred_8: number | null
+          iva_ret: number | null
+          iva_ret_extra: number | null
+          mes_operacion: string
+          nombre_proveedor: string | null
+          nota: string | null
+          numero_cheque: string | null
+          rfc: string | null
+          sucursal: string
+          sueldo: number | null
+          tipo_proveedor: string | null
+          total: number | null
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          importe_16?: number | null
+          importe_8?: number | null
+          importe_exento?: number | null
+          ispt?: number | null
+          isr_ret_arre?: number | null
+          isr_ret_hono?: number | null
+          isr_ret_resico?: number | null
+          iva_acred_16?: number | null
+          iva_acred_8?: number | null
+          iva_ret?: number | null
+          iva_ret_extra?: number | null
+          mes_operacion: string
+          nombre_proveedor?: string | null
+          nota?: string | null
+          numero_cheque?: string | null
+          rfc?: string | null
+          sucursal: string
+          sueldo?: number | null
+          tipo_proveedor?: string | null
+          total?: number | null
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          importe_16?: number | null
+          importe_8?: number | null
+          importe_exento?: number | null
+          ispt?: number | null
+          isr_ret_arre?: number | null
+          isr_ret_hono?: number | null
+          isr_ret_resico?: number | null
+          iva_acred_16?: number | null
+          iva_acred_8?: number | null
+          iva_ret?: number | null
+          iva_ret_extra?: number | null
+          mes_operacion?: string
+          nombre_proveedor?: string | null
+          nota?: string | null
+          numero_cheque?: string | null
+          rfc?: string | null
+          sucursal?: string
+          sueldo?: number | null
+          tipo_proveedor?: string | null
+          total?: number | null
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string
