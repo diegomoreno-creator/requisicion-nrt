@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, ArrowLeft, Bell, CheckCircle, FolderSearch, RotateCcw, Search, Trash2, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Bell, CheckCircle, FolderSearch, RefreshCw, RotateCcw, Search, Trash2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -55,6 +55,7 @@ interface Tramite {
   tipoRequisicionId?: string | null;
   asunto?: string | null;
   fecha: string;
+  fechaOrden?: string | null; // For comprador ordering by authorization date
   solicitante: string;
   estado: string;
   deleted_at?: string | null;
@@ -133,10 +134,11 @@ const Tramites = () => {
     setLoading(true);
     try {
       // Fetch requisiciones - RLS policies will handle visibility
+      // For compradores, order by fecha_autorizacion_real; for others, by created_at
       const { data: requisiciones, error: reqError } = await supabase
         .from("requisiciones")
-        .select("id, folio, created_at, solicitado_por, estado, tipo_requisicion, asunto, justificacion_rechazo, justificacion_rechazo_presupuestos, autorizador_id, deleted_at, autorizado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
-        .order("created_at", { ascending: false });
+        .select("id, folio, created_at, fecha_autorizacion_real, solicitado_por, estado, tipo_requisicion, asunto, justificacion_rechazo, justificacion_rechazo_presupuestos, autorizador_id, deleted_at, autorizado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
+        .order(isComprador ? "fecha_autorizacion_real" : "created_at", { ascending: false, nullsFirst: false });
 
       if (reqError) {
         console.error("Error fetching requisiciones:", reqError);
@@ -188,6 +190,7 @@ const Tramites = () => {
           tipoRequisicionId: r.tipo_requisicion,
           asunto: r.asunto,
           fecha: r.created_at,
+          fechaOrden: (r as any).fecha_autorizacion_real || r.created_at,
           solicitante: userMap.get(r.solicitado_por) || "Usuario",
           estado: r.estado || "borrador",
           deleted_at: r.deleted_at,
@@ -243,9 +246,13 @@ const Tramites = () => {
         }
       });
 
-      // Sort by date descending
-      activeTramites.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
-      attended.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+      // Sort by date descending - for comprador use fechaOrden (authorization date)
+      const sortByDate = isComprador 
+        ? (a: Tramite, b: Tramite) => new Date(b.fechaOrden || b.fecha).getTime() - new Date(a.fechaOrden || a.fecha).getTime()
+        : (a: Tramite, b: Tramite) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+      
+      activeTramites.sort(sortByDate);
+      attended.sort(sortByDate);
       rejected.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
       deleted.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
@@ -760,6 +767,19 @@ const Tramites = () => {
                 </PopoverContent>
               </Popover>
               
+              <Button
+                variant="outline"
+                onClick={() => {
+                  fetchTramites();
+                  toast.success("Lista actualizada");
+                }}
+                disabled={loading}
+                className="text-muted-foreground hover:text-foreground"
+                title="Actualizar lista"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Actualizar
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => navigate("/dashboard")}
