@@ -815,6 +815,8 @@ export type Database = {
         | "presupuestos"
         | "tesoreria"
         | "contabilidad1"
+        | "contabilidad_gastos"
+        | "contabilidad_ingresos"
       requisition_status:
         | "borrador"
         | "pendiente"
@@ -963,6 +965,8 @@ export const Constants = {
         "presupuestos",
         "tesoreria",
         "contabilidad1",
+        "contabilidad_gastos",
+        "contabilidad_ingresos",
       ],
       requisition_status: [
         "borrador",
