@@ -32,7 +32,8 @@ import {
   LogOut,
   Loader2,
   User,
-  HelpCircle
+  HelpCircle,
+  Calculator
 } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -46,6 +47,8 @@ const roleLabels: Record<string, string> = {
   solicitador: "Solicitador",
   autorizador: "Autorizador",
   inactivo: "Inactivo",
+  contabilidad_gastos: "Contabilidad Gastos",
+  contabilidad_ingresos: "Contabilidad Ingresos",
 };
 
 interface ProfileData {
@@ -54,7 +57,7 @@ interface ProfileData {
 }
 
 const Dashboard = () => {
-  const { user, role, loading, signOut, isSuperadmin, isSolicitador, isAdmin, canAccessApp } = useAuth();
+  const { user, role, loading, signOut, isSuperadmin, isSolicitador, isAdmin, canAccessApp, hasRole } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [pendingSugerencias, setPendingSugerencias] = useState(0);
@@ -129,6 +132,9 @@ const Dashboard = () => {
   // Only solicitador, admin, and superadmin can create requisitions
   const canCreateRequisitions = isSolicitador || isAdmin || isSuperadmin;
 
+  // Check if user has contabilidad_gastos role
+  const hasContabilidadGastos = hasRole('contabilidad_gastos') || isSuperadmin;
+
   const menuItems = [
     {
       title: "Requisición",
@@ -160,6 +166,14 @@ const Dashboard = () => {
       icon: FolderSearch,
       path: "/tramites",
       visible: true,
+      blocked: false,
+    },
+    {
+      title: "Contabilidad Gastos",
+      description: "Registra gastos para el módulo de contabilidad.",
+      icon: Calculator,
+      path: "/contabilidad-gastos",
+      visible: hasContabilidadGastos,
       blocked: false,
     },
   ];
