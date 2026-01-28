@@ -539,6 +539,9 @@ const Tramites = () => {
               <TableHead className="text-muted-foreground font-medium">Tipo de Trámite</TableHead>
               <TableHead className="text-muted-foreground font-medium">Asunto</TableHead>
               <TableHead className="text-muted-foreground font-medium">Fecha</TableHead>
+              {isComprador && (
+                <TableHead className="text-muted-foreground font-medium">Fecha Autorización</TableHead>
+              )}
               <TableHead className="text-muted-foreground font-medium">Solicitante</TableHead>
               <TableHead className="text-muted-foreground font-medium">Estado</TableHead>
               {showDeleted && (
@@ -600,6 +603,13 @@ const Tramites = () => {
                 <TableCell className="text-foreground">
                   {formatFecha(tramite.fecha)}
                 </TableCell>
+                {isComprador && (
+                  <TableCell className="text-foreground">
+                    {tramite.fechaOrden && tramite.fechaOrden !== tramite.fecha 
+                      ? formatFecha(tramite.fechaOrden) 
+                      : "-"}
+                  </TableCell>
+                )}
                 <TableCell className="text-foreground">
                   {tramite.solicitante}
                 </TableCell>
