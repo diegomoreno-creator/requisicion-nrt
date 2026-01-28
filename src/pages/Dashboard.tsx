@@ -15,6 +15,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   FilePlus, 
   RefreshCw, 
@@ -49,6 +58,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [pendingSugerencias, setPendingSugerencias] = useState(0);
+  const [showReposicionAlert, setShowReposicionAlert] = useState(false);
 
   // Enable realtime notifications for status changes
   useRealtimeNotifications();
@@ -126,6 +136,7 @@ const Dashboard = () => {
       icon: FilePlus,
       path: "/requisicion",
       visible: canCreateRequisitions,
+      blocked: false,
     },
     {
       title: "Reposición",
@@ -133,6 +144,7 @@ const Dashboard = () => {
       icon: RefreshCw,
       path: "/reposicion",
       visible: canCreateRequisitions,
+      blocked: true, // Temporarily blocked
     },
     {
       title: "Pago Sin Orden De Compra",
@@ -140,6 +152,7 @@ const Dashboard = () => {
       icon: FileText,
       path: "/pago-sin-oc",
       visible: canCreateRequisitions,
+      blocked: false,
     },
     {
       title: "Ver Trámites",
@@ -147,8 +160,17 @@ const Dashboard = () => {
       icon: FolderSearch,
       path: "/tramites",
       visible: true,
+      blocked: false,
     },
   ];
+
+  const handleCardClick = (item: typeof menuItems[0]) => {
+    if (item.blocked) {
+      setShowReposicionAlert(true);
+    } else {
+      navigate(item.path);
+    }
+  };
 
   if (loading) {
     return (
@@ -225,25 +247,48 @@ const Dashboard = () => {
           {menuItems.filter(item => item.visible).map((item) => (
             <Card
               key={item.title}
-              className="border-border bg-card hover:border-primary/50 transition-colors cursor-pointer group"
-              onClick={() => navigate(item.path)}
+              className={`border-border bg-card transition-colors cursor-pointer group ${
+                item.blocked 
+                  ? "opacity-60 hover:border-destructive/50" 
+                  : "hover:border-primary/50"
+              }`}
+              onClick={() => handleCardClick(item)}
             >
               <CardContent className="p-6 flex items-start justify-between">
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                  <h3 className={`text-lg font-semibold transition-colors ${
+                    item.blocked 
+                      ? "text-muted-foreground" 
+                      : "text-foreground group-hover:text-primary"
+                  }`}>
                     {item.title}
                   </h3>
                   <p className="text-muted-foreground text-sm">
                     {item.description}
                   </p>
                 </div>
-                <div className="text-primary">
+                <div className={item.blocked ? "text-muted-foreground" : "text-primary"}>
                   <item.icon className="w-6 h-6" />
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
+
+        {/* Alert Dialog for blocked Reposición */}
+        <AlertDialog open={showReposicionAlert} onOpenChange={setShowReposicionAlert}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Aviso Importante</AlertDialogTitle>
+              <AlertDialogDescription className="text-base">
+                Este día 28 y 29 de enero de 2025 favor de realizar trámite de manera convencional.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction>Entendido</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
 
       {/* Footer */}
