@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { SuperadminSidebar } from "@/components/SuperadminSidebar";
 import {
   DropdownMenu,
@@ -36,10 +36,12 @@ import {
   Calculator,
   TrendingDown,
   TrendingUp,
-  Lock
+  Lock,
+  Menu
 } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const roleLabels: Record<string, string> = {
   superadmin: "Super Admin",
@@ -199,16 +201,24 @@ const Dashboard = () => {
 
   if (!user || !canAccessApp) return null;
 
-  const dashboardContent = (
+  const isMobile = useIsMobile();
+
+  const dashboardContent = (showMobileTrigger: boolean = false) => (
     <div className="min-h-screen bg-background flex flex-col w-full">
       {/* Header */}
       <header className="border-b border-border px-6 py-4 font-barlow">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {/* Mobile sidebar trigger for superadmin */}
+            {showMobileTrigger && isMobile && (
+              <SidebarTrigger className="mr-2">
+                <Menu className="h-5 w-5" />
+              </SidebarTrigger>
+            )}
             <span className="font-black text-xl">
               <span className="text-primary">NRT</span> <span className="text-foreground text-[0.75em]">MÉXICO</span>
             </span>
-            <span className="text-foreground font-black text-lg">Panel de Control</span>
+            <span className="text-foreground font-black text-lg hidden sm:inline">Panel de Control</span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -399,13 +409,13 @@ const Dashboard = () => {
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
           <SuperadminSidebar />
-          {dashboardContent}
+          {dashboardContent(true)}
         </div>
       </SidebarProvider>
     );
   }
 
-  return dashboardContent;
+  return dashboardContent(false);
 };
 
 export default Dashboard;
