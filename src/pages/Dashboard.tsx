@@ -64,6 +64,7 @@ interface ProfileData {
 const Dashboard = () => {
   const { user, role, loading, signOut, isSuperadmin, isSolicitador, isAdmin, canAccessApp, hasRole } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [pendingSugerencias, setPendingSugerencias] = useState(0);
   const [showReposicionAlert, setShowReposicionAlert] = useState(false);
@@ -200,8 +201,6 @@ const Dashboard = () => {
   }
 
   if (!user || !canAccessApp) return null;
-
-  const isMobile = useIsMobile();
 
   const dashboardContent = (showMobileTrigger: boolean = false) => (
     <div className="min-h-screen bg-background flex flex-col w-full">
