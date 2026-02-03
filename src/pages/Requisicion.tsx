@@ -180,6 +180,12 @@ const Requisicion = () => {
     },
   ]);
 
+  // Calculate approximate budget from sum of all partidas' costo_estimado
+  useEffect(() => {
+    const total = partidas.reduce((sum, p) => sum + (p.costo_estimado || 0), 0);
+    setPresupuestoAproximado(total > 0 ? total.toString() : "");
+  }, [partidas]);
+
   useEffect(() => {
     if (!authLoading && !canAccessApp && !isEditMode) {
       navigate("/");
@@ -221,9 +227,9 @@ const Requisicion = () => {
         return;
       }
 
-      // Can edit if pending (not yet authorized) or rejected
-      const isPending = req.estado === "pendiente" && !req.justificacion_rechazo && !req.deleted_at;
-      const isRejected = !!req.justificacion_rechazo && req.estado === "pendiente";
+      // Can edit if pending or rejected
+      const isPending = req.estado === "pendiente" && !req.deleted_at;
+      const isRejected = req.estado === "rechazado" && !req.deleted_at;
       
       if (!isPending && !isRejected) {
         toast.error("Solo puedes editar requisiciones pendientes o rechazadas");
@@ -1007,9 +1013,10 @@ const Requisicion = () => {
                     type="number"
                     step="0.01"
                     value={presupuestoAproximado}
-                    onChange={(e) => setPresupuestoAproximado(e.target.value)}
-                    className="bg-input border-border"
-                    placeholder="0.00"
+                    readOnly
+                    disabled
+                    className="bg-muted border-border text-muted-foreground"
+                    placeholder="Suma automática de costos estimados"
                   />
                 </div>
 
