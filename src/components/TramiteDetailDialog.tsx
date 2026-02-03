@@ -610,9 +610,8 @@ const TramiteDetailDialog = ({
     // For requisiciones
     if (requisicion && user) {
       const isOwner = requisicion.solicitado_por === user.id;
-      const hasRejection = !!requisicion.justificacion_rechazo;
-      const isPending = requisicion.estado === "pendiente";
-      return isOwner && hasRejection && isPending;
+      const isRejected = requisicion.estado === "rechazado";
+      return isOwner && isRejected;
     }
     // For reposiciones - check if rejected
     if (reposicion && user) {
