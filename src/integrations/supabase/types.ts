@@ -402,6 +402,7 @@ export type Database = {
           gastos_semana: number | null
           id: string
           justificacion: string | null
+          justificacion_rechazo: string | null
           monto_total: number | null
           pagado_por: string | null
           reponer_a: string | null
@@ -424,6 +425,7 @@ export type Database = {
           gastos_semana?: number | null
           id?: string
           justificacion?: string | null
+          justificacion_rechazo?: string | null
           monto_total?: number | null
           pagado_por?: string | null
           reponer_a?: string | null
@@ -446,6 +448,7 @@ export type Database = {
           gastos_semana?: number | null
           id?: string
           justificacion?: string | null
+          justificacion_rechazo?: string | null
           monto_total?: number | null
           pagado_por?: string | null
           reponer_a?: string | null

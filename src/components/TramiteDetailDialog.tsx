@@ -1912,11 +1912,11 @@ const TramiteDetailDialog = ({
             )}
 
             {/* Justificación de Rechazo */}
-            {requisicion?.justificacion_rechazo && (
+            {(requisicion?.justificacion_rechazo || (reposicion as any)?.justificacion_rechazo) && (
               <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
                 <h3 className="text-destructive font-semibold mb-2">Justificación del Rechazo</h3>
                 <p className="text-foreground">
-                  {requisicion.justificacion_rechazo}
+                  {requisicion?.justificacion_rechazo || (reposicion as any)?.justificacion_rechazo}
                 </p>
               </div>
             )}
