@@ -232,7 +232,9 @@ const TramiteDetailDialog = ({
   const [showRejectByCompradorConfirm, setShowRejectByCompradorConfirm] = useState(false);
   const [showRejectByPresupuestosConfirm, setShowRejectByPresupuestosConfirm] = useState(false);
   const [showRejectPresupuestosToSolicitadorConfirm, setShowRejectPresupuestosToSolicitadorConfirm] = useState(false);
+  const [showRejectByAutorizadorConfirm, setShowRejectByAutorizadorConfirm] = useState(false);
   const [rejectJustification, setRejectJustification] = useState("");
+  const [rejectAutorizadorJustification, setRejectAutorizadorJustification] = useState("");
   const [rejectPresupuestosJustification, setRejectPresupuestosJustification] = useState("");
   const [rejectPresupuestosToSolicitadorJustification, setRejectPresupuestosToSolicitadorJustification] = useState("");
   const [apuntesLicitacion, setApuntesLicitacion] = useState("");
@@ -797,17 +799,26 @@ const TramiteDetailDialog = ({
 
   const handleReject = async () => {
     if (!tramiteId || !tramiteTipo) return;
+    if (!rejectAutorizadorJustification.trim()) {
+      toast.error("Debe proporcionar una justificación para el rechazo");
+      return;
+    }
     setActionLoading(true);
 
     try {
       const table = tramiteTipo === "Reposición" ? "reposiciones" : "requisiciones";
       const { error } = await supabase
         .from(table)
-        .update({ estado: "rechazado" })
+        .update({ 
+          estado: "rechazado",
+          justificacion_rechazo: rejectAutorizadorJustification.trim()
+        })
         .eq("id", tramiteId);
 
       if (error) throw error;
       toast.success("Trámite rechazado");
+      setRejectAutorizadorJustification("");
+      setShowRejectByAutorizadorConfirm(false);
       onUpdated?.();
       onOpenChange(false);
     } catch (error) {
@@ -2246,7 +2257,7 @@ const TramiteDetailDialog = ({
                 <>
                   <Button
                     variant="destructive"
-                    onClick={handleReject}
+                    onClick={() => setShowRejectByAutorizadorConfirm(true)}
                     disabled={actionLoading}
                   >
                     Rechazar
@@ -2536,6 +2547,46 @@ const TramiteDetailDialog = ({
               disabled={actionLoading || !rejectPresupuestosToSolicitadorJustification.trim()}
             >
               {actionLoading ? "Procesando..." : "Confirmar Devolución"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reject by Autorizador Confirmation Dialog */}
+      <AlertDialog open={showRejectByAutorizadorConfirm} onOpenChange={setShowRejectByAutorizadorConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Rechazar trámite?</AlertDialogTitle>
+            <AlertDialogDescription>
+              El trámite <strong>{tramite?.folio}</strong> será devuelto al solicitador
+              para que realice las correcciones necesarias.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="reject-autorizador-justification" className="text-sm font-medium">
+              Justificación del rechazo <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="reject-autorizador-justification"
+              value={rejectAutorizadorJustification}
+              onChange={(e) => setRejectAutorizadorJustification(e.target.value)}
+              placeholder="Ingrese el motivo del rechazo..."
+              className="mt-2"
+              rows={4}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setRejectAutorizadorJustification("");
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleReject}
+              disabled={actionLoading || !rejectAutorizadorJustification.trim()}
+            >
+              {actionLoading ? "Rechazando..." : "Confirmar Rechazo"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
