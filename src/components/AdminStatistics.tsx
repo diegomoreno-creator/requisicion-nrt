@@ -61,7 +61,17 @@ const periodLabels: Record<VolumePeriod, string> = {
   custom: "Personalizado",
 };
 
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+// Unique colors for each status in the pie chart
+const ESTADO_COLORS: Record<string, string> = {
+  "Pendiente": "hsl(45, 93%, 47%)",           // Yellow/Amber
+  "Aprobado": "hsl(142, 71%, 45%)",           // Green
+  "Rechazado": "hsl(0, 84%, 60%)",            // Red
+  "Cancelado": "hsl(220, 9%, 46%)",           // Gray
+  "En Licitación": "hsl(217, 91%, 60%)",      // Blue
+  "Pedido Colocado": "hsl(280, 65%, 60%)",    // Purple
+  "Pedido Autorizado": "hsl(25, 95%, 53%)",   // Orange
+  "Pedido Pagado": "hsl(162, 73%, 46%)",      // Teal/Emerald
+};
 
 const estadoLabels: Record<string, string> = {
   pendiente: "Pendiente",
@@ -635,8 +645,8 @@ const AdminStatistics = () => {
                     paddingAngle={2}
                     dataKey="value"
                   >
-                    {statusDistribution.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    {statusDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={ESTADO_COLORS[entry.name] || "hsl(var(--muted))"} />
                     ))}
                   </Pie>
                   <Tooltip 
