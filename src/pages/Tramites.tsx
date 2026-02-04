@@ -104,8 +104,7 @@ const Tramites = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("todos");
-  const [filterVista, setFilterVista] = useState<string>("todos_tramites");
-  const [filterVistaInitialized, setFilterVistaInitialized] = useState(false);
+  const [filterTipoInitialized, setFilterTipoInitialized] = useState(false);
   const [selectedTramite, setSelectedTramite] = useState<{
     id: string;
     tipo: "Requisición" | "Reposición";
@@ -116,15 +115,13 @@ const Tramites = () => {
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
-  // Set default filterVista once auth is loaded
+  // Set default filter for superadmins once roles are loaded
   useEffect(() => {
-    if (!authLoading && !filterVistaInitialized) {
-      if (isSuperadmin && isAutorizador) {
-        setFilterVista("mis_tramites");
-      }
-      setFilterVistaInitialized(true);
+    if (!authLoading && !filterTipoInitialized) {
+      setFilterTipo(isSuperadmin ? "mis_tramites" : "todos");
+      setFilterTipoInitialized(true);
     }
-  }, [authLoading, isSuperadmin, isAutorizador, filterVistaInitialized]);
+  }, [authLoading, isSuperadmin, filterTipoInitialized]);
 
   // Determine which processor field to check based on user role
   const getProcessorField = (): string | null => {
@@ -157,13 +154,13 @@ const Tramites = () => {
         console.error("Error fetching requisiciones:", reqError);
       }
 
-      // Fetch reposiciones - RLS policies will handle visibility.
+        // Fetch reposiciones - RLS policies will handle visibility.
       // Para Comprador (Compras), no mostramos Reposiciones en esta pantalla.
       let reposiciones: any[] = [];
       if (!isComprador) {
         const { data: reposicionesData, error: repoError } = await supabase
           .from("reposiciones")
-          .select("id, folio, fecha_solicitud, solicitado_por, estado, asunto, autorizado_por, pagado_por")
+            .select("id, folio, fecha_solicitud, solicitado_por, estado, asunto, autorizador_id, autorizado_por, pagado_por")
           .order("created_at", { ascending: false });
 
         if (repoError) {
@@ -255,6 +252,7 @@ const Tramites = () => {
           fecha: r.fecha_solicitud,
           solicitante: userMap.get(r.solicitado_por) || "Usuario",
           estado: r.estado || "borrador",
+          autorizador_id: r.autorizador_id,
           autorizado_por: r.autorizado_por,
           pagado_por: r.pagado_por,
         };
@@ -297,16 +295,18 @@ const Tramites = () => {
       tramite.solicitante.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesTipo =
-      filterTipo === "todos" ||
+          filterTipo === "todos" ||
+          filterTipo === "mis_tramites" ||
       (filterTipo === "requisicion" && tramite.tipo === "Requisición") ||
       (filterTipo === "reposicion" && tramite.tipo === "Reposición");
 
-    // For superadmins with "mis_tramites" filter, only show their assigned tramites
-    const matchesVista =
-      filterVista === "todos_tramites" ||
-      (tramite as any).autorizador_id === user?.id;
+        // Superadmin: "Mis Trámites" filters by asignación (autorizador_id)
+        const matchesVista =
+          filterTipo !== "mis_tramites" ||
+          !isSuperadmin ||
+          tramite.autorizador_id === user?.id;
 
-    return matchesSearch && matchesTipo && matchesVista;
+        return matchesSearch && matchesTipo && matchesVista;
   });
 
   const filteredAttendedTramites = attendedTramites.filter((tramite) => {
@@ -316,7 +316,8 @@ const Tramites = () => {
       tramite.solicitante.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesTipo =
-      filterTipo === "todos" ||
+          filterTipo === "todos" ||
+          filterTipo === "mis_tramites" ||
       (filterTipo === "requisicion" && tramite.tipo === "Requisición") ||
       (filterTipo === "reposicion" && tramite.tipo === "Reposición");
 
@@ -330,7 +331,8 @@ const Tramites = () => {
       tramite.solicitante.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesTipo =
-      filterTipo === "todos" ||
+          filterTipo === "todos" ||
+          filterTipo === "mis_tramites" ||
       (filterTipo === "requisicion" && tramite.tipo === "Requisición") ||
       (filterTipo === "reposicion" && tramite.tipo === "Reposición");
 
@@ -720,7 +722,9 @@ const Tramites = () => {
                 <CardTitle className="text-foreground">Consulta de Trámites</CardTitle>
                 <p className="text-muted-foreground text-sm">
                   {isSuperadmin
-                    ? "Vista de todos los trámites"
+                    ? filterTipo === "mis_tramites"
+                      ? "Mis trámites asignados"
+                      : "Vista de todos los trámites"
                     : isAdmin
                     ? "Trámites asignados y creados"
                     : isComprador
@@ -840,24 +844,15 @@ const Tramites = () => {
                   className="pl-10 bg-background border-border"
                 />
               </div>
-              {/* Vista filter for superadmins who are also autorizadores */}
-              {isSuperadmin && isAutorizador && (
-                <Select value={filterVista} onValueChange={setFilterVista}>
-                  <SelectTrigger className="w-full sm:w-[180px] bg-background border-border">
-                    <SelectValue placeholder="Mis Trámites" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="mis_tramites">Mis Trámites</SelectItem>
-                    <SelectItem value="todos_tramites">Todos los Trámites</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
               <Select value={filterTipo} onValueChange={setFilterTipo}>
-                <SelectTrigger className="w-full sm:w-[180px] bg-background border-border">
-                  <SelectValue placeholder="Tipo de Trámite" />
+                <SelectTrigger className="w-full sm:w-[200px] bg-background border-border">
+                  <SelectValue placeholder="Todos los Trámites" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
-                  <SelectItem value="todos">Todos los Tipos</SelectItem>
+                  {isSuperadmin && (
+                    <SelectItem value="mis_tramites">Mis Trámites</SelectItem>
+                  )}
+                  <SelectItem value="todos">Todos los Trámites</SelectItem>
                   <SelectItem value="requisicion">Requisiciones</SelectItem>
                   <SelectItem value="reposicion">Reposiciones</SelectItem>
                 </SelectContent>
