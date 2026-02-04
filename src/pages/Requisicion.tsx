@@ -473,9 +473,9 @@ const Requisicion = () => {
         if (partidasError) throw partidasError;
 
         // Step 3: Update requisicion
-        // If it was rejected → set estado to 'aprobado' so it goes back to Comprador
-        // If it was just pending (not rejected) → keep it 'pendiente' so it stays with Autorizador
-        const newEstado = wasRejected ? "aprobado" : "pendiente";
+        // Always keep estado as 'pendiente' so the authorizer must approve again
+        // This ensures rejected items go back to the authorizer for review
+        const newEstado = "pendiente";
         
         const updateData = {
           tipo_requisicion: tipoRequisicion,
