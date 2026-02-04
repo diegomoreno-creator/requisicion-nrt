@@ -59,6 +59,7 @@ interface Tramite {
   solicitante: string;
   estado: string;
   deleted_at?: string | null;
+  autorizador_id?: string | null; // For filtering "Mis Trámites"
   // Tracking who processed each phase
   autorizado_por?: string | null;
   licitado_por?: string | null;
@@ -103,6 +104,8 @@ const Tramites = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("todos");
+  // For superadmins who are also autorizadores, default to "mis_tramites"
+  const [filterVista, setFilterVista] = useState<string>(isSuperadmin && isAutorizador ? "mis_tramites" : "todos_tramites");
   const [selectedTramite, setSelectedTramite] = useState<{
     id: string;
     tipo: "Requisición" | "Reposición";
@@ -200,6 +203,7 @@ const Tramites = () => {
           solicitante: userMap.get(r.solicitado_por) || "Usuario",
           estado: r.estado || "borrador",
           deleted_at: r.deleted_at,
+          autorizador_id: r.autorizador_id,
           autorizado_por: r.autorizado_por,
           licitado_por: r.licitado_por,
           pedido_colocado_por: r.pedido_colocado_por,
@@ -287,7 +291,12 @@ const Tramites = () => {
       (filterTipo === "requisicion" && tramite.tipo === "Requisición") ||
       (filterTipo === "reposicion" && tramite.tipo === "Reposición");
 
-    return matchesSearch && matchesTipo;
+    // For superadmins with "mis_tramites" filter, only show their assigned tramites
+    const matchesVista =
+      filterVista === "todos_tramites" ||
+      (tramite as any).autorizador_id === user?.id;
+
+    return matchesSearch && matchesTipo && matchesVista;
   });
 
   const filteredAttendedTramites = attendedTramites.filter((tramite) => {
@@ -821,12 +830,24 @@ const Tramites = () => {
                   className="pl-10 bg-background border-border"
                 />
               </div>
+              {/* Vista filter for superadmins who are also autorizadores */}
+              {isSuperadmin && isAutorizador && (
+                <Select value={filterVista} onValueChange={setFilterVista}>
+                  <SelectTrigger className="w-full sm:w-[180px] bg-background border-border">
+                    <SelectValue placeholder="Mis Trámites" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="mis_tramites">Mis Trámites</SelectItem>
+                    <SelectItem value="todos_tramites">Todos los Trámites</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
               <Select value={filterTipo} onValueChange={setFilterTipo}>
-                <SelectTrigger className="w-full sm:w-[200px] bg-background border-border">
-                  <SelectValue placeholder="Todos los Trámites" />
+                <SelectTrigger className="w-full sm:w-[180px] bg-background border-border">
+                  <SelectValue placeholder="Tipo de Trámite" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
-                  <SelectItem value="todos">Todos los Trámites</SelectItem>
+                  <SelectItem value="todos">Todos los Tipos</SelectItem>
                   <SelectItem value="requisicion">Requisiciones</SelectItem>
                   <SelectItem value="reposicion">Reposiciones</SelectItem>
                 </SelectContent>
