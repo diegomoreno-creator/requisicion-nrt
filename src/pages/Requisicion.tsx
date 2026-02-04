@@ -49,6 +49,7 @@ interface Partida {
   tipo_gasto: string;
   categoria_gasto: string;
   costo_estimado: number | null;
+  sucursal: string;
 }
 
 // Categorías de gasto por tipo
@@ -177,6 +178,7 @@ const Requisicion = () => {
       tipo_gasto: "",
       categoria_gasto: "",
       costo_estimado: null,
+      sucursal: "",
     },
   ]);
 
@@ -283,6 +285,7 @@ const Requisicion = () => {
           tipo_gasto: p.tipo_gasto || "",
           categoria_gasto: p.categoria_gasto || "",
           costo_estimado: (p as any).costo_estimado ?? null,
+          sucursal: (p as any).sucursal || "",
         })));
       }
 
@@ -336,6 +339,7 @@ const Requisicion = () => {
       tipo_gasto: "",
       categoria_gasto: "",
       costo_estimado: null,
+      sucursal: "",
     };
     setPartidas([...partidas, newPartida]);
   };
@@ -464,6 +468,7 @@ const Requisicion = () => {
           tipo_gasto: p.tipo_gasto || null,
           categoria_gasto: p.categoria_gasto || null,
           costo_estimado: p.costo_estimado,
+          sucursal: p.sucursal || null,
         }));
 
         const { error: partidasError } = await supabaseAuthed
@@ -587,6 +592,7 @@ const Requisicion = () => {
           tipo_gasto: p.tipo_gasto || null,
           categoria_gasto: p.categoria_gasto || null,
           costo_estimado: p.costo_estimado,
+          sucursal: p.sucursal || null,
         }));
 
         const { error: partidasError } = await supabaseAuthed
@@ -769,23 +775,8 @@ const Requisicion = () => {
                 </div>
               </div>
 
-              {/* Row: Sucursal, Autorizador, Departamento, Solicitado por */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-foreground">Sucursal</Label>
-                  <Select value={sucursal} onValueChange={setSucursal}>
-                    <SelectTrigger className="bg-input border-border">
-                      <SelectValue placeholder="Seleccione una sucursal" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border z-50">
-                      {sucursales.map((suc) => (
-                        <SelectItem key={suc.id} value={suc.nombre}>
-                          {suc.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Row: Autorizador, Departamento, Solicitado por */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
                 <div className="space-y-2">
                   <Label className="text-foreground">Autorizador <span className="text-destructive">*</span></Label>
@@ -837,6 +828,7 @@ const Requisicion = () => {
                         <TableHead className="text-muted-foreground w-24">UM</TableHead>
                         <TableHead className="text-muted-foreground w-24">Cantidad <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground w-32">Costo Estimado</TableHead>
+                        <TableHead className="text-muted-foreground w-36">Sucursal</TableHead>
                         <TableHead className="text-muted-foreground w-40">Fecha de Necesidad</TableHead>
                         <TableHead className="text-muted-foreground w-12"></TableHead>
                       </TableRow>
@@ -944,6 +936,25 @@ const Requisicion = () => {
                               }
                               className="bg-input border-border w-28"
                             />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={partida.sucursal}
+                              onValueChange={(value) =>
+                                updatePartida(partida.id, "sucursal", value)
+                              }
+                            >
+                              <SelectTrigger className="bg-input border-border w-32">
+                                <SelectValue placeholder="Seleccionar" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-card border-border z-50">
+                                {sucursales.map((suc) => (
+                                  <SelectItem key={suc.id} value={suc.nombre}>
+                                    {suc.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             <Popover>
