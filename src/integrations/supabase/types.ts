@@ -511,6 +511,7 @@ export type Database = {
           modelo_parte: string | null
           numero_partida: number
           requisicion_id: string
+          sucursal: string | null
           tipo_gasto: string | null
           unidad_medida: string | null
         }
@@ -525,6 +526,7 @@ export type Database = {
           modelo_parte?: string | null
           numero_partida: number
           requisicion_id: string
+          sucursal?: string | null
           tipo_gasto?: string | null
           unidad_medida?: string | null
         }
@@ -539,6 +541,7 @@ export type Database = {
           modelo_parte?: string | null
           numero_partida?: number
           requisicion_id?: string
+          sucursal?: string | null
           tipo_gasto?: string | null
           unidad_medida?: string | null
         }
