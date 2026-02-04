@@ -104,8 +104,8 @@ const Tramites = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("todos");
-  // For superadmins who are also autorizadores, default to "mis_tramites"
-  const [filterVista, setFilterVista] = useState<string>(isSuperadmin && isAutorizador ? "mis_tramites" : "todos_tramites");
+  const [filterVista, setFilterVista] = useState<string>("todos_tramites");
+  const [filterVistaInitialized, setFilterVistaInitialized] = useState(false);
   const [selectedTramite, setSelectedTramite] = useState<{
     id: string;
     tipo: "Requisición" | "Reposición";
@@ -115,6 +115,16 @@ const Tramites = () => {
   const [selectedForDeletion, setSelectedForDeletion] = useState<Set<string>>(new Set());
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
+  // Set default filterVista once auth is loaded
+  useEffect(() => {
+    if (!authLoading && !filterVistaInitialized) {
+      if (isSuperadmin && isAutorizador) {
+        setFilterVista("mis_tramites");
+      }
+      setFilterVistaInitialized(true);
+    }
+  }, [authLoading, isSuperadmin, isAutorizador, filterVistaInitialized]);
 
   // Determine which processor field to check based on user role
   const getProcessorField = (): string | null => {
