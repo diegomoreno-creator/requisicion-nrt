@@ -821,6 +821,7 @@ const Requisicion = () => {
                     <TableHeader>
                       <TableRow className="border-border hover:bg-transparent">
                         <TableHead className="text-muted-foreground w-20">Partida</TableHead>
+                        <TableHead className="text-muted-foreground w-36">Sucursal</TableHead>
                         <TableHead className="text-muted-foreground w-40">Tipo de Gasto <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground w-52">Categoría de Gasto <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground">Descripción <span className="text-destructive">*</span></TableHead>
@@ -828,7 +829,6 @@ const Requisicion = () => {
                         <TableHead className="text-muted-foreground w-24">UM</TableHead>
                         <TableHead className="text-muted-foreground w-24">Cantidad <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground w-32">Costo Estimado</TableHead>
-                        <TableHead className="text-muted-foreground w-36">Sucursal</TableHead>
                         <TableHead className="text-muted-foreground w-40">Fecha de Necesidad</TableHead>
                         <TableHead className="text-muted-foreground w-12"></TableHead>
                       </TableRow>
@@ -842,6 +842,25 @@ const Requisicion = () => {
                               disabled
                               className="bg-muted border-border text-center w-16"
                             />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={partida.sucursal}
+                              onValueChange={(value) =>
+                                updatePartida(partida.id, "sucursal", value)
+                              }
+                            >
+                              <SelectTrigger className="bg-input border-border w-32">
+                                <SelectValue placeholder="Seleccionar" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-card border-border z-50">
+                                {sucursales.map((suc) => (
+                                  <SelectItem key={suc.id} value={suc.nombre}>
+                                    {suc.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             <Select
@@ -936,25 +955,6 @@ const Requisicion = () => {
                               }
                               className="bg-input border-border w-28"
                             />
-                          </TableCell>
-                          <TableCell>
-                            <Select
-                              value={partida.sucursal}
-                              onValueChange={(value) =>
-                                updatePartida(partida.id, "sucursal", value)
-                              }
-                            >
-                              <SelectTrigger className="bg-input border-border w-32">
-                                <SelectValue placeholder="Seleccionar" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-card border-border z-50">
-                                {sucursales.map((suc) => (
-                                  <SelectItem key={suc.id} value={suc.nombre}>
-                                    {suc.nombre}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
                           </TableCell>
                           <TableCell>
                             <Popover>
