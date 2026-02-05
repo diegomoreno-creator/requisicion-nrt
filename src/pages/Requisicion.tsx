@@ -480,6 +480,7 @@ const Requisicion = () => {
         // Step 3: Update requisicion
         // Always keep estado as 'pendiente' so the authorizer must approve again
         // This ensures rejected items go back to the authorizer for review
+        // Always clear justificacion_rechazo when editing (whether currently rejected or was previously rejected)
         const newEstado = "pendiente";
         
         const updateData = {
@@ -501,7 +502,7 @@ const Requisicion = () => {
           nombre_proyecto: nombreProyecto,
           asunto,
           justificacion,
-          justificacion_rechazo: wasRejected ? null : undefined, // Only clear if was rejected
+          justificacion_rechazo: null, // Always clear rejection justification when editing
           estado: newEstado as any,
           updated_at: new Date().toISOString(),
         };
