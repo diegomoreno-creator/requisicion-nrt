@@ -208,6 +208,27 @@ export type Database = {
         }
         Relationships: []
       }
+      folio_sequences: {
+        Row: {
+          created_at: string
+          current_value: number
+          id: string
+          prefix: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number
+          id: string
+          prefix: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number
+          id?: string
+          prefix?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string
@@ -868,6 +889,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_next_folio: { Args: { sequence_type: string }; Returns: string }
       get_profile_name: { Args: { _user_id: string }; Returns: string }
       get_solicitante_info: {
         Args: { _user_id: string }
