@@ -1343,7 +1343,6 @@ const TramiteDetailDialog = ({
     if (requisicion) {
       addField("Empresa", getEmpresaNombre(requisicion.empresa));
       addField("Unidad de Negocio", getUnidadNombre(requisicion.unidad_negocio));
-      addField("Sucursal", getSucursalNombre(requisicion.sucursal));
       if (requisicion.departamento_solicitante) addField("Departamento", requisicion.departamento_solicitante);
       addField("Presupuesto", formatCurrency(requisicion.presupuesto_aproximado));
       if (requisicion.nombre_proyecto) addField("Proyecto", requisicion.nombre_proyecto);
@@ -1712,10 +1711,6 @@ const TramiteDetailDialog = ({
                       <p className="text-foreground">
                         {getUnidadNombre(requisicion.unidad_negocio)}
                       </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-sm">Sucursal:</p>
-                      <p className="text-foreground">{getSucursalNombre(requisicion.sucursal)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-sm">Departamento:</p>
