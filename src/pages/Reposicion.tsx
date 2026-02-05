@@ -78,7 +78,7 @@ const Reposicion = () => {
   const [originalReposicionId, setOriginalReposicionId] = useState<string | null>(null);
 
   // Form state
-  const [folio, setFolio] = useState(`FOL-${Date.now()}`);
+  const [folio, setFolio] = useState("");
   const [fechaSolicitud, setFechaSolicitud] = useState<Date>(new Date());
   const [gastosSemana, setGastosSemana] = useState("");
   const [autorizadorId, setAutorizadorId] = useState("");
@@ -354,11 +354,16 @@ const Reposicion = () => {
 
         toast.success("Reposición actualizada exitosamente");
       } else {
+        // Get sequential folio from database
+        const { data: folioData, error: folioError } = await supabase.rpc('get_next_folio', { sequence_type: 'reposiciones' });
+        if (folioError) throw folioError;
+        const newFolio = folioData as string;
+
         // Insert new reposición
         const { data: reposicion, error: repoError } = await supabase
           .from("reposiciones")
           .insert({
-            folio,
+            folio: newFolio,
             fecha_solicitud: fechaSolicitud?.toISOString().split("T")[0],
             solicitado_por: user.id,
             gastos_semana: gastosSemana ? parseFloat(gastosSemana) : 0,
@@ -455,8 +460,8 @@ const Reposicion = () => {
                 <div className="space-y-2">
                   <Label className="text-foreground">Folio</Label>
                   <Input
-                    value={folio}
-                    disabled
+                    value={folio || "Se asignará automáticamente"}
+                    placeholder="Se asignará automáticamente"
                     className="bg-muted border-border text-muted-foreground"
                   />
                 </div>

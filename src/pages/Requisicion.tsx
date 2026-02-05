@@ -138,7 +138,7 @@ const Requisicion = () => {
   const [wasRejected, setWasRejected] = useState(false); // Track if editing a rejected requisition
 
   // Form state
-  const [folio, setFolio] = useState(`REQ-${Date.now()}`);
+  const [folio, setFolio] = useState("");
   const [tipoRequisicion, setTipoRequisicion] = useState("");
   const [unidadNegocio, setUnidadNegocio] = useState("");
   const [empresa, setEmpresa] = useState("");
@@ -539,9 +539,14 @@ const Requisicion = () => {
         const requisicionId = requisicionIdForFiles; // Use the same ID that was used for file uploads
 
         const insertRequisicion = async () => {
+          // Get sequential folio from database
+          const { data: folioData, error: folioError } = await supabaseAuthed.rpc('get_next_folio', { sequence_type: 'requisiciones' });
+          if (folioError) throw folioError;
+          const newFolio = folioData as string;
+
           const { error } = await supabaseAuthed.from("requisiciones").insert({
             id: requisicionId,
-            folio,
+            folio: newFolio,
             tipo_requisicion: tipoRequisicion,
             unidad_negocio: unidadNegocio,
             empresa,
@@ -740,8 +745,8 @@ const Requisicion = () => {
                 <div className="space-y-2">
                   <Label className="text-foreground">Folio</Label>
                   <Input
-                    value={folio}
-                    disabled
+                    value={folio || "Se asignará automáticamente"}
+                    placeholder="Se asignará automáticamente"
                     className="bg-muted border-border text-muted-foreground"
                   />
                 </div>
