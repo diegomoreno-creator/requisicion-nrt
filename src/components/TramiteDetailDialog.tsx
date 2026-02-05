@@ -134,6 +134,8 @@ interface Partida {
   fecha_necesidad: string | null;
   tipo_gasto: string | null;
   categoria_gasto: string | null;
+  sucursal: string | null;
+  costo_estimado: number | null;
 }
 
 interface ArchivoAdjunto {
@@ -1384,13 +1386,16 @@ const TramiteDetailDialog = ({
 
       autoTable(doc, {
         startY: yPosition,
-        head: [["#", "Descripción", "Cantidad", "Unidad", "Modelo/Parte", "Fecha Necesidad"]],
+        head: [["#", "Sucursal", "Descripción", "Tipo Gasto", "Categoría", "Cantidad", "Unidad", "Costo Est.", "Fecha Necesidad"]],
         body: partidas.map((partida) => [
           partida.numero_partida.toString(),
+          partida.sucursal || "-",
           partida.descripcion || "-",
+          partida.tipo_gasto || "-",
+          partida.categoria_gasto || "-",
           partida.cantidad?.toString() || "-",
           partida.unidad_medida || "-",
-          partida.modelo_parte || "-",
+          partida.costo_estimado ? formatCurrency(partida.costo_estimado) : "-",
           formatDate(partida.fecha_necesidad),
         ]),
         styles: { fontSize: 8 },
@@ -1827,12 +1832,14 @@ const TramiteDetailDialog = ({
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="text-muted-foreground">#</TableHead>
+                        <TableHead className="text-muted-foreground">Sucursal</TableHead>
                         <TableHead className="text-muted-foreground">Descripción</TableHead>
                         <TableHead className="text-muted-foreground">Tipo Gasto</TableHead>
                         <TableHead className="text-muted-foreground">Categoría</TableHead>
                         <TableHead className="text-muted-foreground">Cantidad</TableHead>
                         <TableHead className="text-muted-foreground">Unidad</TableHead>
                         <TableHead className="text-muted-foreground">Modelo/Parte</TableHead>
+                        <TableHead className="text-muted-foreground">Costo Est.</TableHead>
                         <TableHead className="text-muted-foreground">Fecha Necesidad</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1840,12 +1847,14 @@ const TramiteDetailDialog = ({
                       {partidas.map((partida) => (
                         <TableRow key={partida.id} className="hover:bg-muted/20">
                           <TableCell>{partida.numero_partida}</TableCell>
+                          <TableCell>{partida.sucursal || "-"}</TableCell>
                           <TableCell>{partida.descripcion || "-"}</TableCell>
                           <TableCell>{partida.tipo_gasto || "-"}</TableCell>
                           <TableCell>{partida.categoria_gasto || "-"}</TableCell>
                           <TableCell>{partida.cantidad || "-"}</TableCell>
                           <TableCell>{partida.unidad_medida || "-"}</TableCell>
                           <TableCell>{partida.modelo_parte || "-"}</TableCell>
+                          <TableCell>{partida.costo_estimado ? formatCurrency(partida.costo_estimado) : "-"}</TableCell>
                           <TableCell>{formatDate(partida.fecha_necesidad)}</TableCell>
                         </TableRow>
                       ))}
