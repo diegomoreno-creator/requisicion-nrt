@@ -42,6 +42,17 @@ export const useCatalogos = () => {
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
+  // Ensure catalogs load after auth session becomes available (first load can happen as anon)
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) fetchCatalogos();
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const fetchCatalogos = async () => {
     try {
       const [tiposRes, unidadesRes, empresasRes, sucursalesRes] = await Promise.all([
