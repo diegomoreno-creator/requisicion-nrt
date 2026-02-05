@@ -614,12 +614,15 @@ const TramiteDetailDialog = ({
     if (requisicion && user) {
       const isOwner = requisicion.solicitado_por === user.id;
       const isRejected = requisicion.estado === "rechazado";
-      return isOwner && isRejected;
+      const notDeleted = !requisicion.deleted_at;
+      // Owner can edit rejected items regardless of their current roles
+      return isOwner && isRejected && notDeleted;
     }
     // For reposiciones - check if rejected
     if (reposicion && user) {
       const isOwner = reposicion.solicitado_por === user.id;
       const isRejected = reposicion.estado === "rechazado";
+      // Owner can edit rejected items regardless of their current roles
       return isOwner && isRejected;
     }
     return false;
@@ -631,9 +634,9 @@ const TramiteDetailDialog = ({
     if (requisicion && user) {
       const isOwner = requisicion.solicitado_por === user.id;
       const isPending = requisicion.estado === "pendiente";
-      const notRejected = !requisicion.justificacion_rechazo;
       const notDeleted = !requisicion.deleted_at;
-      return isOwner && isPending && notRejected && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
+      // Owner can edit pending items (removed notRejected check as status is what matters)
+      return isOwner && isPending && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
     }
     // For reposiciones
     if (reposicion && user) {
