@@ -643,6 +643,7 @@ export type Database = {
           justificacion_rechazo: string | null
           justificacion_rechazo_presupuestos: string | null
           licitado_por: string | null
+          moneda_compra: string | null
           monto_total_compra: number | null
           nombre_proyecto: string | null
           pagado_por: string | null
@@ -692,6 +693,7 @@ export type Database = {
           justificacion_rechazo?: string | null
           justificacion_rechazo_presupuestos?: string | null
           licitado_por?: string | null
+          moneda_compra?: string | null
           monto_total_compra?: number | null
           nombre_proyecto?: string | null
           pagado_por?: string | null
@@ -741,6 +743,7 @@ export type Database = {
           justificacion_rechazo?: string | null
           justificacion_rechazo_presupuestos?: string | null
           licitado_por?: string | null
+          moneda_compra?: string | null
           monto_total_compra?: number | null
           nombre_proyecto?: string | null
           pagado_por?: string | null
