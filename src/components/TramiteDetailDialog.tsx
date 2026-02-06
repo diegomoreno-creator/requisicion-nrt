@@ -79,6 +79,7 @@ interface RequisicionDetail {
   texto_compras_editado_por: string | null;
   texto_compras_editado_at: string | null;
   monto_total_compra: number | null;
+  moneda_compra: string | null;
   // Additional form fields
   se_dividira_gasto: boolean | null;
   un_division_gasto: string | null;
@@ -260,6 +261,7 @@ const TramiteDetailDialog = ({
     estado_al_comentar?: string;
   }>>([]);
   const [montoTotalCompra, setMontoTotalCompra] = useState("");
+  const [monedaCompra, setMonedaCompra] = useState("MXN");
   const [previewFile, setPreviewFile] = useState<ArchivoAdjunto | null>(null);
 
   useEffect(() => {
@@ -397,6 +399,7 @@ const TramiteDetailDialog = ({
         setApuntesCompras((req as any).apuntes_compras || "");
         setTextoCompras("");
         setMontoTotalCompra(req.monto_total_compra?.toString() || "");
+        setMonedaCompra((req as any).moneda_compra || "MXN");
         
         // Fetch texto compras historial
         const { data: historialData } = await supabase
@@ -956,8 +959,9 @@ const TramiteDetailDialog = ({
           estado: "pedido_colocado",
           pedido_colocado_por: user.id,
           fecha_pedido_colocado: new Date().toISOString(),
-          monto_total_compra: monto
-        })
+          monto_total_compra: monto,
+          moneda_compra: monedaCompra
+        } as any)
         .eq("id", tramiteId);
 
       if (error) throw error;
@@ -1117,10 +1121,11 @@ const TramiteDetailDialog = ({
           rechazado_por_presupuestos_rol: null,
           fecha_rechazo_presupuestos: null,
           // Clear all workflow fields
-          pedido_colocado_por: null,
-          fecha_pedido_colocado: null,
-          monto_total_compra: null,
-          licitado_por: null,
+           pedido_colocado_por: null,
+           fecha_pedido_colocado: null,
+           monto_total_compra: null,
+           moneda_compra: null,
+           licitado_por: null,
           fecha_licitacion: null,
           autorizado_por: null,
           fecha_autorizacion_real: null
@@ -1506,11 +1511,12 @@ const TramiteDetailDialog = ({
     }
   };
 
-  const formatCurrency = (amount: number | null) => {
+  const formatCurrency = (amount: number | null, currency?: string) => {
     if (amount === null) return "-";
+    const cur = currency || "MXN";
     return new Intl.NumberFormat("es-MX", {
       style: "currency",
-      currency: "MXN",
+      currency: cur,
     }).format(amount);
   };
 
@@ -1732,7 +1738,7 @@ const TramiteDetailDialog = ({
                       <div>
                         <p className="text-muted-foreground text-sm">Monto Total Compra:</p>
                         <p className="text-foreground font-semibold">
-                          {formatCurrency(requisicion.monto_total_compra)}
+                          {formatCurrency(requisicion.monto_total_compra, requisicion.moneda_compra || "MXN")} {requisicion.moneda_compra || "MXN"}
                         </p>
                       </div>
                     )}
@@ -2305,6 +2311,14 @@ const TramiteDetailDialog = ({
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Label htmlFor="montoTotal" className="text-sm whitespace-nowrap">Monto Total:</Label>
+                    <select
+                      value={monedaCompra}
+                      onChange={(e) => setMonedaCompra(e.target.value)}
+                      className="h-10 rounded-md border border-input bg-background px-2 py-1 text-sm"
+                    >
+                      <option value="MXN">MXN</option>
+                      <option value="USD">USD</option>
+                    </select>
                     <Input
                       id="montoTotal"
                       type="number"
