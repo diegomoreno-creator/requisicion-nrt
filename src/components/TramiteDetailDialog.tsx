@@ -505,9 +505,9 @@ const TramiteDetailDialog = ({
     
     // Check if user is the assigned autorizador or is superadmin/admin
     const isAssignedAutorizador = tramite.autorizador_id === user.id;
-    const isPending = tramite.estado === "pendiente";
+    const canAct = tramite.estado === "pendiente" || tramite.estado === "aprobado" || tramite.estado === "en_licitacion";
     
-    return isPending && (isAssignedAutorizador || isSuperadmin || isAdmin || isAutorizador);
+    return canAct && (isAssignedAutorizador || isSuperadmin || isAdmin || isAutorizador);
   };
 
   const canCancel = () => {
@@ -816,12 +816,22 @@ const TramiteDetailDialog = ({
 
     try {
       const table = tramiteTipo === "Reposición" ? "reposiciones" : "requisiciones";
+      const currentEstado = requisicion?.estado || reposicion?.estado;
+      const updateData: any = { 
+        estado: "rechazado",
+        justificacion_rechazo: rejectAutorizadorJustification.trim()
+      };
+      // Clear workflow fields when rejecting from advanced stages
+      if (table === "requisiciones" && (currentEstado === "en_licitacion" || currentEstado === "aprobado")) {
+        updateData.fecha_licitacion = null;
+        updateData.licitado_por = null;
+        updateData.apuntes_licitacion = null;
+        updateData.fecha_autorizacion_real = null;
+        updateData.autorizado_por = null;
+      }
       const { error } = await supabase
         .from(table)
-        .update({ 
-          estado: "rechazado",
-          justificacion_rechazo: rejectAutorizadorJustification.trim()
-        })
+        .update(updateData)
         .eq("id", tramiteId);
 
       if (error) throw error;
@@ -2280,13 +2290,15 @@ const TramiteDetailDialog = ({
                   >
                     Rechazar
                   </Button>
-                  <Button
-                    className="bg-green-600 hover:bg-green-700"
-                    onClick={handleApprove}
-                    disabled={actionLoading}
-                  >
-                    Aprobar
-                  </Button>
+                  {(requisicion?.estado === "pendiente" || reposicion?.estado === "pendiente") && (
+                    <Button
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={handleApprove}
+                      disabled={actionLoading}
+                    >
+                      Aprobar
+                    </Button>
+                  )}
                 </>
               )}
               {canRejectBeforeLicitacion() && (
