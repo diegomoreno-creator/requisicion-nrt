@@ -538,10 +538,10 @@ const TramiteDetailDialog = ({
     return requisicion.estado === "aprobado" && (isComprador || isSuperadmin);
   };
 
-  // Comprador: can reject before licitación (when status is aprobado)
+  // Comprador: can reject in aprobado or en_licitacion
   const canRejectBeforeLicitacion = () => {
     if (!requisicion || !user) return false;
-    return requisicion.estado === "aprobado" && (isComprador || isSuperadmin);
+    return (requisicion.estado === "aprobado" || requisicion.estado === "en_licitacion") && (isComprador || isSuperadmin);
   };
 
   // Comprador: can move from en_licitacion to pedido_colocado
@@ -929,12 +929,19 @@ const TramiteDetailDialog = ({
     setActionLoading(true);
 
     try {
+      const updateData: any = { 
+        estado: "pendiente",
+        justificacion_rechazo: rejectJustification.trim()
+      };
+      // Clear licitacion fields if rejecting from en_licitacion
+      if (requisicion?.estado === "en_licitacion") {
+        updateData.fecha_licitacion = null;
+        updateData.licitado_por = null;
+        updateData.apuntes_licitacion = null;
+      }
       const { error } = await supabase
         .from("requisiciones")
-        .update({ 
-          estado: "pendiente",
-          justificacion_rechazo: rejectJustification.trim()
-        })
+        .update(updateData)
         .eq("id", tramiteId);
 
       if (error) throw error;
