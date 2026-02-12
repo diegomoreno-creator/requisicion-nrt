@@ -34,7 +34,7 @@ import { useCatalogos } from "@/hooks/useCatalogos";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { AlertTriangle, ChevronRight, Download, Eye, ExternalLink, FileText, Lightbulb, Loader2, Pencil } from "lucide-react";
+import { AlertTriangle, ChevronRight, Download, Eye, ExternalLink, FileText, Lightbulb, Loader2, Pencil, Upload, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -263,6 +263,8 @@ const TramiteDetailDialog = ({
   const [montoTotalCompra, setMontoTotalCompra] = useState("");
   const [monedaCompra, setMonedaCompra] = useState("MXN");
   const [previewFile, setPreviewFile] = useState<ArchivoAdjunto | null>(null);
+  const [showPayConfirm, setShowPayConfirm] = useState(false);
+  const [paymentFile, setPaymentFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
@@ -1059,11 +1061,49 @@ const TramiteDetailDialog = ({
     }
   };
 
+  const sanitizeFileName = (name: string): string => {
+    return name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9._-]/g, '_')
+      .replace(/_+/g, '_');
+  };
+
   const handlePayPedido = async () => {
     if (!tramiteId || !user) return;
     setActionLoading(true);
 
     try {
+      // Upload payment proof file if provided
+      if (paymentFile) {
+        const sanitizedName = sanitizeFileName(paymentFile.name);
+        const fileName = `${user.id}/${tramiteId}/${Date.now()}_comprobante_${sanitizedName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('requisicion_archivos')
+          .upload(fileName, paymentFile);
+
+        if (uploadError) {
+          toast.error("Error al subir comprobante: " + uploadError.message);
+          setActionLoading(false);
+          return;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('requisicion_archivos')
+          .getPublicUrl(fileName);
+
+        // Save file metadata
+        await supabase.from('requisicion_archivos').insert({
+          requisicion_id: tramiteId,
+          uploaded_by: user.id,
+          file_name: paymentFile.name,
+          file_url: urlData.publicUrl,
+          file_type: paymentFile.type,
+          file_size: paymentFile.size,
+        });
+      }
+
       const { error } = await supabase
         .from("requisiciones")
         .update({ 
@@ -1075,6 +1115,8 @@ const TramiteDetailDialog = ({
 
       if (error) throw error;
       toast.success("Pedido marcado como pagado");
+      setPaymentFile(null);
+      setShowPayConfirm(false);
       onUpdated?.();
       onOpenChange(false);
     } catch (error) {
@@ -2379,7 +2421,7 @@ const TramiteDetailDialog = ({
               {canPayPedido() && (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700"
-                  onClick={handlePayPedido}
+                  onClick={() => setShowPayConfirm(true)}
                   disabled={actionLoading}
                 >
                   Marcar como Pagado
@@ -2632,6 +2674,81 @@ const TramiteDetailDialog = ({
               disabled={actionLoading || !rejectAutorizadorJustification.trim()}
             >
               {actionLoading ? "Rechazando..." : "Confirmar Rechazo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Payment Confirmation Dialog with file upload */}
+      <AlertDialog open={showPayConfirm} onOpenChange={(open) => {
+        setShowPayConfirm(open);
+        if (!open) setPaymentFile(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Marcar como pagado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              El trámite <strong>{requisicion?.folio}</strong> será marcado como pagado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4 space-y-3">
+            <Label className="text-sm font-medium">
+              Comprobante de pago <span className="text-xs text-muted-foreground">(opcional)</span>
+            </Label>
+            {!paymentFile ? (
+              <div>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 10 * 1024 * 1024) {
+                        toast.error("El archivo excede el límite de 10MB");
+                        return;
+                      }
+                      setPaymentFile(file);
+                    }
+                    e.target.value = '';
+                  }}
+                  className="hidden"
+                  id="payment-proof-upload"
+                />
+                <Label
+                  htmlFor="payment-proof-upload"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors text-sm"
+                >
+                  <Upload className="h-4 w-4" />
+                  Subir comprobante
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">PDF o imagen (máx. 10MB)</p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-sm truncate">{paymentFile.name}</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPaymentFile(null)}
+                  className="text-destructive hover:text-destructive flex-shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPaymentFile(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              onClick={() => handlePayPedido()}
+              disabled={actionLoading}
+            >
+              {actionLoading ? "Procesando..." : "Confirmar Pago"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
