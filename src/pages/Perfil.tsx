@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Bell, BellRing, Camera, Loader2, Save, Smartphone, User } from "lucide-react";
+import { ArrowLeft, Bell, BellRing, Camera, Loader2, Mail, Save, Smartphone, User } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -464,6 +464,36 @@ const Perfil = () => {
                 onCheckedChange={(checked) => handleToggleNotification("reposiciones", checked)}
                 disabled={prefsLoading || savingPrefs}
               />
+            </div>
+            
+            {/* Email notifications separator */}
+            <div className="border-t border-border pt-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="notify-email" className="text-base flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Notificaciones por Correo
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Recibe un correo electrónico con cada actualización de tus trámites
+                  </p>
+                </div>
+                <Switch
+                  id="notify-email"
+                  checked={preferences.notify_email}
+                  onCheckedChange={async (checked) => {
+                    setSavingPrefs(true);
+                    const success = await updatePreferences({ notify_email: checked });
+                    if (success) {
+                      toast.success(`Notificaciones por correo ${checked ? "activadas" : "desactivadas"}`);
+                    } else {
+                      toast.error("Error al actualizar preferencias");
+                    }
+                    setSavingPrefs(false);
+                  }}
+                  disabled={prefsLoading || savingPrefs}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
