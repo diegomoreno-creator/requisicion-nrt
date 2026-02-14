@@ -17,6 +17,7 @@ const estadoLabels: Record<string, string> = {
 interface NotificationPreferences {
   notify_requisiciones: boolean;
   notify_reposiciones: boolean;
+  notify_email: boolean;
 }
 
 export const useNotificationPreferences = () => {
@@ -24,6 +25,7 @@ export const useNotificationPreferences = () => {
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     notify_requisiciones: true,
     notify_reposiciones: true,
+    notify_email: true,
   });
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +36,7 @@ export const useNotificationPreferences = () => {
       try {
         const { data, error } = await supabase
           .from("notification_preferences")
-          .select("notify_requisiciones, notify_reposiciones")
+          .select("notify_requisiciones, notify_reposiciones, notify_email")
           .eq("user_id", user.id)
           .single();
 
@@ -44,7 +46,7 @@ export const useNotificationPreferences = () => {
             const { data: newData, error: insertError } = await supabase
               .from("notification_preferences")
               .insert({ user_id: user.id })
-              .select("notify_requisiciones, notify_reposiciones")
+              .select("notify_requisiciones, notify_reposiciones, notify_email")
               .single();
 
             if (!insertError && newData) {
