@@ -233,6 +233,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          notify_email: boolean
           notify_reposiciones: boolean
           notify_requisiciones: boolean
           updated_at: string
@@ -241,6 +242,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          notify_email?: boolean
           notify_reposiciones?: boolean
           notify_requisiciones?: boolean
           updated_at?: string
@@ -249,6 +251,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          notify_email?: boolean
           notify_reposiciones?: boolean
           notify_requisiciones?: boolean
           updated_at?: string
