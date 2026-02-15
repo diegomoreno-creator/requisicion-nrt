@@ -130,9 +130,12 @@ const GestionUsuarios = () => {
   const [newUserRoles, setNewUserRoles] = useState<AppRole[]>(["solicitador"]);
   const [newUserEmpresaId, setNewUserEmpresaId] = useState<string | null>(null);
 
-  const { empresas } = useCatalogos();
+  const { empresas, getDepartamentosByEmpresa } = useCatalogos();
   const { user, isSuperadmin, hasPermission, loading: authLoading } = useAuth();
   const canManageUsers = hasPermission('gestionar_usuarios');
+
+  // Filter departamentos by selected empresa in edit dialog
+  const departamentosFiltrados = editEmpresaId ? getDepartamentosByEmpresa(editEmpresaId) : [];
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -893,14 +896,23 @@ const GestionUsuarios = () => {
               <Label htmlFor="editDepartamento" className="text-foreground">
                 Departamento
               </Label>
-              <Input
-                id="editDepartamento"
-                type="text"
-                placeholder="Ej: Compras, Contabilidad, Operaciones..."
-                value={editDepartamento}
-                onChange={(e) => setEditDepartamento(e.target.value)}
-                className="bg-input border-border"
-              />
+              <Select value={editDepartamento || "none"} onValueChange={(v) => setEditDepartamento(v === "none" ? "" : v)}>
+                <SelectTrigger className="bg-input border-border">
+                  <SelectValue placeholder="Sin departamento" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  <SelectItem value="none">Sin departamento</SelectItem>
+                  {departamentosFiltrados.map(d => (
+                    <SelectItem key={d.id} value={d.nombre}>{d.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {editEmpresaId && departamentosFiltrados.length === 0 && (
+                <p className="text-xs text-muted-foreground">No hay departamentos registrados para esta empresa.</p>
+              )}
+              {!editEmpresaId && (
+                <p className="text-xs text-muted-foreground">Selecciona una empresa para ver sus departamentos.</p>
+              )}
             </div>
 
             <div className="space-y-2">
