@@ -33,9 +33,26 @@ const Login = () => {
 
   useEffect(() => {
     let isMounted = true;
+    let isRecoveryFlow = false;
+
+    // Check if URL hash contains recovery type (password reset link)
+    const hash = window.location.hash;
+    if (hash && hash.includes('type=recovery')) {
+      isRecoveryFlow = true;
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // If this is a password recovery event, redirect to reset-password page
+        if (event === 'PASSWORD_RECOVERY' && isMounted) {
+          isRecoveryFlow = true;
+          navigate("/reset-password");
+          return;
+        }
+        
+        // Don't auto-login during recovery flow
+        if (isRecoveryFlow) return;
+
         // Only redirect on SIGNED_IN event, not on SIGNED_OUT or other events
         if (event === 'SIGNED_IN' && session?.user && isMounted) {
           setTimeout(async () => {
@@ -54,21 +71,23 @@ const Login = () => {
       }
     );
 
-    // Check for existing session on mount
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!isMounted) return;
-      
-      if (session?.user) {
-        const role = await checkUserRole(session.user.id);
+    // Check for existing session on mount (skip if recovery flow)
+    if (!isRecoveryFlow) {
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (!isMounted) return;
         
-        if (role === 'inactivo') {
-          await supabase.auth.signOut();
-          return;
+        if (session?.user) {
+          const role = await checkUserRole(session.user.id);
+          
+          if (role === 'inactivo') {
+            await supabase.auth.signOut();
+            return;
+          }
+          
+          navigate("/dashboard");
         }
-        
-        navigate("/dashboard");
-      }
-    });
+      });
+    }
 
     return () => {
       isMounted = false;
