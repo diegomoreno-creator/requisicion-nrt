@@ -73,7 +73,8 @@ Deno.serve(async (req) => {
           email,
           full_name,
           created_at,
-          empresa_id
+          empresa_id,
+          departamento
         `);
 
       if (usersError) {
@@ -208,7 +209,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'updateUser') {
-      const { targetUserId, fullName, email, empresaId } = body;
+      const { targetUserId, fullName, email, empresaId, departamento } = body;
       
       if (!targetUserId) {
         return new Response(
@@ -221,6 +222,7 @@ Deno.serve(async (req) => {
       const profileUpdate: Record<string, unknown> = {};
       if (fullName !== undefined) profileUpdate.full_name = fullName;
       if (empresaId !== undefined) profileUpdate.empresa_id = empresaId || null;
+      if (departamento !== undefined) profileUpdate.departamento = departamento;
       
       if (Object.keys(profileUpdate).length > 0) {
         await supabaseAdmin

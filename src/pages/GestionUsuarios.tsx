@@ -56,6 +56,7 @@ interface UserWithRoles {
   permissions: AppPermission[];
   empresa_id: string | null;
   empresa_nombre: string | null;
+  departamento: string | null;
 }
 
 const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo', 'contabilidad1', 'contabilidad_gastos', 'contabilidad_ingresos'];
@@ -109,6 +110,7 @@ const GestionUsuarios = () => {
   const [editRoles, setEditRoles] = useState<AppRole[]>([]);
   const [editEmpresaId, setEditEmpresaId] = useState<string | null>(null);
   const [editPermissions, setEditPermissions] = useState<AppPermission[]>([]);
+  const [editDepartamento, setEditDepartamento] = useState("");
   
   // Password change state
   const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
@@ -242,6 +244,7 @@ const GestionUsuarios = () => {
     setEditRoles([...u.roles]);
     setEditEmpresaId(u.empresa_id);
     setEditPermissions([...(u.permissions || [])]);
+    setEditDepartamento(u.departamento || "");
     setIsEditDialogOpen(true);
   };
 
@@ -262,7 +265,8 @@ const GestionUsuarios = () => {
           targetUserId: editingUser.user_id,
           fullName: editFullName,
           email: editEmail !== editingUser.email ? editEmail : undefined,
-          empresaId: editEmpresaId
+          empresaId: editEmpresaId,
+          departamento: editDepartamento || null
         }
       });
 
@@ -702,6 +706,7 @@ const GestionUsuarios = () => {
                  <TableRow className="border-border hover:bg-transparent">
                      <TableHead className="text-muted-foreground">Email</TableHead>
                      <TableHead className="text-muted-foreground">Nombre</TableHead>
+                     <TableHead className="text-muted-foreground">Departamento</TableHead>
                      <TableHead className="text-muted-foreground">Empresa</TableHead>
                      <TableHead className="text-muted-foreground">Roles</TableHead>
                      <TableHead className="text-muted-foreground">Fecha Registro</TableHead>
@@ -711,7 +716,7 @@ const GestionUsuarios = () => {
                 <TableBody>
                   {paginatedUsers.length === 0 ? (
                      <TableRow>
-                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                       <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                          {searchQuery ? "No se encontraron usuarios" : "No hay usuarios registrados"}
                        </TableCell>
                      </TableRow>
@@ -721,8 +726,11 @@ const GestionUsuarios = () => {
                         <TableCell className="text-foreground font-medium">
                           {u.email}
                         </TableCell>
-                        <TableCell className="text-foreground">
+                         <TableCell className="text-foreground">
                            {u.full_name || "-"}
+                         </TableCell>
+                         <TableCell className="text-foreground text-sm">
+                           {u.departamento || <span className="text-muted-foreground">—</span>}
                          </TableCell>
                          <TableCell className="text-foreground text-sm">
                            {u.empresa_nombre || <span className="text-muted-foreground">—</span>}
@@ -877,6 +885,20 @@ const GestionUsuarios = () => {
                 type="text"
                 value={editFullName}
                 onChange={(e) => setEditFullName(e.target.value)}
+                className="bg-input border-border"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="editDepartamento" className="text-foreground">
+                Departamento
+              </Label>
+              <Input
+                id="editDepartamento"
+                type="text"
+                placeholder="Ej: Compras, Contabilidad, Operaciones..."
+                value={editDepartamento}
+                onChange={(e) => setEditDepartamento(e.target.value)}
                 className="bg-input border-border"
               />
             </div>
