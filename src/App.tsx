@@ -109,7 +109,7 @@ const App = () => (
             <Route 
               path="/gestion-usuarios" 
               element={
-                <ProtectedRoute requiresSuperadmin>
+                <ProtectedRoute requiresPermission="gestionar_usuarios">
                   <GestionUsuarios />
                 </ProtectedRoute>
               } 
@@ -117,7 +117,7 @@ const App = () => (
             <Route 
               path="/gestion-catalogos" 
               element={
-                <ProtectedRoute requiresSuperadmin>
+                <ProtectedRoute requiresPermission="gestionar_catalogos">
                   <GestionCatalogos />
                 </ProtectedRoute>
               } 
@@ -125,7 +125,7 @@ const App = () => (
             <Route 
               path="/bulk-create-users" 
               element={
-                <ProtectedRoute requiresSuperadmin>
+                <ProtectedRoute requiresPermission="gestionar_usuarios">
                   <BulkCreateUsers />
                 </ProtectedRoute>
               } 
@@ -133,7 +133,7 @@ const App = () => (
             <Route 
               path="/notificaciones" 
               element={
-                <ProtectedRoute requiresSuperadmin>
+                <ProtectedRoute requiresPermission="gestionar_notificaciones">
                   <Notificaciones />
                 </ProtectedRoute>
               } 
