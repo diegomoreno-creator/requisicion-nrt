@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { BarChart3, Bell, Users, Settings } from "lucide-react";
+import { useAuth, AppPermission } from "@/hooks/useAuth";
 import {
   Sidebar,
   SidebarContent,
@@ -13,11 +14,18 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const adminItems = [
-  { title: "Estadísticas", url: "/estadisticas", icon: BarChart3 },
-  { title: "Notificaciones", url: "/notificaciones", icon: Bell },
-  { title: "Gestión de Usuarios", url: "/gestion-usuarios", icon: Users },
-  { title: "Gestión de Catálogos", url: "/gestion-catalogos", icon: Settings },
+interface AdminItem {
+  title: string;
+  url: string;
+  icon: typeof BarChart3;
+  permission?: AppPermission;
+}
+
+const adminItems: AdminItem[] = [
+  { title: "Estadísticas", url: "/estadisticas", icon: BarChart3, permission: "ver_estadisticas" },
+  { title: "Notificaciones", url: "/notificaciones", icon: Bell, permission: "gestionar_notificaciones" },
+  { title: "Gestión de Usuarios", url: "/gestion-usuarios", icon: Users, permission: "gestionar_usuarios" },
+  { title: "Gestión de Catálogos", url: "/gestion-catalogos", icon: Settings, permission: "gestionar_catalogos" },
 ];
 
 export function SuperadminSidebar() {
@@ -25,9 +33,16 @@ export function SuperadminSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const currentPath = location.pathname;
 
   const isActive = (path: string) => currentPath === path;
+
+  const visibleItems = adminItems.filter(item => 
+    !item.permission || hasPermission(item.permission)
+  );
+
+  if (visibleItems.length === 0) return null;
 
   return (
     <Sidebar
@@ -53,7 +68,7 @@ export function SuperadminSidebar() {
 
           <SidebarGroupContent>
             <SidebarMenu>
-              {adminItems.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     onClick={() => navigate(item.url)}

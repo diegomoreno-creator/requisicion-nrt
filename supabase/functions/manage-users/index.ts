@@ -90,12 +90,29 @@ Deno.serve(async (req) => {
         throw rolesError;
       }
 
+      // Fetch permissions
+      const { data: permissions, error: permsError } = await supabaseAdmin
+        .from('user_permissions')
+        .select('user_id, permission');
+
+      if (permsError) {
+        console.error('Permissions error:', permsError);
+      }
+
       // Group roles by user_id
       const rolesMap = new Map<string, string[]>();
       roles?.forEach(r => {
         const existing = rolesMap.get(r.user_id) || [];
         existing.push(r.role);
         rolesMap.set(r.user_id, existing);
+      });
+
+      // Group permissions by user_id
+      const permsMap = new Map<string, string[]>();
+      permissions?.forEach(p => {
+        const existing = permsMap.get(p.user_id) || [];
+        existing.push(p.permission);
+        permsMap.set(p.user_id, existing);
       });
       
       // Get empresas for names
@@ -109,6 +126,7 @@ Deno.serve(async (req) => {
       const usersWithRoles = users?.map(u => ({
         ...u,
         roles: rolesMap.get(u.user_id) || ['inactivo'],
+        permissions: permsMap.get(u.user_id) || [],
         empresa_nombre: u.empresa_id ? empresasMap.get(u.empresa_id) || null : null
       })) || [];
 
@@ -458,6 +476,45 @@ Deno.serve(async (req) => {
           message: `Creados ${successCount} usuarios. ${failCount > 0 ? `${failCount} fallaron.` : ''}`,
           results
         }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'setPermissions') {
+      const { targetUserId, permissions } = body;
+      
+      if (!targetUserId || !Array.isArray(permissions)) {
+        return new Response(
+          JSON.stringify({ error: 'ID de usuario y permisos son requeridos' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Delete all existing permissions for this user
+      await supabaseAdmin
+        .from('user_permissions')
+        .delete()
+        .eq('user_id', targetUserId);
+
+      // Insert new permissions
+      if (permissions.length > 0) {
+        const permRows = permissions.map((p: string) => ({
+          user_id: targetUserId,
+          permission: p,
+        }));
+        
+        const { error: insertError } = await supabaseAdmin
+          .from('user_permissions')
+          .insert(permRows);
+        
+        if (insertError) {
+          console.error('Insert permissions error:', insertError);
+          throw insertError;
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Permisos actualizados correctamente' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

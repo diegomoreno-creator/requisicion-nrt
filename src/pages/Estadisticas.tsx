@@ -7,18 +7,17 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import AdminStatistics from "@/components/AdminStatistics";
 
 const Estadisticas = () => {
-  const { user, loading, isSuperadmin, isAdmin, canAccessApp } = useAuth();
+  const { user, loading, hasPermission, canAccessApp } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!loading && (!user || !canAccessApp)) {
       navigate("/");
     }
-    // Only superadmin and admin can access statistics
-    if (!loading && user && !isSuperadmin && !isAdmin) {
+    if (!loading && user && !hasPermission('ver_estadisticas')) {
       navigate("/dashboard");
     }
-  }, [loading, user, canAccessApp, isSuperadmin, isAdmin, navigate]);
+  }, [loading, user, canAccessApp, navigate]);
 
   if (loading) {
     return (
@@ -28,7 +27,7 @@ const Estadisticas = () => {
     );
   }
 
-  if (!user || !canAccessApp || (!isSuperadmin && !isAdmin)) return null;
+  if (!user || !canAccessApp || !hasPermission('ver_estadisticas')) return null;
 
   return (
     <div className="min-h-screen bg-background">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth, AppRole } from "@/hooks/useAuth";
+import { useAuth, AppRole, AppPermission, ALL_PERMISSIONS, PERMISSION_LABELS, PERMISSION_DESCRIPTIONS, ADMIN_BASE_PERMISSIONS } from "@/hooks/useAuth";
 import { useCatalogos } from "@/hooks/useCatalogos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Shield, Loader2, UserPlus, Trash2, Pencil, Key, Search, Building2 } from "lucide-react";
+import { ArrowLeft, Users, Shield, Loader2, UserPlus, Trash2, Pencil, Key, Search, Building2, ShieldCheck } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -53,6 +53,7 @@ interface UserWithRoles {
   full_name: string | null;
   created_at: string;
   roles: AppRole[];
+  permissions: AppPermission[];
   empresa_id: string | null;
   empresa_nombre: string | null;
 }
@@ -107,6 +108,7 @@ const GestionUsuarios = () => {
   const [editEmail, setEditEmail] = useState("");
   const [editRoles, setEditRoles] = useState<AppRole[]>([]);
   const [editEmpresaId, setEditEmpresaId] = useState<string | null>(null);
+  const [editPermissions, setEditPermissions] = useState<AppPermission[]>([]);
   
   // Password change state
   const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
@@ -127,21 +129,22 @@ const GestionUsuarios = () => {
   const [newUserEmpresaId, setNewUserEmpresaId] = useState<string | null>(null);
 
   const { empresas } = useCatalogos();
-  const { user, isSuperadmin, loading: authLoading } = useAuth();
+  const { user, isSuperadmin, hasPermission, loading: authLoading } = useAuth();
+  const canManageUsers = hasPermission('gestionar_usuarios');
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authLoading && !isSuperadmin) {
+    if (!authLoading && !canManageUsers) {
       toast.error("Acceso denegado");
       navigate("/dashboard");
     }
-  }, [authLoading, isSuperadmin, navigate]);
+  }, [authLoading, canManageUsers, navigate]);
 
   useEffect(() => {
-    if (isSuperadmin) {
+    if (canManageUsers) {
       fetchUsers();
     }
-  }, [isSuperadmin]);
+  }, [canManageUsers]);
 
   const fetchUsers = async () => {
     try {
@@ -238,6 +241,7 @@ const GestionUsuarios = () => {
     setEditEmail(u.email);
     setEditRoles([...u.roles]);
     setEditEmpresaId(u.empresa_id);
+    setEditPermissions([...(u.permissions || [])]);
     setIsEditDialogOpen(true);
   };
 
@@ -262,13 +266,8 @@ const GestionUsuarios = () => {
         }
       });
 
-      if (updateResponse.error) {
-        throw new Error(updateResponse.error.message);
-      }
-
-      if (updateResponse.data?.error) {
-        throw new Error(updateResponse.data.error);
-      }
+      if (updateResponse.error) throw new Error(updateResponse.error.message);
+      if (updateResponse.data?.error) throw new Error(updateResponse.data.error);
 
       // Update roles
       const rolesResponse = await supabase.functions.invoke('manage-users', {
@@ -279,13 +278,20 @@ const GestionUsuarios = () => {
         }
       });
 
-      if (rolesResponse.error) {
-        throw new Error(rolesResponse.error.message);
-      }
+      if (rolesResponse.error) throw new Error(rolesResponse.error.message);
+      if (rolesResponse.data?.error) throw new Error(rolesResponse.data.error);
 
-      if (rolesResponse.data?.error) {
-        throw new Error(rolesResponse.data.error);
-      }
+      // Update permissions
+      const permsResponse = await supabase.functions.invoke('manage-users', {
+        body: { 
+          action: 'setPermissions',
+          targetUserId: editingUser.user_id,
+          permissions: editPermissions
+        }
+      });
+
+      if (permsResponse.error) throw new Error(permsResponse.error.message);
+      if (permsResponse.data?.error) throw new Error(permsResponse.data.error);
 
       toast.success("Usuario actualizado correctamente");
       setIsEditDialogOpen(false);
@@ -386,6 +392,14 @@ const GestionUsuarios = () => {
     }
   };
 
+  const togglePermission = (perm: AppPermission) => {
+    setEditPermissions(prev => 
+      prev.includes(perm) 
+        ? prev.filter(p => p !== perm) 
+        : [...prev, perm]
+    );
+  };
+
   // Filter users based on search query and role filter
   const filteredUsers = users.filter(u => {
     const query = searchQuery.toLowerCase();
@@ -428,7 +442,7 @@ const GestionUsuarios = () => {
     );
   }
 
-  if (!isSuperadmin) {
+  if (!canManageUsers) {
     return null;
   }
 
@@ -949,6 +963,54 @@ const GestionUsuarios = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Permisos */}
+            <div className="space-y-2">
+              <Label className="text-foreground flex items-center gap-1">
+                <ShieldCheck className="w-4 h-4" />
+                Permisos Especiales
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {editRoles.includes('superadmin') 
+                  ? 'Los Super Admin tienen todos los permisos automáticamente.'
+                  : editRoles.includes('admin')
+                    ? 'Los Administradores tienen permisos base (Estadísticas, Ver Trámites). Puedes agregar extras.'
+                    : 'Asigna permisos adicionales a este usuario.'}
+              </p>
+              <div className="p-3 rounded-md border border-border space-y-2">
+                {ALL_PERMISSIONS.map(perm => {
+                  const isAdminBase = editRoles.includes('admin') && ADMIN_BASE_PERMISSIONS.includes(perm);
+                  const isSuperadminRole = editRoles.includes('superadmin');
+                  const isChecked = isSuperadminRole || isAdminBase || editPermissions.includes(perm);
+                  const isDisabled = isSuperadminRole || isAdminBase;
+
+                  return (
+                    <div key={perm} className="flex items-start space-x-2">
+                      <Checkbox
+                        id={`perm-${perm}`}
+                        checked={isChecked}
+                        disabled={isDisabled}
+                        onCheckedChange={() => togglePermission(perm)}
+                      />
+                      <div className="grid gap-0.5 leading-none">
+                        <label
+                          htmlFor={`perm-${perm}`}
+                          className={`text-sm cursor-pointer font-medium ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}
+                        >
+                          {PERMISSION_LABELS[perm]}
+                          {isAdminBase && !isSuperadminRole && (
+                            <span className="text-xs text-primary ml-1">(base)</span>
+                          )}
+                        </label>
+                        <p className="text-xs text-muted-foreground">
+                          {PERMISSION_DESCRIPTIONS[perm]}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

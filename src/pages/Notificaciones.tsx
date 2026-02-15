@@ -11,14 +11,14 @@ import { RoleNotificationPanel } from "@/components/RoleNotificationPanel";
 import { ScheduledNotificationsPanel } from "@/components/ScheduledNotificationsPanel";
 
 const Notificaciones = () => {
-  const { user, isSuperadmin, loading } = useAuth();
+  const { user, hasPermission, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && (!user || !isSuperadmin)) {
+    if (!loading && (!user || !hasPermission('gestionar_notificaciones'))) {
       navigate("/dashboard");
     }
-  }, [user, isSuperadmin, loading, navigate]);
+  }, [user, loading, navigate]);
 
   if (loading) {
     return (
@@ -28,7 +28,7 @@ const Notificaciones = () => {
     );
   }
 
-  if (!user || !isSuperadmin) {
+  if (!user || !hasPermission('gestionar_notificaciones')) {
     return null;
   }
 

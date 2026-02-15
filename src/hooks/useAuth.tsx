@@ -5,10 +5,56 @@ import { User, Session } from "@supabase/supabase-js";
 
 export type AppRole = 'superadmin' | 'admin' | 'comprador' | 'solicitador' | 'autorizador' | 'presupuestos' | 'tesoreria' | 'inactivo' | 'contabilidad1' | 'contabilidad_gastos' | 'contabilidad_ingresos';
 
+export type AppPermission = 
+  | 'ver_estadisticas'
+  | 'gestionar_usuarios'
+  | 'gestionar_catalogos'
+  | 'gestionar_notificaciones'
+  | 'ver_todos_tramites'
+  | 'editar_cualquier_tramite'
+  | 'eliminar_tramites';
+
+export const PERMISSION_LABELS: Record<AppPermission, string> = {
+  ver_estadisticas: 'Ver Estadísticas',
+  gestionar_usuarios: 'Gestión de Usuarios',
+  gestionar_catalogos: 'Gestión de Catálogos',
+  gestionar_notificaciones: 'Gestión de Notificaciones',
+  ver_todos_tramites: 'Ver Todos los Trámites',
+  editar_cualquier_tramite: 'Editar Cualquier Trámite',
+  eliminar_tramites: 'Eliminar Trámites',
+};
+
+export const PERMISSION_DESCRIPTIONS: Record<AppPermission, string> = {
+  ver_estadisticas: 'Acceso al panel de estadísticas y métricas',
+  gestionar_usuarios: 'Crear, editar y eliminar usuarios del sistema',
+  gestionar_catalogos: 'Administrar catálogos de empresas, sucursales, etc.',
+  gestionar_notificaciones: 'Enviar y programar notificaciones',
+  ver_todos_tramites: 'Visualizar trámites de todos los usuarios',
+  editar_cualquier_tramite: 'Modificar trámites de cualquier usuario',
+  eliminar_tramites: 'Eliminar trámites permanentemente',
+};
+
+// Admin base permissions (always active for admin role)
+export const ADMIN_BASE_PERMISSIONS: AppPermission[] = [
+  'ver_estadisticas',
+  'ver_todos_tramites',
+];
+
+export const ALL_PERMISSIONS: AppPermission[] = [
+  'ver_estadisticas',
+  'gestionar_usuarios',
+  'gestionar_catalogos',
+  'gestionar_notificaciones',
+  'ver_todos_tramites',
+  'editar_cualquier_tramite',
+  'eliminar_tramites',
+];
+
 interface AuthState {
   user: User | null;
   session: Session | null;
   roles: AppRole[];
+  permissions: AppPermission[];
   loading: boolean;
 }
 
@@ -17,6 +63,7 @@ export const useAuth = () => {
     user: null,
     session: null,
     roles: [],
+    permissions: [],
     loading: true,
   });
   const navigate = useNavigate();
@@ -40,6 +87,25 @@ export const useAuth = () => {
     }
   };
 
+  const fetchUserPermissions = async (userId: string): Promise<AppPermission[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('user_permissions')
+        .select('permission')
+        .eq('user_id', userId);
+      
+      if (error) {
+        console.error('Error fetching permissions:', error);
+        return [];
+      }
+      
+      return (data?.map(p => p.permission as AppPermission)) || [];
+    } catch (err) {
+      console.error('Error in fetchUserPermissions:', err);
+      return [];
+    }
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -51,10 +117,14 @@ export const useAuth = () => {
 
         if (session?.user) {
           setTimeout(async () => {
-            const roles = await fetchUserRoles(session.user.id);
+            const [roles, permissions] = await Promise.all([
+              fetchUserRoles(session.user.id),
+              fetchUserPermissions(session.user.id),
+            ]);
             setAuthState(prev => ({
               ...prev,
               roles,
+              permissions,
               loading: false,
             }));
           }, 0);
@@ -62,6 +132,7 @@ export const useAuth = () => {
           setAuthState(prev => ({
             ...prev,
             roles: [],
+            permissions: [],
             loading: false,
           }));
         }
@@ -76,10 +147,14 @@ export const useAuth = () => {
       }));
 
       if (session?.user) {
-        const roles = await fetchUserRoles(session.user.id);
+        const [roles, permissions] = await Promise.all([
+          fetchUserRoles(session.user.id),
+          fetchUserPermissions(session.user.id),
+        ]);
         setAuthState(prev => ({
           ...prev,
           roles,
+          permissions,
           loading: false,
         }));
       } else {
@@ -111,6 +186,13 @@ export const useAuth = () => {
   const isInactivo = authState.roles.length === 0 || (authState.roles.length === 1 && hasRole('inactivo'));
   const canAccessApp = authState.roles.length > 0 && !isInactivo;
 
+  // Permission check: superadmin has all, admin has base + extras, others check DB
+  const hasPermission = (permission: AppPermission): boolean => {
+    if (isSuperadmin) return true;
+    if (hasRole('admin') && ADMIN_BASE_PERMISSIONS.includes(permission)) return true;
+    return authState.permissions.includes(permission);
+  };
+
   // Legacy compatibility - return first role
   const role = authState.roles.length > 0 ? authState.roles[0] : null;
 
@@ -119,6 +201,7 @@ export const useAuth = () => {
     role, // Legacy single role
     signOut,
     hasRole,
+    hasPermission,
     isSuperadmin,
     isAdmin,
     isComprador,

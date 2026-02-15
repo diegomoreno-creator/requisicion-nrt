@@ -865,6 +865,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -921,6 +942,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_user_role_text: { Args: { _user_id: string }; Returns: string }
+      has_permission: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
