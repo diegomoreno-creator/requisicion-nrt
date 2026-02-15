@@ -14,6 +14,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const navigate = useNavigate();
 
   const checkUserRole = async (userId: string): Promise<string | null> => {
@@ -80,7 +81,15 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      if (isSignUp) {
+      if (isForgotPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/`,
+        });
+        if (error) throw error;
+        toast.success("Se envió un enlace de recuperación a tu correo electrónico.");
+        setIsForgotPassword(false);
+        setEmail("");
+      } else if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -136,10 +145,12 @@ const Login = () => {
               <span className="text-primary">NRT</span> <span className="text-foreground text-[0.75em]">MÉXICO</span>
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-2">
-              {isSignUp ? "Crear Cuenta" : "Bienvenido de Vuelta"}
+              {isForgotPassword ? "Recuperar Contraseña" : isSignUp ? "Crear Cuenta" : "Bienvenido de Vuelta"}
             </h1>
             <p className="text-muted-foreground text-sm text-center">
-              {isSignUp
+              {isForgotPassword
+                ? "Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña"
+                : isSignUp
                 ? "Ingresa tus datos para registrarte (tu cuenta quedará inactiva hasta aprobación)"
                 : "Ingresa tus credenciales para acceder a tu panel"}
             </p>
@@ -161,31 +172,45 @@ const Login = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground text-sm font-medium">
-                Contraseña
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-input border-border text-foreground placeholder:text-muted-foreground pr-10"
-                  required
-                  minLength={6}
-                />
+            {!isForgotPassword && (
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-foreground text-sm font-medium">
+                  Contraseña
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-input border-border text-foreground placeholder:text-muted-foreground pr-10"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!isForgotPassword && !isSignUp && (
+              <div className="text-right">
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  tabIndex={-1}
+                  onClick={() => { setIsForgotPassword(true); setPassword(""); }}
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  ¿Olvidaste tu contraseña?
                 </button>
               </div>
-            </div>
+            )}
 
             <Button
               type="submit"
@@ -194,6 +219,8 @@ const Login = () => {
             >
               {isLoading
                 ? "Cargando..."
+                : isForgotPassword
+                ? "Enviar enlace de recuperación"
                 : isSignUp
                 ? "Registrarse"
                 : "Iniciar Sesión"}
@@ -201,15 +228,25 @@ const Login = () => {
           </form>
 
           <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              {isSignUp
-                ? "¿Ya tienes cuenta? Inicia sesión"
-                : "¿No tienes cuenta? Regístrate"}
-            </button>
+            {isForgotPassword ? (
+              <button
+                type="button"
+                onClick={() => setIsForgotPassword(false)}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                Volver a iniciar sesión
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                {isSignUp
+                  ? "¿Ya tienes cuenta? Inicia sesión"
+                  : "¿No tienes cuenta? Regístrate"}
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>
