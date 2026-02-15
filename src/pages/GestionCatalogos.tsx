@@ -75,7 +75,7 @@ const colorOptions = [
 
 const GestionCatalogos = () => {
   const navigate = useNavigate();
-  const { isSuperadmin, loading: authLoading } = useAuth();
+  const { hasPermission, loading: authLoading } = useAuth();
   
   const [activeTab, setActiveTab] = useState("tipos");
   const [loading, setLoading] = useState(true);
@@ -96,17 +96,17 @@ const GestionCatalogos = () => {
   const [formEmpresaId, setFormEmpresaId] = useState<string>("");
 
   useEffect(() => {
-    if (!authLoading && !isSuperadmin) {
+    if (!authLoading && !hasPermission('gestionar_catalogos')) {
       toast.error("Acceso denegado");
       navigate("/dashboard");
     }
-  }, [authLoading, isSuperadmin, navigate]);
+  }, [authLoading, navigate]);
 
   useEffect(() => {
-    if (isSuperadmin) {
+    if (!authLoading && hasPermission('gestionar_catalogos')) {
       fetchAllCatalogs();
     }
-  }, [isSuperadmin]);
+  }, [authLoading]);
 
   const fetchAllCatalogs = async () => {
     setLoading(true);
@@ -283,7 +283,7 @@ const GestionCatalogos = () => {
     );
   }
 
-  if (!isSuperadmin) return null;
+  if (!hasPermission('gestionar_catalogos')) return null;
 
   const renderTable = (data: CatalogoItem[], showColor: boolean = false, showEmpresa: boolean = false) => (
     <div className="rounded-md border border-border">

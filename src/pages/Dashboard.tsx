@@ -62,7 +62,7 @@ interface ProfileData {
 }
 
 const Dashboard = () => {
-  const { user, role, loading, signOut, isSuperadmin, isSolicitador, isAdmin, canAccessApp, hasRole } = useAuth();
+  const { user, role, loading, signOut, isSuperadmin, isSolicitador, isAdmin, canAccessApp, hasRole, hasPermission } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -208,7 +208,7 @@ const Dashboard = () => {
       <header className="border-b border-border px-6 py-4 font-barlow">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Mobile sidebar trigger for superadmin */}
+            {/* Mobile sidebar trigger for admin users */}
             {showMobileTrigger && isMobile && (
               <SidebarTrigger className="mr-2">
                 <Menu className="h-5 w-5" />
@@ -402,8 +402,13 @@ const Dashboard = () => {
     </div>
   );
 
-  // Wrap with sidebar for superadmin only
-  if (isSuperadmin) {
+  // Show sidebar for users with any admin permission
+  const hasAnyAdminPermission = hasPermission('ver_estadisticas') || 
+    hasPermission('gestionar_usuarios') || 
+    hasPermission('gestionar_catalogos') || 
+    hasPermission('gestionar_notificaciones');
+
+  if (hasAnyAdminPermission) {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
