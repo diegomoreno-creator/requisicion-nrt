@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, AppRole } from "@/hooks/useAuth";
+import { useCatalogos } from "@/hooks/useCatalogos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,7 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Shield, Loader2, UserPlus, Trash2, Pencil, Key, Search } from "lucide-react";
+import { ArrowLeft, Users, Shield, Loader2, UserPlus, Trash2, Pencil, Key, Search, Building2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -52,6 +53,8 @@ interface UserWithRoles {
   full_name: string | null;
   created_at: string;
   roles: AppRole[];
+  empresa_id: string | null;
+  empresa_nombre: string | null;
 }
 
 const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo', 'contabilidad1', 'contabilidad_gastos', 'contabilidad_ingresos'];
@@ -103,6 +106,7 @@ const GestionUsuarios = () => {
   const [editFullName, setEditFullName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editRoles, setEditRoles] = useState<AppRole[]>([]);
+  const [editEmpresaId, setEditEmpresaId] = useState<string | null>(null);
   
   // Password change state
   const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
@@ -120,7 +124,9 @@ const GestionUsuarios = () => {
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserFullName, setNewUserFullName] = useState("");
   const [newUserRoles, setNewUserRoles] = useState<AppRole[]>(["solicitador"]);
+  const [newUserEmpresaId, setNewUserEmpresaId] = useState<string | null>(null);
 
+  const { empresas } = useCatalogos();
   const { user, isSuperadmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -223,6 +229,7 @@ const GestionUsuarios = () => {
     setNewUserPassword("");
     setNewUserFullName("");
     setNewUserRoles(["solicitador"]);
+    setNewUserEmpresaId(null);
   };
 
   const handleEditUser = (u: UserWithRoles) => {
@@ -230,6 +237,7 @@ const GestionUsuarios = () => {
     setEditFullName(u.full_name || "");
     setEditEmail(u.email);
     setEditRoles([...u.roles]);
+    setEditEmpresaId(u.empresa_id);
     setIsEditDialogOpen(true);
   };
 
@@ -249,7 +257,8 @@ const GestionUsuarios = () => {
           action: 'updateUser',
           targetUserId: editingUser.user_id,
           fullName: editFullName,
-          email: editEmail !== editingUser.email ? editEmail : undefined
+          email: editEmail !== editingUser.email ? editEmail : undefined,
+          empresaId: editEmpresaId
         }
       });
 
@@ -571,9 +580,28 @@ const GestionUsuarios = () => {
                             </label>
                           </div>
                         ))}
-                      </div>
                     </div>
                   </div>
+
+                  {/* Empresa */}
+                  <div className="space-y-2">
+                    <Label className="text-foreground flex items-center gap-1">
+                      <Building2 className="w-4 h-4" />
+                      Empresa
+                    </Label>
+                    <Select value={newUserEmpresaId || "none"} onValueChange={(v) => setNewUserEmpresaId(v === "none" ? null : v)}>
+                      <SelectTrigger className="bg-input border-border">
+                        <SelectValue placeholder="Sin empresa asignada" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border-border">
+                        <SelectItem value="none">Sin empresa asignada</SelectItem>
+                        {empresas.map(e => (
+                          <SelectItem key={e.id} value={e.id}>{e.nombre}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 </div>
 
                 <DialogFooter>
@@ -657,31 +685,35 @@ const GestionUsuarios = () => {
             <div className="rounded-md border border-border overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-muted-foreground">Email</TableHead>
-                    <TableHead className="text-muted-foreground">Nombre</TableHead>
-                    <TableHead className="text-muted-foreground">Roles</TableHead>
-                    <TableHead className="text-muted-foreground">Fecha Registro</TableHead>
-                    <TableHead className="text-muted-foreground text-right">Acciones</TableHead>
-                  </TableRow>
+                 <TableRow className="border-border hover:bg-transparent">
+                     <TableHead className="text-muted-foreground">Email</TableHead>
+                     <TableHead className="text-muted-foreground">Nombre</TableHead>
+                     <TableHead className="text-muted-foreground">Empresa</TableHead>
+                     <TableHead className="text-muted-foreground">Roles</TableHead>
+                     <TableHead className="text-muted-foreground">Fecha Registro</TableHead>
+                     <TableHead className="text-muted-foreground text-right">Acciones</TableHead>
+                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedUsers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        {searchQuery ? "No se encontraron usuarios" : "No hay usuarios registrados"}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
+                     <TableRow>
+                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                         {searchQuery ? "No se encontraron usuarios" : "No hay usuarios registrados"}
+                       </TableCell>
+                     </TableRow>
+                   ) : (
                     paginatedUsers.map((u) => (
                       <TableRow key={u.user_id} className="border-border">
                         <TableCell className="text-foreground font-medium">
                           {u.email}
                         </TableCell>
                         <TableCell className="text-foreground">
-                          {u.full_name || "-"}
-                        </TableCell>
-                        <TableCell>
+                           {u.full_name || "-"}
+                         </TableCell>
+                         <TableCell className="text-foreground text-sm">
+                           {u.empresa_nombre || <span className="text-muted-foreground">—</span>}
+                         </TableCell>
+                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {u.roles.map(role => (
                               <Badge key={role} className={roleColors[role]}>
@@ -898,6 +930,25 @@ const GestionUsuarios = () => {
                   ))}
                 </div>
               </div>
+            </div>
+
+            {/* Empresa */}
+            <div className="space-y-2">
+              <Label className="text-foreground flex items-center gap-1">
+                <Building2 className="w-4 h-4" />
+                Empresa
+              </Label>
+              <Select value={editEmpresaId || "none"} onValueChange={(v) => setEditEmpresaId(v === "none" ? null : v)}>
+                <SelectTrigger className="bg-input border-border">
+                  <SelectValue placeholder="Sin empresa asignada" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  <SelectItem value="none">Sin empresa asignada</SelectItem>
+                  {empresas.map(e => (
+                    <SelectItem key={e.id} value={e.id}>{e.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

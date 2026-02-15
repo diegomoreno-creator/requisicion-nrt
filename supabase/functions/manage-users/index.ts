@@ -72,7 +72,8 @@ Deno.serve(async (req) => {
           user_id,
           email,
           full_name,
-          created_at
+          created_at,
+          empresa_id
         `);
 
       if (usersError) {
@@ -97,9 +98,18 @@ Deno.serve(async (req) => {
         rolesMap.set(r.user_id, existing);
       });
       
+      // Get empresas for names
+      const { data: empresas } = await supabaseAdmin
+        .from('catalogo_empresas')
+        .select('id, nombre');
+      
+      const empresasMap = new Map<string, string>();
+      empresas?.forEach(e => empresasMap.set(e.id, e.nombre));
+
       const usersWithRoles = users?.map(u => ({
         ...u,
-        roles: rolesMap.get(u.user_id) || ['inactivo']
+        roles: rolesMap.get(u.user_id) || ['inactivo'],
+        empresa_nombre: u.empresa_id ? empresasMap.get(u.empresa_id) || null : null
       })) || [];
 
       return new Response(
@@ -180,7 +190,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'updateUser') {
-      const { targetUserId, fullName, email } = body;
+      const { targetUserId, fullName, email, empresaId } = body;
       
       if (!targetUserId) {
         return new Response(
@@ -190,10 +200,14 @@ Deno.serve(async (req) => {
       }
 
       // Update profile
-      if (fullName !== undefined) {
+      const profileUpdate: Record<string, unknown> = {};
+      if (fullName !== undefined) profileUpdate.full_name = fullName;
+      if (empresaId !== undefined) profileUpdate.empresa_id = empresaId || null;
+      
+      if (Object.keys(profileUpdate).length > 0) {
         await supabaseAdmin
           .from('profiles')
-          .update({ full_name: fullName })
+          .update(profileUpdate)
           .eq('user_id', targetUserId);
       }
 
