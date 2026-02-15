@@ -264,6 +264,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string | null
+          empresa_id: string | null
           full_name: string | null
           id: string
           updated_at: string
@@ -273,6 +274,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          empresa_id?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string
@@ -282,12 +284,21 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          empresa_id?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo_empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
