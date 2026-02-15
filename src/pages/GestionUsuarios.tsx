@@ -965,7 +965,8 @@ const GestionUsuarios = () => {
               </Select>
             </div>
 
-            {/* Permisos */}
+            {/* Permisos - solo visible cuando es admin y tiene empresa */}
+            {(editRoles.includes('admin') || editRoles.includes('superadmin')) && editEmpresaId && (
             <div className="space-y-2">
               <Label className="text-foreground flex items-center gap-1">
                 <ShieldCheck className="w-4 h-4" />
@@ -974,9 +975,7 @@ const GestionUsuarios = () => {
               <p className="text-xs text-muted-foreground">
                 {editRoles.includes('superadmin') 
                   ? 'Los Super Admin tienen todos los permisos automáticamente.'
-                  : editRoles.includes('admin')
-                    ? 'Los Administradores tienen permisos base (Estadísticas, Ver Trámites). Puedes agregar extras.'
-                    : 'Asigna permisos adicionales a este usuario.'}
+                  : 'Los Administradores tienen permisos base (Estadísticas, Ver Trámites). Puedes agregar extras.'}
               </p>
               <div className="p-3 rounded-md border border-border space-y-2">
                 {ALL_PERMISSIONS.map(perm => {
@@ -1012,6 +1011,7 @@ const GestionUsuarios = () => {
                 })}
               </div>
             </div>
+            )}
           </div>
 
           <DialogFooter>
