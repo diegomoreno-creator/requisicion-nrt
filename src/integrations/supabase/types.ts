@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalogo_departamentos: {
+        Row: {
+          activo: boolean | null
+          created_at: string
+          empresa_id: string | null
+          id: string
+          nombre: string
+          orden: number | null
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          nombre: string
+          orden?: number | null
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          nombre?: string
+          orden?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_departamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo_empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalogo_empresas: {
         Row: {
           activo: boolean | null

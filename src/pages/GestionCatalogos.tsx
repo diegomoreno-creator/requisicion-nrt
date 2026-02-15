@@ -86,6 +86,7 @@ const GestionCatalogos = () => {
   const [unidadesNegocio, setUnidadesNegocio] = useState<CatalogoItem[]>([]);
   const [empresas, setEmpresas] = useState<EmpresaItem[]>([]);
   const [sucursales, setSucursales] = useState<CatalogoItem[]>([]);
+  const [departamentos, setDepartamentos] = useState<CatalogoItem[]>([]);
   
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -111,17 +112,19 @@ const GestionCatalogos = () => {
   const fetchAllCatalogs = async () => {
     setLoading(true);
     try {
-      const [tiposRes, unidadesRes, empresasRes, sucursalesRes] = await Promise.all([
+      const [tiposRes, unidadesRes, empresasRes, sucursalesRes, departamentosRes] = await Promise.all([
         supabase.from("catalogo_tipos_requisicion").select("*").order("orden"),
         supabase.from("catalogo_unidades_negocio").select("*").order("orden"),
         supabase.from("catalogo_empresas").select("*").order("orden"),
         supabase.from("catalogo_sucursales").select("*").order("orden"),
+        supabase.from("catalogo_departamentos").select("*").order("orden"),
       ]);
 
       if (tiposRes.data) setTiposRequisicion(tiposRes.data);
       if (unidadesRes.data) setUnidadesNegocio(unidadesRes.data);
       if (empresasRes.data) setEmpresas(empresasRes.data);
       if (sucursalesRes.data) setSucursales(sucursalesRes.data);
+      if (departamentosRes.data) setDepartamentos(departamentosRes.data);
     } catch (error) {
       console.error("Error fetching catalogs:", error);
       toast.error("Error al cargar catálogos");
@@ -130,12 +133,13 @@ const GestionCatalogos = () => {
     }
   };
 
-  const getTableName = (): "catalogo_tipos_requisicion" | "catalogo_unidades_negocio" | "catalogo_empresas" | "catalogo_sucursales" => {
+  const getTableName = (): "catalogo_tipos_requisicion" | "catalogo_unidades_negocio" | "catalogo_empresas" | "catalogo_sucursales" | "catalogo_departamentos" => {
     switch (activeTab) {
       case "tipos": return "catalogo_tipos_requisicion";
       case "unidades": return "catalogo_unidades_negocio";
       case "empresas": return "catalogo_empresas";
       case "sucursales": return "catalogo_sucursales";
+      case "departamentos": return "catalogo_departamentos";
       default: return "catalogo_tipos_requisicion";
     }
   };
@@ -146,6 +150,7 @@ const GestionCatalogos = () => {
       case "unidades": return unidadesNegocio;
       case "empresas": return empresas;
       case "sucursales": return sucursales;
+      case "departamentos": return departamentos;
       default: return [];
     }
   };
@@ -180,7 +185,7 @@ const GestionCatalogos = () => {
       return;
     }
 
-    if (activeTab === "unidades" && !formEmpresaId) {
+    if ((activeTab === "unidades" || activeTab === "departamentos") && !formEmpresaId) {
       toast.error("Debe seleccionar una empresa");
       return;
     }
@@ -195,7 +200,7 @@ const GestionCatalogos = () => {
         if (activeTab === "tipos") {
           updateData.color_class = formColor;
         }
-        if (activeTab === "unidades") {
+        if (activeTab === "unidades" || activeTab === "departamentos") {
           updateData.empresa_id = formEmpresaId;
         }
 
@@ -216,7 +221,7 @@ const GestionCatalogos = () => {
         if (activeTab === "tipos") {
           insertData.color_class = formColor;
         }
-        if (activeTab === "unidades") {
+        if (activeTab === "unidades" || activeTab === "departamentos") {
           insertData.empresa_id = formEmpresaId;
         }
 
@@ -435,6 +440,78 @@ const GestionCatalogos = () => {
     );
   };
 
+  const renderDepartamentosGrouped = () => {
+    const grouped = empresas.map(empresa => ({
+      empresa,
+      deptos: departamentos.filter(d => d.empresa_id === empresa.id)
+    })).filter(g => g.deptos.length > 0);
+
+    const sinEmpresa = departamentos.filter(d => !d.empresa_id);
+
+    return (
+      <div className="space-y-6">
+        {grouped.map(group => (
+          <div key={group.empresa.id} className="space-y-2">
+            <div className="flex items-center gap-2 text-primary font-semibold">
+              <Building2 className="w-4 h-4" />
+              {group.empresa.nombre}
+            </div>
+            <div className="rounded-md border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="text-muted-foreground">Departamento</TableHead>
+                    <TableHead className="text-muted-foreground w-24">Activo</TableHead>
+                    <TableHead className="text-muted-foreground w-24 text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {group.deptos.map((item) => (
+                    <TableRow key={item.id} className="border-border">
+                      <TableCell className="text-foreground">{item.nombre}</TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={item.activo}
+                          onCheckedChange={() => toggleActivo(item)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(item)} className="text-muted-foreground hover:text-foreground">
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ))}
+
+        {sinEmpresa.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground font-semibold">
+              <Building2 className="w-4 h-4" />
+              Sin empresa asignada
+            </div>
+            {renderTable(sinEmpresa)}
+          </div>
+        )}
+
+        {grouped.length === 0 && sinEmpresa.length === 0 && (
+          <div className="text-center text-muted-foreground py-8">
+            No hay departamentos
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-5xl mx-auto">
@@ -468,7 +545,7 @@ const GestionCatalogos = () => {
 
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-4 mb-6 bg-muted">
+              <TabsList className="grid grid-cols-5 mb-6 bg-muted">
                 <TabsTrigger value="tipos" className="data-[state=active]:bg-background">
                   <Palette className="w-4 h-4 mr-2" />
                   Tipos
@@ -478,6 +555,9 @@ const GestionCatalogos = () => {
                 </TabsTrigger>
                 <TabsTrigger value="unidades" className="data-[state=active]:bg-background">
                   Unidades
+                </TabsTrigger>
+                <TabsTrigger value="departamentos" className="data-[state=active]:bg-background">
+                  Deptos.
                 </TabsTrigger>
                 <TabsTrigger value="sucursales" className="data-[state=active]:bg-background">
                   Sucursales
@@ -492,6 +572,9 @@ const GestionCatalogos = () => {
               </TabsContent>
               <TabsContent value="unidades">
                 {renderUnidadesGrouped()}
+              </TabsContent>
+              <TabsContent value="departamentos">
+                {renderDepartamentosGrouped()}
               </TabsContent>
               <TabsContent value="sucursales">
                 {renderTable(sucursales)}
@@ -511,7 +594,8 @@ const GestionCatalogos = () => {
             <DialogDescription className="text-muted-foreground">
               {activeTab === "tipos" ? "Tipo de requisición" : 
                activeTab === "unidades" ? "Unidad de negocio" :
-               activeTab === "empresas" ? "Empresa" : "Sucursal"}
+               activeTab === "empresas" ? "Empresa" : 
+               activeTab === "departamentos" ? "Departamento" : "Sucursal"}
             </DialogDescription>
           </DialogHeader>
 
@@ -547,7 +631,7 @@ const GestionCatalogos = () => {
               </div>
             )}
 
-            {activeTab === "unidades" && (
+            {(activeTab === "unidades" || activeTab === "departamentos") && (
               <div className="space-y-2">
                 <Label className="text-foreground">Empresa *</Label>
                 <Select value={formEmpresaId} onValueChange={setFormEmpresaId}>

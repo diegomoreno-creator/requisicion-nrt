@@ -22,11 +22,19 @@ export interface UnidadNegocio {
   activo: boolean;
 }
 
+export interface Departamento {
+  id: string;
+  nombre: string;
+  empresa_id: string | null;
+  activo: boolean;
+}
+
 export const useCatalogos = () => {
   const [tiposRequisicion, setTiposRequisicion] = useState<TipoRequisicion[]>([]);
   const [unidadesNegocio, setUnidadesNegocio] = useState<UnidadNegocio[]>([]);
   const [empresas, setEmpresas] = useState<CatalogoSimple[]>([]);
   const [sucursales, setSucursales] = useState<CatalogoSimple[]>([]);
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,7 +63,7 @@ export const useCatalogos = () => {
 
   const fetchCatalogos = async () => {
     try {
-      const [tiposRes, unidadesRes, empresasRes, sucursalesRes] = await Promise.all([
+      const [tiposRes, unidadesRes, empresasRes, sucursalesRes, departamentosRes] = await Promise.all([
         supabase
           .from("catalogo_tipos_requisicion")
           .select("id, nombre, color_class, color_hsl, activo")
@@ -76,12 +84,18 @@ export const useCatalogos = () => {
           .select("id, nombre, activo")
           .eq("activo", true)
           .order("orden"),
+        supabase
+          .from("catalogo_departamentos")
+          .select("id, nombre, empresa_id, activo")
+          .eq("activo", true)
+          .order("orden"),
       ]);
 
       if (tiposRes.data) setTiposRequisicion(tiposRes.data);
       if (unidadesRes.data) setUnidadesNegocio(unidadesRes.data);
       if (empresasRes.data) setEmpresas(empresasRes.data);
       if (sucursalesRes.data) setSucursales(sucursalesRes.data);
+      if (departamentosRes.data) setDepartamentos(departamentosRes.data);
     } catch (error) {
       console.error("Error fetching catalogos:", error);
     } finally {
@@ -109,16 +123,23 @@ export const useCatalogos = () => {
     return unidadesNegocio.filter(u => u.empresa_id === empresaId);
   };
 
+  // Get departamentos filtered by empresa
+  const getDepartamentosByEmpresa = (empresaId: string): Departamento[] => {
+    return departamentos.filter(d => d.empresa_id === empresaId);
+  };
+
   return {
     tiposRequisicion,
     unidadesNegocio,
     empresas,
     sucursales,
+    departamentos,
     loading,
     getTipoColor,
     getTipoColorClass,
     getTipoNombre,
     getUnidadesByEmpresa,
+    getDepartamentosByEmpresa,
     refetch: fetchCatalogos,
   };
 };
