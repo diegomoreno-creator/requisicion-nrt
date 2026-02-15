@@ -19,6 +19,7 @@ import Notificaciones from "./pages/Notificaciones";
 import Estadisticas from "./pages/Estadisticas";
 import ContabilidadGastos from "./pages/ContabilidadGastos";
 import Install from "./pages/Install";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -154,6 +155,7 @@ const App = () => (
               } 
             />
             <Route path="/install" element={<Install />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
