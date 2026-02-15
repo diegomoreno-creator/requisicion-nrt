@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, FilePlus, RefreshCw, FileText, FolderSearch, Users, Settings, CheckCircle, Clock, XCircle, ShoppingCart, Gavel, CreditCard, BarChart3, Download, Send, Lightbulb, X, Check, CheckCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, FilePlus, RefreshCw, FileText, FolderSearch, Users, Settings, CheckCircle, Clock, XCircle, ShoppingCart, Gavel, CreditCard, BarChart3, Download, Send, Lightbulb, X, Check, CheckCheck, Loader2, Bell, UserCog, Building2, Brain, Mail, Shield, Calculator } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,9 +51,12 @@ const roleHelpData: RoleHelp[] = [
         description: "Crea solicitudes de compra de bienes o servicios.",
         features: [
           "Especifica empresa, sucursal y unidad de negocio",
-          "Agrega múltiples partidas con descripción, cantidad y fecha de necesidad",
+          "Agrega múltiples partidas con descripción, cantidad, costo estimado y fecha de necesidad",
+          "Clasifica cada partida por tipo y categoría de gasto",
           "Indica presupuesto aproximado y justificación",
           "Selecciona el autorizador que aprobará tu requisición",
+          "Configura si el gasto se dividirá entre unidades de negocio",
+          "Adjunta archivos de soporte (cotizaciones, especificaciones)",
           "Guarda como borrador o envía directamente a autorización"
         ]
       },
@@ -63,8 +66,10 @@ const roleHelpData: RoleHelp[] = [
         description: "Solicita el reembolso de gastos realizados con recursos propios.",
         features: [
           "Registra gastos de caja chica o viáticos",
-          "Ingresa datos bancarios para depósito",
-          "Detalla cada gasto con fecha, proveedor e importe",
+          "Ingresa datos bancarios para depósito (banco, CLABE)",
+          "Detalla cada gasto con fecha, proveedor, factura e importe",
+          "Asocia empresa, unidad de negocio y departamento por gasto",
+          "Adjunta comprobantes y facturas digitalizadas",
           "Adjunta justificación de los gastos"
         ]
       },
@@ -83,10 +88,24 @@ const roleHelpData: RoleHelp[] = [
         icon: FolderSearch,
         description: "Consulta el estado de todas tus solicitudes.",
         features: [
-          "Visualiza requisiciones, reposiciones y pagos",
-          "Filtra por estado, tipo o fecha",
+          "Visualiza requisiciones, reposiciones y pagos en pestañas",
+          "Filtra por estado (pendiente, aprobado, rechazado, etc.)",
           "Descarga PDF de cualquier trámite",
-          "Ve el historial de cambios y comentarios"
+          "Cancela trámites pendientes si ya no son necesarios",
+          "Edita y reenvía trámites rechazados",
+          "Análisis con IA: obtén recomendaciones automáticas sobre tus trámites"
+        ]
+      },
+      {
+        title: "Mi Perfil",
+        icon: UserCog,
+        description: "Gestiona tu información personal y preferencias.",
+        features: [
+          "Actualiza tu nombre y foto de perfil",
+          "Activa/desactiva notificaciones push por tipo de trámite",
+          "Activa/desactiva notificaciones por correo electrónico",
+          "Suscríbete a alertas de requisiciones y/o reposiciones",
+          "Solicita restablecimiento de contraseña"
         ]
       }
     ]
@@ -95,28 +114,40 @@ const roleHelpData: RoleHelp[] = [
     role: "autorizador",
     label: "Autorizador",
     color: "bg-green-500",
-    description: "Usuario con facultad para aprobar o rechazar solicitudes de compra asignadas.",
+    description: "Usuario con facultad para aprobar o rechazar solicitudes de compra y reposiciones asignadas.",
     sections: [
       {
         title: "Autorizar Requisiciones",
         icon: CheckCircle,
         description: "Revisa y aprueba las solicitudes que te han sido asignadas.",
         features: [
-          "Recibe notificaciones de nuevas requisiciones pendientes",
-          "Revisa justificación, partidas y montos",
+          "Recibe notificaciones push y por correo de nuevas requisiciones",
+          "Revisa justificación, partidas, montos y archivos adjuntos",
           "Aprueba para continuar con el proceso de compra",
-          "Rechaza con justificación si no procede",
-          "Las requisiciones aprobadas pasan a licitación"
+          "Rechaza con justificación obligatoria si no procede",
+          "Las requisiciones aprobadas pasan automáticamente a licitación",
+          "Gestiona rechazos de presupuestos en pestaña dedicada"
+        ]
+      },
+      {
+        title: "Autorizar Reposiciones",
+        icon: RefreshCw,
+        description: "Aprueba o rechaza reposiciones de gastos asignadas.",
+        features: [
+          "Revisa detalle de gastos, comprobantes y montos",
+          "Aprueba para que Tesorería procese el pago",
+          "Rechaza con justificación"
         ]
       },
       {
         title: "Ver Trámites",
         icon: FolderSearch,
-        description: "Visualiza todas las requisiciones relacionadas contigo.",
+        description: "Visualiza todas las requisiciones y reposiciones relacionadas contigo.",
         features: [
-          "Ve trámites donde eres autorizador",
-          "Consulta el historial de tus autorizaciones",
-          "Filtra por estado pendiente/aprobado/rechazado"
+          "Ve trámites donde eres autorizador asignado",
+          "Consulta historial de tus autorizaciones previas",
+          "Pestaña de rechazos de presupuestos para seguimiento",
+          "Análisis con IA disponible para cada trámite"
         ]
       }
     ]
@@ -132,11 +163,12 @@ const roleHelpData: RoleHelp[] = [
         icon: Gavel,
         description: "Gestiona el proceso de cotización con proveedores.",
         features: [
-          "Recibe requisiciones aprobadas para licitar",
+          "Recibe requisiciones aprobadas automáticamente",
           "Solicita cotizaciones a proveedores",
-          "Registra datos del proveedor seleccionado",
-          "Documenta el monto total de compra",
-          "Agrega apuntes y notas del proceso"
+          "Registra datos del proveedor seleccionado y datos bancarios",
+          "Documenta el monto total de compra y moneda",
+          "Agrega apuntes y notas del proceso de licitación",
+          "Historial de comentarios de compras con registro de ediciones"
         ]
       },
       {
@@ -145,8 +177,8 @@ const roleHelpData: RoleHelp[] = [
         description: "Registra cuando el pedido ha sido formalmente colocado.",
         features: [
           "Marca el pedido como colocado con proveedor",
-          "Registra fecha de colocación",
-          "El trámite avanza a autorización del pedido"
+          "Registra fecha de colocación automáticamente",
+          "El trámite avanza a autorización de presupuestos"
         ]
       },
       {
@@ -154,9 +186,10 @@ const roleHelpData: RoleHelp[] = [
         icon: FolderSearch,
         description: "Gestiona todos los trámites en proceso de compra.",
         features: [
-          "Ve requisiciones en licitación",
-          "Filtra por estado del proceso de compra",
-          "Accede al historial completo"
+          "Pestañas separadas: Pendientes y Atendidos",
+          "Pendientes oculta trámites en estado inicial (solo muestra licitación/colocación)",
+          "Atendidos muestra trámites ya autorizados o pagados",
+          "Solo gestiona Requisiciones (Reposiciones no aparecen)"
         ]
       }
     ]
@@ -174,9 +207,9 @@ const roleHelpData: RoleHelp[] = [
         features: [
           "Revisa pedidos colocados por compradores",
           "Valida contra presupuesto disponible",
-          "Autoriza para proceder al pago",
-          "Rechaza si no hay presupuesto con justificación",
-          "Agrega apuntes de presupuesto"
+          "Autoriza para proceder al pago por Tesorería",
+          "Rechaza si no hay presupuesto con justificación obligatoria",
+          "Agrega apuntes de presupuesto al trámite"
         ]
       },
       {
@@ -184,9 +217,9 @@ const roleHelpData: RoleHelp[] = [
         icon: FolderSearch,
         description: "Consulta trámites pendientes de autorización presupuestal.",
         features: [
-          "Filtra por pedidos colocados",
-          "Ve historial de autorizaciones",
-          "Consulta estadísticas de presupuesto"
+          "Ve trámites en estado pedido_colocado y pedido_autorizado",
+          "Filtra por pedidos pendientes de autorización",
+          "Ve historial de autorizaciones y rechazos"
         ]
       }
     ]
@@ -195,7 +228,7 @@ const roleHelpData: RoleHelp[] = [
     role: "tesoreria",
     label: "Tesorería",
     color: "bg-teal-500",
-    description: "Ejecuta los pagos de requisiciones autorizadas y reposiciones.",
+    description: "Ejecuta los pagos de requisiciones autorizadas y reposiciones aprobadas.",
     sections: [
       {
         title: "Procesamiento de Pagos",
@@ -203,8 +236,8 @@ const roleHelpData: RoleHelp[] = [
         description: "Ejecuta los pagos de trámites autorizados.",
         features: [
           "Recibe pedidos autorizados por presupuestos",
-          "Procesa reposiciones aprobadas",
-          "Registra la fecha y datos del pago",
+          "Procesa reposiciones aprobadas por autorizadores",
+          "Registra la fecha del pago automáticamente",
           "Marca trámites como pagados",
           "Agrega apuntes de tesorería"
         ]
@@ -214,9 +247,40 @@ const roleHelpData: RoleHelp[] = [
         icon: FolderSearch,
         description: "Gestiona la cola de pagos pendientes.",
         features: [
-          "Filtra por trámites pendientes de pago",
-          "Ve historial de pagos realizados",
-          "Consulta datos bancarios de beneficiarios"
+          "Ve trámites en estado pedido_autorizado y pagado",
+          "Consulta datos bancarios de beneficiarios",
+          "Ve historial de pagos realizados"
+        ]
+      }
+    ]
+  },
+  {
+    role: "contabilidad_gastos",
+    label: "Contabilidad de Gastos",
+    color: "bg-indigo-500",
+    description: "Registra y administra los gastos contables por sucursal y período.",
+    sections: [
+      {
+        title: "Registro de Gastos",
+        icon: Calculator,
+        description: "Captura gastos contables con desglose fiscal detallado.",
+        features: [
+          "Registra gastos por sucursal y mes de operación",
+          "Desglosa importes: exento, 16%, 8%",
+          "Calcula IVA acreditable, retenciones ISR e IVA",
+          "Registra sueldos, ISPT y retenciones especiales",
+          "Asocia proveedor con RFC y tipo",
+          "Agrega número de cheque y notas"
+        ]
+      },
+      {
+        title: "Gestión de Registros",
+        icon: FolderSearch,
+        description: "Consulta y administra el historial de gastos.",
+        features: [
+          "Filtra por sucursal y mes de operación",
+          "Edita registros propios existentes",
+          "Ve totales calculados automáticamente"
         ]
       }
     ]
@@ -256,17 +320,18 @@ const roleHelpData: RoleHelp[] = [
     role: "superadmin",
     label: "Super Administrador",
     color: "bg-red-500",
-    description: "Control total del sistema incluyendo gestión de usuarios y catálogos.",
+    description: "Control total del sistema incluyendo gestión de usuarios, catálogos, notificaciones y configuración.",
     sections: [
       {
         title: "Gestión de Usuarios",
         icon: Users,
         description: "Administra usuarios y sus roles en el sistema.",
         features: [
-          "Crea nuevos usuarios con email y contraseña",
-          "Asigna roles a cada usuario",
-          "Edita información de perfil",
-          "Restablece contraseñas",
+          "Crea nuevos usuarios individuales o en lote (bulk)",
+          "Asigna uno o múltiples roles a cada usuario",
+          "Asigna la empresa a la que pertenece cada usuario",
+          "Edita información de perfil (nombre, correo, empresa)",
+          "Restablece contraseñas de usuarios",
           "Desactiva usuarios que ya no requieren acceso"
         ]
       },
@@ -275,11 +340,25 @@ const roleHelpData: RoleHelp[] = [
         icon: Settings,
         description: "Configura los catálogos del sistema.",
         features: [
-          "Administra tipos de requisición con colores",
+          "Administra tipos de requisición con colores personalizados",
           "Gestiona catálogo de empresas",
           "Configura sucursales",
-          "Define unidades de negocio por empresa",
-          "Activa/desactiva elementos de catálogos"
+          "Define unidades de negocio vinculadas por empresa",
+          "Activa/desactiva elementos de catálogos",
+          "Ordena elementos por prioridad"
+        ]
+      },
+      {
+        title: "Gestión de Notificaciones",
+        icon: Bell,
+        description: "Centro de control para todas las notificaciones del sistema.",
+        features: [
+          "Envía notificaciones broadcast a todos los usuarios",
+          "Envía notificaciones personales a usuarios específicos",
+          "Envía notificaciones por rol (ej. solo Autorizadores)",
+          "Programa notificaciones para envío futuro",
+          "Administra suscripciones push de usuarios",
+          "Prueba notificaciones individuales antes de enviar"
         ]
       },
       {
@@ -298,10 +377,21 @@ const roleHelpData: RoleHelp[] = [
         icon: FolderSearch,
         description: "Acceso total a información del sistema.",
         features: [
-          "Visualización de todos los trámites",
-          "Capacidad de editar cualquier trámite",
-          "Historial completo de cambios",
-          "Exportación de datos"
+          "Visualización de todos los trámites incluyendo borradores",
+          "Capacidad de editar y eliminar cualquier trámite",
+          "Historial completo de cambios y comentarios",
+          "Exportación a PDF",
+          "Análisis con IA para cualquier trámite"
+        ]
+      },
+      {
+        title: "Gestión de Sugerencias",
+        icon: Lightbulb,
+        description: "Administra las sugerencias enviadas por los usuarios.",
+        features: [
+          "Revisa sugerencias pendientes de los usuarios",
+          "Acepta, rechaza (con justificación) o marca como terminadas",
+          "Badge de notificación en el menú cuando hay pendientes"
         ]
       }
     ]
@@ -496,11 +586,16 @@ const Ayuda = () => {
     content += "=".repeat(60) + "\n";
     content += "CONSEJOS RÁPIDOS\n";
     content += "=".repeat(60) + "\n";
-    content += "• Activa las notificaciones en tu perfil para recibir alertas de cambios de estado.\n";
+    content += "• Activa las notificaciones push y por correo en tu perfil para recibir alertas de cambios de estado.\n";
     content += "• Usa los filtros en 'Ver Trámites' para encontrar rápidamente lo que buscas.\n";
     content += "• Guarda borradores si no tienes toda la información lista.\n";
     content += "• Descarga el PDF de cualquier trámite para tener un respaldo.\n";
     content += "• Cambia entre tema claro y oscuro con el botón en la esquina superior.\n";
+    content += "• Usa el análisis con IA para obtener recomendaciones sobre tus trámites.\n";
+    content += "• Los superadmins pueden asignar empresas a los usuarios desde Gestión de Usuarios.\n";
+    content += "• Los compradores pueden dejar comentarios con historial de ediciones en cada trámite.\n";
+    content += "• Puedes solicitar restablecimiento de contraseña desde la página de inicio de sesión.\n";
+    content += "• Envía sugerencias desde esta página para mejorar el sistema.\n";
     content += "\n";
     content += "=".repeat(60) + "\n";
     content += "¿Necesitas más ayuda? Contacta al administrador del sistema.\n";
@@ -650,7 +745,7 @@ const Ayuda = () => {
             <ul className="space-y-2 text-sm">
               <li className="flex items-start gap-2">
                 <span className="text-primary font-bold">💡</span>
-                <span>Activa las notificaciones en tu perfil para recibir alertas de cambios de estado.</span>
+                <span>Activa las notificaciones push y por correo en tu perfil para recibir alertas de cambios de estado.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary font-bold">💡</span>
@@ -667,6 +762,18 @@ const Ayuda = () => {
               <li className="flex items-start gap-2">
                 <span className="text-primary font-bold">💡</span>
                 <span>Cambia entre tema claro y oscuro con el botón en la esquina superior.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-bold">💡</span>
+                <span>Usa el análisis con IA para obtener recomendaciones automáticas sobre tus trámites.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-bold">💡</span>
+                <span>Solicita restablecimiento de contraseña desde la página de inicio de sesión.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-bold">💡</span>
+                <span>Envía sugerencias desde esta página para mejorar el sistema.</span>
               </li>
             </ul>
           </CardContent>
