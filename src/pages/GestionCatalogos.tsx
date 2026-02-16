@@ -59,6 +59,7 @@ interface EmpresaItem {
   nombre: string;
   orden: number;
   activo: boolean;
+  revision_habilitada?: boolean;
 }
 
 const colorOptions = [
@@ -279,6 +280,89 @@ const GestionCatalogos = () => {
       toast.error(error.message || "Error al actualizar");
     }
   };
+
+  const toggleRevisionHabilitada = async (empresa: EmpresaItem) => {
+    try {
+      const { error } = await supabase
+        .from("catalogo_empresas")
+        .update({ revision_habilitada: !empresa.revision_habilitada })
+        .eq("id", empresa.id);
+
+      if (error) throw error;
+      toast.success(`Revisión ${!empresa.revision_habilitada ? "habilitada" : "deshabilitada"} para ${empresa.nombre}`);
+      fetchAllCatalogs();
+    } catch (error: any) {
+      console.error("Error toggling revision:", error);
+      toast.error(error.message || "Error al actualizar");
+    }
+  };
+
+  const renderEmpresasTable = () => (
+    <div className="rounded-md border border-border">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-border hover:bg-transparent">
+            <TableHead className="text-muted-foreground">Nombre</TableHead>
+            <TableHead className="text-muted-foreground w-28">Revisión</TableHead>
+            <TableHead className="text-muted-foreground w-24">Activo</TableHead>
+            <TableHead className="text-muted-foreground w-24 text-right">Acciones</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {empresas.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                No hay elementos
+              </TableCell>
+            </TableRow>
+          ) : (
+            empresas.map((item) => (
+              <TableRow key={item.id} className="border-border">
+                <TableCell className="text-foreground font-medium">{item.nombre}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={!!item.revision_habilitada}
+                      onCheckedChange={() => toggleRevisionHabilitada(item)}
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {item.revision_habilitada ? "Sí" : "No"}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={item.activo}
+                    onCheckedChange={() => toggleActivo(item as any)}
+                  />
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEditDialog(item as any)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(item.id)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
   if (authLoading || loading) {
     return (
@@ -568,7 +652,7 @@ const GestionCatalogos = () => {
                 {renderTable(tiposRequisicion, true)}
               </TabsContent>
               <TabsContent value="empresas">
-                {renderTable(empresas)}
+                {renderEmpresasTable()}
               </TabsContent>
               <TabsContent value="unidades">
                 {renderUnidadesGrouped()}
