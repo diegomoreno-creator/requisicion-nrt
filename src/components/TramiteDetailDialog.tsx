@@ -147,7 +147,7 @@ interface ArchivoAdjunto {
   file_size?: number | null;
 }
 
-const timelineSteps = [
+const timelineStepsBase = [
   { key: "pendiente", label: "Requisición\nPendiente" },
   { key: "aprobado", label: "Requisición\nAutorizada" },
   { key: "en_licitacion", label: "Requisición\nLicitada" },
@@ -156,8 +156,18 @@ const timelineSteps = [
   { key: "pedido_pagado", label: "Pedido\nPagado" },
 ];
 
-const getStepIndex = (estado: string): number => {
-  const index = timelineSteps.findIndex((s) => s.key === estado);
+const timelineStepsWithRevision = [
+  { key: "pendiente_revision", label: "En\nRevisión" },
+  { key: "pendiente", label: "Requisición\nPendiente" },
+  { key: "aprobado", label: "Requisición\nAutorizada" },
+  { key: "en_licitacion", label: "Requisición\nLicitada" },
+  { key: "pedido_colocado", label: "Pedido\nColocado" },
+  { key: "pedido_autorizado", label: "Pedido\nAutorizado" },
+  { key: "pedido_pagado", label: "Pedido\nPagado" },
+];
+
+const getStepIndex = (estado: string, steps: typeof timelineStepsBase): number => {
+  const index = steps.findIndex((s) => s.key === estado);
   return index >= 0 ? index : 0;
 };
 
@@ -216,7 +226,7 @@ const TramiteDetailDialog = ({
   onUpdated,
 }: TramiteDetailDialogProps) => {
   const navigate = useNavigate();
-  const { user, isAutorizador, isSuperadmin, isAdmin, isComprador, isPresupuestos, isTesoreria, isSolicitador } = useAuth();
+  const { user, isAutorizador, isSuperadmin, isAdmin, isComprador, isPresupuestos, isTesoreria, isSolicitador, isRevision } = useAuth();
   const { empresas, unidadesNegocio, sucursales, getTipoNombre } = useCatalogos();
   const [loading, setLoading] = useState(true);
   const [requisicion, setRequisicion] = useState<RequisicionDetail | null>(null);
@@ -265,6 +275,8 @@ const TramiteDetailDialog = ({
   const [previewFile, setPreviewFile] = useState<ArchivoAdjunto | null>(null);
   const [showPayConfirm, setShowPayConfirm] = useState(false);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  const [showReturnRevisionConfirm, setShowReturnRevisionConfirm] = useState(false);
+  const [returnRevisionJustification, setReturnRevisionJustification] = useState("");
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
@@ -574,6 +586,14 @@ const TramiteDetailDialog = ({
            (isAssignedAutorizador || isSuperadmin || isAdmin);
   };
 
+  // Revision: can approve (move to pendiente) when estado is pendiente_revision
+  const canReview = () => {
+    const tramite = reposicion || requisicion;
+    if (!tramite || !user) return false;
+    const isAssignedRevisor = (tramite as any).revisor_id === user.id;
+    return tramite.estado === "pendiente_revision" && (isAssignedRevisor || isSuperadmin);
+  };
+
   // Tesoreria: can move from pedido_autorizado to pedido_pagado
   const canPayPedido = () => {
     if (!requisicion || !user) return false;
@@ -640,10 +660,11 @@ const TramiteDetailDialog = ({
     // For requisiciones
     if (requisicion && user) {
       const isOwner = requisicion.solicitado_por === user.id;
-      const isPending = requisicion.estado === "pendiente";
+      const isPending = requisicion.estado === "pendiente" || requisicion.estado === "pendiente_revision";
       const notDeleted = !requisicion.deleted_at;
-      // Owner can edit pending items (removed notRejected check as status is what matters)
-      return isOwner && isPending && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
+      // Check if returned by reviewer - allow editing
+      const returnedByReviewer = requisicion.estado === "pendiente_revision" && !!(requisicion as any).justificacion_devolucion_revision;
+      return isOwner && (isPending || returnedByReviewer) && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
     }
     // For reposiciones
     if (reposicion && user) {
@@ -891,6 +912,68 @@ const TramiteDetailDialog = ({
     } catch (error) {
       console.error("Error reverting:", error);
       toast.error("Error al revertir el trámite");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Revision: approve and move to pendiente (for autorizador)
+  const handleReviewApprove = async () => {
+    if (!tramiteId || !tramiteTipo || !user) return;
+    setActionLoading(true);
+
+    try {
+      const table = tramiteTipo === "Reposición" ? "reposiciones" : "requisiciones";
+      const { error } = await supabase
+        .from(table)
+        .update({ 
+          estado: "pendiente",
+          revisado_por: user.id,
+          fecha_revision: new Date().toISOString(),
+          justificacion_devolucion_revision: null,
+        } as any)
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Trámite aprobado por revisión, enviado al autorizador");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error approving review:", error);
+      toast.error("Error al aprobar la revisión");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Revision: return to solicitador
+  const handleReviewReturn = async () => {
+    if (!tramiteId || !tramiteTipo || !user) return;
+    if (!returnRevisionJustification.trim()) {
+      toast.error("Debe proporcionar un comentario para devolver el trámite");
+      return;
+    }
+    setActionLoading(true);
+
+    try {
+      const table = tramiteTipo === "Reposición" ? "reposiciones" : "requisiciones";
+      const { error } = await supabase
+        .from(table)
+        .update({ 
+          justificacion_devolucion_revision: returnRevisionJustification.trim(),
+          revisado_por: user.id,
+        } as any)
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Trámite devuelto al solicitador");
+      setReturnRevisionJustification("");
+      setShowReturnRevisionConfirm(false);
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error returning review:", error);
+      toast.error("Error al devolver el trámite");
     } finally {
       setActionLoading(false);
     }
@@ -1364,7 +1447,8 @@ const TramiteDetailDialog = ({
     // Estado badge
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    const estadoLabel = timelineSteps.find(s => s.key === tramite.estado)?.label.replace("\n", " ") || tramite.estado;
+    const pdfTimelineSteps = (requisicion as any)?.revisor_id ? timelineStepsWithRevision : timelineStepsBase;
+    const estadoLabel = pdfTimelineSteps.find(s => s.key === tramite.estado)?.label.replace("\n", " ") || tramite.estado;
     doc.text(`Estado: ${estadoLabel}`, pageWidth / 2, yPosition, { align: "center" });
     yPosition += 15;
 
@@ -1607,7 +1691,9 @@ const TramiteDetailDialog = ({
   };
 
   const tramite = reposicion || requisicion;
-  const currentStep = tramite ? getStepIndex(tramite.estado) : 0;
+  const hasRevision = !!(requisicion as any)?.revisor_id;
+  const timelineSteps = hasRevision ? timelineStepsWithRevision : timelineStepsBase;
+  const currentStep = tramite ? getStepIndex(tramite.estado, timelineSteps) : 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -2329,6 +2415,26 @@ const TramiteDetailDialog = ({
                 >
                   Revertir a Pendiente
                 </Button>
+              )}
+              {canReview() && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowReturnRevisionConfirm(true)}
+                    disabled={actionLoading}
+                    className="border-orange-500 text-orange-500 hover:bg-orange-500/10"
+                  >
+                    Devolver al Solicitador
+                  </Button>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={handleReviewApprove}
+                    disabled={actionLoading}
+                  >
+                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Aprobar Revisión
+                  </Button>
+                </>
               )}
               {canAuthorize() && (
                 <>

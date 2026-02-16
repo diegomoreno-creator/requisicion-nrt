@@ -134,8 +134,10 @@ const Requisicion = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
   const [autorizadores, setAutorizadores] = useState<UserOption[]>([]);
+  const [revisores, setRevisores] = useState<UserOption[]>([]);
   const [originalRequisicionId, setOriginalRequisicionId] = useState<string | null>(null);
-  const [wasRejected, setWasRejected] = useState(false); // Track if editing a rejected requisition
+  const [wasRejected, setWasRejected] = useState(false);
+  const [revisorId, setRevisorId] = useState("");
 
   // Form state
   const [folio, setFolio] = useState("");
@@ -196,6 +198,7 @@ const Requisicion = () => {
 
   useEffect(() => {
     fetchAutorizadores();
+    fetchRevisores();
   }, []);
 
   // Load existing requisicion data for editing
@@ -317,13 +320,21 @@ const Requisicion = () => {
 
   const fetchAutorizadores = async () => {
     try {
-      // Get only users with 'autorizador' role using the security definer function
       const { data, error } = await supabase.rpc('get_autorizadores');
-
       if (error) throw error;
       setAutorizadores(data || []);
     } catch (error) {
       console.error("Error fetching autorizadores:", error);
+    }
+  };
+
+  const fetchRevisores = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_revisores' as any);
+      if (error) throw error;
+      setRevisores(data || []);
+    } catch (error) {
+      console.error("Error fetching revisores:", error);
     }
   };
 
@@ -482,6 +493,10 @@ const Requisicion = () => {
         // This ensures rejected items go back to the authorizer for review
         // Always clear justificacion_rechazo when editing (whether currently rejected or was previously rejected)
         const newEstado = "pendiente";
+        // Check if company has revision enabled - if so, set to pendiente_revision
+        const selectedEmpresa = empresas.find(e => e.id === empresa);
+        const revisionEnabled = selectedEmpresa?.revision_habilitada && revisorId;
+        const finalEstado = revisionEnabled ? "pendiente_revision" : "pendiente";
         
         const updateData = {
           tipo_requisicion: tipoRequisicion,
@@ -503,7 +518,9 @@ const Requisicion = () => {
           asunto,
           justificacion,
           justificacion_rechazo: null, // Always clear rejection justification when editing
-          estado: newEstado as any,
+          estado: finalEstado as any,
+          revisor_id: revisionEnabled ? revisorId : null,
+          justificacion_devolucion_revision: null,
           updated_at: new Date().toISOString(),
         };
 
@@ -544,6 +561,10 @@ const Requisicion = () => {
           if (folioError) throw folioError;
           const newFolio = folioData as string;
 
+          // Check if company has revision enabled
+          const selectedEmpresa = empresas.find(e => e.id === empresa);
+          const revisionEnabled = selectedEmpresa?.revision_habilitada && revisorId;
+
           const { error } = await supabaseAuthed.from("requisiciones").insert({
             id: requisicionId,
             folio: newFolio,
@@ -553,6 +574,7 @@ const Requisicion = () => {
             fecha_autorizacion: fechaAutorizacion.toISOString().split("T")[0],
             sucursal,
             autorizador_id: autorizadorId || null,
+            revisor_id: revisionEnabled ? revisorId : null,
             departamento_solicitante: departamentoSolicitante,
             solicitado_por: user.id,
             presupuesto_aproximado: presupuestoAproximado
@@ -566,8 +588,8 @@ const Requisicion = () => {
             nombre_proyecto: nombreProyecto,
             asunto,
             justificacion,
-            estado: "pendiente",
-          });
+            estado: revisionEnabled ? "pendiente_revision" : "pendiente",
+          } as any);
 
           return { error };
         };
@@ -781,8 +803,8 @@ const Requisicion = () => {
                 </div>
               </div>
 
-              {/* Row: Autorizador, Departamento, Solicitado por */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Row: Autorizador, Revisor (conditional), Departamento, Solicitado por */}
+              <div className={`grid grid-cols-1 gap-4 ${empresas.find(e => e.id === empresa)?.revision_habilitada ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
 
                 <div className="space-y-2">
                   <Label className="text-foreground">Autorizador <span className="text-destructive">*</span></Label>
@@ -799,6 +821,25 @@ const Requisicion = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Revisor selector - only shown when empresa has revision enabled */}
+                {empresas.find(e => e.id === empresa)?.revision_habilitada && (
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Revisor</Label>
+                    <Select value={revisorId} onValueChange={setRevisorId}>
+                      <SelectTrigger className="bg-input border-border">
+                        <SelectValue placeholder="Seleccione un revisor" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border z-50">
+                        {revisores.map((rev) => (
+                          <SelectItem key={rev.user_id} value={rev.user_id}>
+                            {rev.full_name || rev.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label className="text-foreground">Departamento Solicitante <span className="text-destructive">*</span></Label>

@@ -55,13 +55,15 @@ interface Tramite {
   tipoRequisicionId?: string | null;
   asunto?: string | null;
   fecha: string;
-  fechaOrden?: string | null; // For comprador ordering by authorization date
+  fechaOrden?: string | null;
   solicitante: string;
   estado: string;
   deleted_at?: string | null;
-  autorizador_id?: string | null; // For filtering "Mis Trámites"
+  autorizador_id?: string | null;
+  revisor_id?: string | null;
   // Tracking who processed each phase
   autorizado_por?: string | null;
+  revisado_por?: string | null;
   licitado_por?: string | null;
   pedido_colocado_por?: string | null;
   pedido_autorizado_por?: string | null;
@@ -69,6 +71,7 @@ interface Tramite {
 }
 
 const estadoColors: Record<string, string> = {
+  pendiente_revision: "bg-cyan-500/20 text-cyan-500",
   pendiente: "bg-yellow-500/20 text-yellow-500",
   aprobado: "bg-green-500/20 text-green-500",
   rechazado: "bg-red-500/20 text-red-500",
@@ -80,6 +83,7 @@ const estadoColors: Record<string, string> = {
 };
 
 const estadoLabels: Record<string, string> = {
+  pendiente_revision: "Pend. Revisión",
   pendiente: "Pendiente",
   aprobado: "Aprobado",
   rechazado: "Rechazado",
@@ -92,7 +96,7 @@ const estadoLabels: Record<string, string> = {
 
 const Tramites = () => {
   const navigate = useNavigate();
-  const { user, isSuperadmin, isAdmin, isComprador, isAutorizador, isPresupuestos, isTesoreria, isSolicitador, loading: authLoading } = useAuth();
+  const { user, isSuperadmin, isAdmin, isComprador, isAutorizador, isPresupuestos, isTesoreria, isSolicitador, isRevision, loading: authLoading } = useAuth();
   const { tiposRequisicion, getTipoColor, getTipoNombre } = useCatalogos();
   const [tramites, setTramites] = useState<Tramite[]>([]);
   const [attendedTramites, setAttendedTramites] = useState<Tramite[]>([]);
@@ -125,10 +129,10 @@ const Tramites = () => {
 
   // Determine which processor field to check based on user role
   const getProcessorField = (): string | null => {
+    if (isRevision) return 'revisado_por';
     if (isAutorizador) return 'autorizado_por';
     if (isPresupuestos) return 'pedido_autorizado_por';
     if (isTesoreria) return 'pagado_por';
-    // Comprador handles multiple phases, so we don't use "Atendidos" for them
     return null;
   };
 
@@ -147,7 +151,7 @@ const Tramites = () => {
       // For compradores, order by fecha_autorizacion_real; for others, by created_at
       const { data: requisiciones, error: reqError } = await supabase
         .from("requisiciones")
-        .select("id, folio, created_at, fecha_autorizacion_real, solicitado_por, estado, tipo_requisicion, asunto, justificacion_rechazo, justificacion_rechazo_presupuestos, autorizador_id, deleted_at, autorizado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
+        .select("id, folio, created_at, fecha_autorizacion_real, solicitado_por, estado, tipo_requisicion, asunto, justificacion_rechazo, justificacion_rechazo_presupuestos, autorizador_id, revisor_id, deleted_at, autorizado_por, revisado_por, licitado_por, pedido_colocado_por, pedido_autorizado_por, pagado_por")
         .order(isComprador ? "fecha_autorizacion_real" : "created_at", { ascending: false, nullsFirst: false });
 
       if (reqError) {
@@ -211,7 +215,9 @@ const Tramites = () => {
           estado: r.estado || "borrador",
           deleted_at: r.deleted_at,
           autorizador_id: r.autorizador_id,
+          revisor_id: (r as any).revisor_id,
           autorizado_por: r.autorizado_por,
+          revisado_por: (r as any).revisado_por,
           licitado_por: r.licitado_por,
           pedido_colocado_por: r.pedido_colocado_por,
           pedido_autorizado_por: r.pedido_autorizado_por,
@@ -340,7 +346,7 @@ const Tramites = () => {
   });
 
   // Check if current user role shows attended tab
-  const showAttendedTab = isAutorizador || isPresupuestos || isTesoreria || isComprador;
+  const showAttendedTab = isAutorizador || isPresupuestos || isTesoreria || isComprador || isRevision;
   // Solicitador, Comprador, and Autorizador show rejected tab
   const showRejectedTab = isSolicitador || isComprador || isAutorizador;
 

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 
-export type AppRole = 'superadmin' | 'admin' | 'comprador' | 'solicitador' | 'autorizador' | 'presupuestos' | 'tesoreria' | 'inactivo' | 'contabilidad1' | 'contabilidad_gastos' | 'contabilidad_ingresos';
+export type AppRole = 'superadmin' | 'admin' | 'comprador' | 'solicitador' | 'autorizador' | 'presupuestos' | 'tesoreria' | 'inactivo' | 'contabilidad1' | 'contabilidad_gastos' | 'contabilidad_ingresos' | 'revision';
 
 export type AppPermission = 
   | 'ver_estadisticas'
@@ -183,6 +183,7 @@ export const useAuth = () => {
   const isAutorizador = hasRole('autorizador');
   const isPresupuestos = hasRole('presupuestos');
   const isTesoreria = hasRole('tesoreria');
+  const isRevision = hasRole('revision');
   const isInactivo = authState.roles.length === 0 || (authState.roles.length === 1 && hasRole('inactivo'));
   const canAccessApp = authState.roles.length > 0 && !isInactivo;
 
@@ -209,6 +210,7 @@ export const useAuth = () => {
     isAutorizador,
     isPresupuestos,
     isTesoreria,
+    isRevision,
     isInactivo,
     canAccessApp,
     fetchUserRoles,
