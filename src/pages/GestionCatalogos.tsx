@@ -53,6 +53,7 @@ interface CatalogoItem {
   color_hsl?: string;
   empresa_id?: string;
   default_role?: string | null;
+  rfc?: string | null;
 }
 
 interface EmpresaItem {
@@ -90,6 +91,7 @@ const GestionCatalogos = () => {
   const [empresas, setEmpresas] = useState<EmpresaItem[]>([]);
   const [sucursales, setSucursales] = useState<CatalogoItem[]>([]);
   const [departamentos, setDepartamentos] = useState<CatalogoItem[]>([]);
+  const [proveedores, setProveedores] = useState<CatalogoItem[]>([]);
   
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -99,6 +101,7 @@ const GestionCatalogos = () => {
   const [formActivo, setFormActivo] = useState(true);
   const [formEmpresaId, setFormEmpresaId] = useState<string>("");
   const [formDefaultRole, setFormDefaultRole] = useState<string>("");
+  const [formRfc, setFormRfc] = useState<string>("");
 
   // Fetch user's empresa_id for non-superadmin scoping
   useEffect(() => {
@@ -139,12 +142,13 @@ const GestionCatalogos = () => {
   const fetchAllCatalogs = async () => {
     setLoading(true);
     try {
-      const [tiposRes, unidadesRes, empresasRes, sucursalesRes, departamentosRes] = await Promise.all([
+      const [tiposRes, unidadesRes, empresasRes, sucursalesRes, departamentosRes, proveedoresRes] = await Promise.all([
         supabase.from("catalogo_tipos_requisicion").select("*").order("orden"),
         supabase.from("catalogo_unidades_negocio").select("*").order("orden"),
         supabase.from("catalogo_empresas").select("*").order("orden"),
         supabase.from("catalogo_sucursales").select("*").order("orden"),
         supabase.from("catalogo_departamentos").select("*").order("orden"),
+        supabase.from("catalogo_proveedores").select("*").order("orden"),
       ]);
 
       if (tiposRes.data) setTiposRequisicion(tiposRes.data);
@@ -152,6 +156,7 @@ const GestionCatalogos = () => {
       if (empresasRes.data) setEmpresas(empresasRes.data);
       if (sucursalesRes.data) setSucursales(sucursalesRes.data);
       if (departamentosRes.data) setDepartamentos(departamentosRes.data);
+      if (proveedoresRes.data) setProveedores(proveedoresRes.data);
     } catch (error) {
       console.error("Error fetching catalogs:", error);
       toast.error("Error al cargar catálogos");
@@ -160,13 +165,14 @@ const GestionCatalogos = () => {
     }
   };
 
-  const getTableName = (): "catalogo_tipos_requisicion" | "catalogo_unidades_negocio" | "catalogo_empresas" | "catalogo_sucursales" | "catalogo_departamentos" => {
+  const getTableName = (): "catalogo_tipos_requisicion" | "catalogo_unidades_negocio" | "catalogo_empresas" | "catalogo_sucursales" | "catalogo_departamentos" | "catalogo_proveedores" => {
     switch (activeTab) {
       case "tipos": return "catalogo_tipos_requisicion";
       case "unidades": return "catalogo_unidades_negocio";
       case "empresas": return "catalogo_empresas";
       case "sucursales": return "catalogo_sucursales";
       case "departamentos": return "catalogo_departamentos";
+      case "proveedores": return "catalogo_proveedores";
       default: return "catalogo_tipos_requisicion";
     }
   };
@@ -178,6 +184,7 @@ const GestionCatalogos = () => {
       case "empresas": return empresas;
       case "sucursales": return sucursales;
       case "departamentos": return filteredDepartamentos;
+      case "proveedores": return filteredProveedores;
       default: return [];
     }
   };
@@ -190,6 +197,10 @@ const GestionCatalogos = () => {
   const filteredDepartamentos = !isSuperadmin && userEmpresaId
     ? departamentos.filter(d => d.empresa_id === userEmpresaId)
     : departamentos;
+
+  const filteredProveedores = !isSuperadmin && userEmpresaId
+    ? proveedores.filter(p => p.empresa_id === userEmpresaId)
+    : proveedores;
 
   const filteredEmpresas = !isSuperadmin && userEmpresaId
     ? empresas.filter(e => e.id === userEmpresaId)
@@ -222,6 +233,7 @@ const GestionCatalogos = () => {
     setFormActivo(true);
     setFormEmpresaId(!isSuperadmin && userEmpresaId ? userEmpresaId : "");
     setFormDefaultRole("");
+    setFormRfc("");
     setDialogOpen(true);
   };
 
@@ -230,8 +242,9 @@ const GestionCatalogos = () => {
     setFormNombre(item.nombre);
     setFormColor(item.color_class || "bg-yellow-500");
     setFormActivo(item.activo);
-    setFormEmpresaId(item.empresa_id || "");
+    setFormEmpresaId(item.empresa_id || (!isSuperadmin && userEmpresaId ? userEmpresaId : ""));
     setFormDefaultRole(item.default_role || "");
+    setFormRfc(item.rfc || "");
     setDialogOpen(true);
   };
 
@@ -241,7 +254,7 @@ const GestionCatalogos = () => {
       return;
     }
 
-    if ((activeTab === "unidades" || activeTab === "departamentos") && !formEmpresaId && isSuperadmin) {
+    if ((activeTab === "unidades" || activeTab === "departamentos" || activeTab === "proveedores") && !formEmpresaId && isSuperadmin) {
       toast.error("Debe seleccionar una empresa");
       return;
     }
@@ -256,11 +269,14 @@ const GestionCatalogos = () => {
         if (activeTab === "tipos") {
           updateData.color_class = formColor;
         }
-        if (activeTab === "unidades" || activeTab === "departamentos") {
+        if (activeTab === "unidades" || activeTab === "departamentos" || activeTab === "proveedores") {
           updateData.empresa_id = formEmpresaId;
         }
         if (activeTab === "departamentos") {
           updateData.default_role = formDefaultRole || null;
+        }
+        if (activeTab === "proveedores") {
+          updateData.rfc = formRfc || null;
         }
 
         const { error } = await supabase
@@ -280,11 +296,14 @@ const GestionCatalogos = () => {
         if (activeTab === "tipos") {
           insertData.color_class = formColor;
         }
-        if (activeTab === "unidades" || activeTab === "departamentos") {
+        if (activeTab === "unidades" || activeTab === "departamentos" || activeTab === "proveedores") {
           insertData.empresa_id = formEmpresaId;
         }
         if (activeTab === "departamentos") {
           insertData.default_role = formDefaultRole || null;
+        }
+        if (activeTab === "proveedores") {
+          insertData.rfc = formRfc || null;
         }
 
         const { error } = await supabase
@@ -687,6 +706,77 @@ const GestionCatalogos = () => {
     );
   };
 
+  const renderProveedoresGrouped = () => {
+    const grouped = filteredEmpresas.map(empresa => ({
+      empresa,
+      provs: filteredProveedores.filter(p => p.empresa_id === empresa.id)
+    })).filter(g => g.provs.length > 0);
+
+    const sinEmpresa = filteredProveedores.filter(p => !p.empresa_id);
+
+    return (
+      <div className="space-y-6">
+        {grouped.map(group => (
+          <div key={group.empresa.id} className="space-y-2">
+            <div className="flex items-center gap-2 text-primary font-semibold">
+              <Building2 className="w-4 h-4" />
+              {group.empresa.nombre}
+            </div>
+            <div className="rounded-md border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="text-muted-foreground">Proveedor</TableHead>
+                    <TableHead className="text-muted-foreground w-40">RFC</TableHead>
+                    <TableHead className="text-muted-foreground w-24">Activo</TableHead>
+                    <TableHead className="text-muted-foreground w-24 text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {group.provs.map((item) => (
+                    <TableRow key={item.id} className="border-border">
+                      <TableCell className="text-foreground">{item.nombre}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{item.rfc || "-"}</TableCell>
+                      <TableCell>
+                        <Switch checked={item.activo} onCheckedChange={() => toggleActivo(item)} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(item)} className="text-muted-foreground hover:text-foreground">
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ))}
+
+        {sinEmpresa.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground font-semibold">
+              <Building2 className="w-4 h-4" />
+              Sin empresa asignada
+            </div>
+            {renderTable(sinEmpresa)}
+          </div>
+        )}
+
+        {grouped.length === 0 && sinEmpresa.length === 0 && (
+          <div className="text-center text-muted-foreground py-8">
+            No hay proveedores
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-5xl mx-auto">
@@ -720,7 +810,7 @@ const GestionCatalogos = () => {
 
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className={cn("grid mb-6 bg-muted", isSuperadmin ? "grid-cols-5" : "grid-cols-2")}>
+              <TabsList className={cn("grid mb-6 bg-muted", isSuperadmin ? "grid-cols-6" : "grid-cols-3")}>
                 {isSuperadmin && (
                   <TabsTrigger value="tipos" className="data-[state=active]:bg-background">
                     <Palette className="w-4 h-4 mr-2" />
@@ -737,6 +827,9 @@ const GestionCatalogos = () => {
                 </TabsTrigger>
                 <TabsTrigger value="departamentos" className="data-[state=active]:bg-background">
                   Deptos.
+                </TabsTrigger>
+                <TabsTrigger value="proveedores" className="data-[state=active]:bg-background">
+                  Proveedores
                 </TabsTrigger>
                 {isSuperadmin && (
                   <TabsTrigger value="sucursales" className="data-[state=active]:bg-background">
@@ -761,6 +854,9 @@ const GestionCatalogos = () => {
               <TabsContent value="departamentos">
                 {renderDepartamentosGrouped()}
               </TabsContent>
+              <TabsContent value="proveedores">
+                {renderProveedoresGrouped()}
+              </TabsContent>
               {isSuperadmin && (
                 <TabsContent value="sucursales">
                   {renderTable(sucursales)}
@@ -782,7 +878,8 @@ const GestionCatalogos = () => {
               {activeTab === "tipos" ? "Tipo de requisición" : 
                activeTab === "unidades" ? "Unidad de negocio" :
                activeTab === "empresas" ? "Empresa" : 
-               activeTab === "departamentos" ? "Departamento" : "Sucursal"}
+               activeTab === "departamentos" ? "Departamento" :
+               activeTab === "proveedores" ? "Proveedor" : "Sucursal"}
             </DialogDescription>
           </DialogHeader>
 
@@ -818,7 +915,7 @@ const GestionCatalogos = () => {
               </div>
             )}
 
-            {(activeTab === "unidades" || activeTab === "departamentos") && isSuperadmin && (
+            {(activeTab === "unidades" || activeTab === "departamentos" || activeTab === "proveedores") && isSuperadmin && (
               <div className="space-y-2">
                 <Label className="text-foreground">Empresa *</Label>
                 <Select value={formEmpresaId} onValueChange={setFormEmpresaId}>
@@ -833,6 +930,19 @@ const GestionCatalogos = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {activeTab === "proveedores" && (
+              <div className="space-y-2">
+                <Label className="text-foreground">RFC</Label>
+                <Input
+                  value={formRfc}
+                  onChange={(e) => setFormRfc(e.target.value.toUpperCase())}
+                  className="bg-input border-border"
+                  placeholder="RFC del proveedor"
+                  maxLength={13}
+                />
               </div>
             )}
 

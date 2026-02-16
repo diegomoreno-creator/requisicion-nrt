@@ -79,6 +79,44 @@ export type Database = {
         }
         Relationships: []
       }
+      catalogo_proveedores: {
+        Row: {
+          activo: boolean | null
+          created_at: string
+          empresa_id: string | null
+          id: string
+          nombre: string
+          orden: number | null
+          rfc: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          nombre: string
+          orden?: number | null
+          rfc?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          nombre?: string
+          orden?: number | null
+          rfc?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_proveedores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo_empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalogo_sucursales: {
         Row: {
           activo: boolean | null
