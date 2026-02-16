@@ -741,8 +741,8 @@ const GestionCatalogos = () => {
               <Building2 className="w-4 h-4" />
               {group.empresa.nombre}
             </div>
-            <div className="rounded-md border border-border">
-              <Table>
+            <div className="rounded-md border border-border overflow-auto max-h-[60vh]" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
                     <TableHead className="text-muted-foreground">Nombre Comercial</TableHead>
