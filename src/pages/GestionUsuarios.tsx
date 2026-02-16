@@ -666,15 +666,14 @@ const GestionUsuarios = () => {
                         onValueChange={(v) => {
                           const dept = v === "none" ? "" : v;
                           setNewUserDepartamento(dept);
-                          // Auto-check role based on department's default_role
+                          // Auto-replace compra-pago roles with department's default_role
                           if (dept) {
                             const deptData = getDepartamentosByEmpresa(newUserEmpresaId!).find(d => d.nombre === dept);
                             if (deptData && deptData.default_role) {
                               const defaultRole = deptData.default_role as AppRole;
-                              if (!newUserRoles.includes(defaultRole)) {
-                                let updated = [...newUserRoles.filter(r => r !== 'inactivo'), defaultRole];
-                                setNewUserRoles(updated);
-                              }
+                              // Remove all compra-pago roles and set only the department's role
+                              const nonCompraPago = newUserRoles.filter(r => !compraPagoRoles.includes(r));
+                              setNewUserRoles([...nonCompraPago, defaultRole]);
                             }
                           }
                         }}
