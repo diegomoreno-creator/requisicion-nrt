@@ -135,6 +135,27 @@ const GestionUsuarios = () => {
   const { empresas, getDepartamentosByEmpresa } = useCatalogos();
   const { user, isSuperadmin, hasPermission, loading: authLoading } = useAuth();
   const canManageUsers = hasPermission('gestionar_usuarios');
+  const [callerEmpresaId, setCallerEmpresaId] = useState<string | null>(null);
+
+  // Fetch caller's empresa_id for non-superadmin scoping
+  useEffect(() => {
+    const fetchCallerEmpresa = async () => {
+      if (!user || isSuperadmin) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('empresa_id')
+        .eq('user_id', user.id)
+        .single();
+      if (data?.empresa_id) {
+        setCallerEmpresaId(data.empresa_id);
+        setNewUserEmpresaId(data.empresa_id);
+      }
+    };
+    fetchCallerEmpresa();
+  }, [user, isSuperadmin]);
+
+  // For non-superadmin, only show their own empresa
+  const availableEmpresas = isSuperadmin ? empresas : empresas.filter(e => e.id === callerEmpresaId);
 
   // Filter departamentos by selected empresa in edit dialog
   const departamentosFiltrados = editEmpresaId ? getDepartamentosByEmpresa(editEmpresaId) : [];
@@ -612,13 +633,17 @@ const GestionUsuarios = () => {
                       <Building2 className="w-4 h-4" />
                       Empresa
                     </Label>
-                    <Select value={newUserEmpresaId || "none"} onValueChange={(v) => setNewUserEmpresaId(v === "none" ? null : v)}>
+                    <Select 
+                      value={newUserEmpresaId || "none"} 
+                      onValueChange={(v) => setNewUserEmpresaId(v === "none" ? null : v)}
+                      disabled={!isSuperadmin && availableEmpresas.length <= 1}
+                    >
                       <SelectTrigger className="bg-input border-border">
                         <SelectValue placeholder="Sin empresa asignada" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border-border">
-                        <SelectItem value="none">Sin empresa asignada</SelectItem>
-                        {empresas.map(e => (
+                        {isSuperadmin && <SelectItem value="none">Sin empresa asignada</SelectItem>}
+                        {availableEmpresas.map(e => (
                           <SelectItem key={e.id} value={e.id}>{e.nombre}</SelectItem>
                         ))}
                       </SelectContent>
@@ -988,13 +1013,17 @@ const GestionUsuarios = () => {
                 <Building2 className="w-4 h-4" />
                 Empresa
               </Label>
-              <Select value={editEmpresaId || "none"} onValueChange={(v) => setEditEmpresaId(v === "none" ? null : v)}>
+              <Select 
+                value={editEmpresaId || "none"} 
+                onValueChange={(v) => setEditEmpresaId(v === "none" ? null : v)}
+                disabled={!isSuperadmin && availableEmpresas.length <= 1}
+              >
                 <SelectTrigger className="bg-input border-border">
                   <SelectValue placeholder="Sin empresa asignada" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
-                  <SelectItem value="none">Sin empresa asignada</SelectItem>
-                  {empresas.map(e => (
+                  {isSuperadmin && <SelectItem value="none">Sin empresa asignada</SelectItem>}
+                  {availableEmpresas.map(e => (
                     <SelectItem key={e.id} value={e.id}>{e.nombre}</SelectItem>
                   ))}
                 </SelectContent>
