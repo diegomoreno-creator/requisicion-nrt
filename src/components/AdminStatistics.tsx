@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, TrendingUp, Clock, AlertTriangle, CheckCircle, FileText, DollarSign, Users, BarChart3, Zap, Timer, ArrowDown, ArrowUp } from "lucide-react";
+import { Loader2, TrendingUp, Clock, AlertTriangle, CheckCircle, FileText, DollarSign, Users, BarChart3, Zap, Timer, ArrowDown, ArrowUp, Download } from "lucide-react";
 import { 
   BarChart, 
   Bar, 
@@ -25,6 +25,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { renderNRTHeader } from "@/lib/pdfFonts";
 
 interface RequisicionStats {
   id: string;
@@ -84,7 +88,12 @@ const estadoLabels: Record<string, string> = {
   pedido_pagado: "Pedido Pagado",
 };
 
-const AdminStatistics = () => {
+interface AdminStatisticsProps {
+  empresaId?: string | null;
+  empresaNombre?: string | null;
+}
+
+const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}) => {
   const [loading, setLoading] = useState(true);
   const [requisiciones, setRequisiciones] = useState<RequisicionStats[]>([]);
   const [reposiciones, setReposiciones] = useState<any[]>([]);
@@ -102,7 +111,7 @@ const AdminStatistics = () => {
 
   useEffect(() => {
     fetchStatistics();
-  }, []);
+  }, [empresaId]);
 
   // Recalculate volume when period or custom range changes
   useEffect(() => {
@@ -114,13 +123,20 @@ const AdminStatistics = () => {
   const fetchStatistics = async () => {
     setLoading(true);
     try {
-      // Fetch requisiciones with timestamps
-      const { data: reqData } = await supabase
+      // Fetch requisiciones with timestamps, filtered by empresa if provided
+      let reqQuery = supabase
         .from("requisiciones")
         .select("id, estado, created_at, fecha_autorizacion_real, fecha_licitacion, fecha_pedido_colocado, fecha_pedido_autorizado, fecha_pago, tipo_requisicion, empresa")
         .is("deleted_at", null);
+      
+      if (empresaId) {
+        reqQuery = reqQuery.eq("empresa", empresaId);
+      }
+      
+      const { data: reqData } = await reqQuery;
 
-      // Fetch reposiciones
+      // Fetch reposiciones - filter via solicitado_por users of the empresa
+      // Reposiciones don't have empresa field, so we fetch all visible ones
       const { data: repoData } = await supabase
         .from("reposiciones")
         .select("id, estado, created_at, fecha_autorizacion, fecha_pago");
@@ -347,6 +363,146 @@ const AdminStatistics = () => {
     setMonthlyVolume(volumeData);
   };
 
+  const exportToCSV = () => {
+    const companyLabel = empresaNombre || "Todas las empresas";
+    const dateStr = format(new Date(), "yyyy-MM-dd");
+    
+    // Build CSV content
+    let csv = `Reporte de Estadísticas - ${companyLabel}\nFecha de generación: ${format(new Date(), "d/MMM/yyyy HH:mm", { locale: es })}\n\n`;
+    
+    // Summary
+    csv += "RESUMEN GENERAL\n";
+    csv += `Total Requisiciones,${requisiciones.length}\n`;
+    csv += `Total Reposiciones,${reposiciones.length}\n`;
+    csv += `Pendientes,${requisiciones.filter(r => r.estado === "pendiente").length}\n`;
+    csv += `Completados,${requisiciones.filter(r => r.estado === "pedido_pagado").length}\n`;
+    csv += `Tiempo Promedio Total (días),${avgTotalTime}\n`;
+    csv += `Cuello de Botella,${bottleneck || "Sin datos"}\n\n`;
+    
+    // Status distribution
+    csv += "DISTRIBUCIÓN POR ESTADO\n";
+    csv += "Estado,Cantidad\n";
+    statusDistribution.forEach(s => {
+      csv += `${s.name},${s.value}\n`;
+    });
+    csv += "\n";
+    
+    // Time metrics
+    if (timeStats.length > 0) {
+      csv += "MÉTRICAS DE TIEMPO POR ETAPA\n";
+      csv += "Etapa,Promedio (horas),Mínimo (horas),Máximo (horas),Muestra\n";
+      timeStats.forEach(s => {
+        csv += `${s.stage},${s.avgHours},${s.minHours},${s.maxHours},${s.count}\n`;
+      });
+      csv += "\n";
+    }
+    
+    // Volume data
+    if (monthlyVolume.length > 0) {
+      csv += "VOLUMEN DE TRÁMITES\n";
+      csv += "Período,Requisiciones,Reposiciones\n";
+      monthlyVolume.forEach(v => {
+        csv += `${v.month},${v.requisiciones},${v.reposiciones}\n`;
+      });
+    }
+    
+    // Download
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `estadisticas_${dateStr}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  const exportToPDF = () => {
+    const companyLabel = empresaNombre || "Todas las empresas";
+    const doc = new jsPDF("p", "mm", "letter");
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    let y = 15;
+    y = renderNRTHeader(doc, pageWidth, y);
+    
+    // Title
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(60, 60, 60);
+    doc.text("Reporte de Estadísticas", pageWidth / 2, y, { align: "center" });
+    y += 7;
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Empresa: ${companyLabel}`, pageWidth / 2, y, { align: "center" });
+    y += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`Generado: ${format(new Date(), "d/MMM/yyyy HH:mm", { locale: es })}`, pageWidth / 2, y, { align: "center" });
+    y += 10;
+    
+    // Summary table
+    doc.setTextColor(60, 60, 60);
+    autoTable(doc, {
+      startY: y,
+      head: [["Métrica", "Valor"]],
+      body: [
+        ["Total Requisiciones", String(requisiciones.length)],
+        ["Total Reposiciones", String(reposiciones.length)],
+        ["Pendientes", String(requisiciones.filter(r => r.estado === "pendiente").length)],
+        ["Completados", String(requisiciones.filter(r => r.estado === "pedido_pagado").length)],
+        ["Tiempo Promedio Total", `${avgTotalTime} días`],
+        ["Cuello de Botella", bottleneck || "Sin datos"],
+      ],
+      theme: "grid",
+      headStyles: { fillColor: [208, 57, 37], fontSize: 9 },
+      bodyStyles: { fontSize: 8 },
+      margin: { left: 20, right: 20 },
+    });
+    
+    y = (doc as any).lastAutoTable.finalY + 10;
+    
+    // Status distribution
+    if (statusDistribution.length > 0) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Distribución por Estado", 20, y);
+      y += 5;
+      
+      autoTable(doc, {
+        startY: y,
+        head: [["Estado", "Cantidad"]],
+        body: statusDistribution.map(s => [s.name, String(s.value)]),
+        theme: "grid",
+        headStyles: { fillColor: [208, 57, 37], fontSize: 9 },
+        bodyStyles: { fontSize: 8 },
+        margin: { left: 20, right: 20 },
+      });
+      
+      y = (doc as any).lastAutoTable.finalY + 10;
+    }
+    
+    // Time metrics
+    if (timeStats.length > 0) {
+      if (y > 230) { doc.addPage(); y = 20; }
+      
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Métricas de Tiempo por Etapa", 20, y);
+      y += 5;
+      
+      autoTable(doc, {
+        startY: y,
+        head: [["Etapa", "Promedio (h)", "Mín (h)", "Máx (h)", "Muestra"]],
+        body: timeStats.map(s => [s.stage, String(s.avgHours), String(s.minHours), String(s.maxHours), String(s.count)]),
+        theme: "grid",
+        headStyles: { fillColor: [208, 57, 37], fontSize: 9 },
+        bodyStyles: { fontSize: 8 },
+        margin: { left: 20, right: 20 },
+      });
+    }
+    
+    doc.save(`estadisticas_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+  };
+
   if (loading) {
     return (
       <Card className="border-border bg-card">
@@ -364,9 +520,34 @@ const AdminStatistics = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 mb-4">
-        <BarChart3 className="w-6 h-6 text-primary" />
-        <h2 className="text-xl font-bold text-foreground">Panel de Estadísticas</h2>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-6 h-6 text-primary" />
+          <h2 className="text-xl font-bold text-foreground">
+            Panel de Estadísticas
+            {empresaNombre && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">— {empresaNombre}</span>
+            )}
+          </h2>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Download className="w-4 h-4" />
+              Exportar
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={exportToCSV}>
+              <FileText className="w-4 h-4 mr-2" />
+              Exportar a Excel/CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={exportToPDF}>
+              <FileText className="w-4 h-4 mr-2" />
+              Exportar a PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Summary Cards */}
