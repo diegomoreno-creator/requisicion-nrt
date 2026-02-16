@@ -13,6 +13,7 @@ export interface CatalogoSimple {
   id: string;
   nombre: string;
   activo: boolean;
+  revision_habilitada?: boolean;
 }
 
 export interface UnidadNegocio {
@@ -76,7 +77,7 @@ export const useCatalogos = () => {
           .order("orden"),
         supabase
           .from("catalogo_empresas")
-          .select("id, nombre, activo")
+          .select("id, nombre, activo, revision_habilitada")
           .eq("activo", true)
           .order("orden"),
         supabase

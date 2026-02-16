@@ -59,16 +59,17 @@ interface UserWithRoles {
   departamento: string | null;
 }
 
-const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo', 'contabilidad1', 'contabilidad_gastos', 'contabilidad_ingresos'];
+const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'revision', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo', 'contabilidad1', 'contabilidad_gastos', 'contabilidad_ingresos'];
 
 // Role groupings for UI
-const compraPagoRoles: AppRole[] = ['admin', 'autorizador', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo'];
+const compraPagoRoles: AppRole[] = ['admin', 'autorizador', 'revision', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo'];
 const contabilidadRoles: AppRole[] = ['contabilidad_gastos', 'contabilidad_ingresos'];
 
 const roleLabels: Record<AppRole, string> = {
   superadmin: "Super Admin",
   admin: "Administrador",
   autorizador: "Autorizador",
+  revision: "Revisión",
   comprador: "Comprador",
   presupuestos: "Presupuestos",
   tesoreria: "Tesorería",
@@ -83,6 +84,7 @@ const roleColors: Record<AppRole, string> = {
   superadmin: "bg-primary text-primary-foreground",
   admin: "bg-blue-600 text-white",
   autorizador: "bg-purple-600 text-white",
+  revision: "bg-cyan-600 text-white",
   comprador: "bg-green-600 text-white",
   presupuestos: "bg-orange-600 text-white",
   tesoreria: "bg-teal-600 text-white",

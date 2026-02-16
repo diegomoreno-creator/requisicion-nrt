@@ -51,6 +51,7 @@ const roleLabels: Record<string, string> = {
   tesoreria: "Tesorería",
   solicitador: "Solicitador",
   autorizador: "Autorizador",
+  revision: "Revisión",
   inactivo: "Inactivo",
   contabilidad_gastos: "Contabilidad Gastos",
   contabilidad_ingresos: "Contabilidad Ingresos",
@@ -141,7 +142,7 @@ const Dashboard = () => {
 
   // Check if user has Compra-Pago module access
   const hasCompraPagoAccess = isSuperadmin || isAdmin || isSolicitador || 
-    hasRole('comprador') || hasRole('autorizador') || 
+    hasRole('comprador') || hasRole('autorizador') || hasRole('revision') ||
     hasRole('presupuestos') || hasRole('tesoreria');
 
   // Check if user has contabilidad roles

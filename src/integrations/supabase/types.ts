@@ -994,6 +994,14 @@ export type Database = {
       }
       get_next_folio: { Args: { sequence_type: string }; Returns: string }
       get_profile_name: { Args: { _user_id: string }; Returns: string }
+      get_revisores: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       get_solicitante_info: {
         Args: { _user_id: string }
         Returns: {
