@@ -52,6 +52,7 @@ interface CatalogoItem {
   color_class?: string;
   color_hsl?: string;
   empresa_id?: string;
+  default_role?: string | null;
 }
 
 interface EmpresaItem {
@@ -96,6 +97,7 @@ const GestionCatalogos = () => {
   const [formColor, setFormColor] = useState("bg-yellow-500");
   const [formActivo, setFormActivo] = useState(true);
   const [formEmpresaId, setFormEmpresaId] = useState<string>("");
+  const [formDefaultRole, setFormDefaultRole] = useState<string>("");
 
   useEffect(() => {
     if (!authLoading && !hasPermission('gestionar_catalogos')) {
@@ -162,12 +164,27 @@ const GestionCatalogos = () => {
     return empresa?.nombre || "-";
   };
 
+  const roleOptions = [
+    { value: "solicitador", label: "Solicitante" },
+    { value: "autorizador", label: "Autorizador" },
+    { value: "comprador", label: "Comprador" },
+    { value: "revision", label: "Revisión" },
+    { value: "presupuestos", label: "Presupuestos" },
+    { value: "tesoreria", label: "Tesorería" },
+  ];
+
+  const getRolLabel = (role: string | null | undefined): string => {
+    if (!role) return "Sin asignar";
+    return roleOptions.find(r => r.value === role)?.label || role;
+  };
+
   const openAddDialog = () => {
     setEditingItem(null);
     setFormNombre("");
     setFormColor("bg-yellow-500");
     setFormActivo(true);
     setFormEmpresaId("");
+    setFormDefaultRole("");
     setDialogOpen(true);
   };
 
@@ -177,6 +194,7 @@ const GestionCatalogos = () => {
     setFormColor(item.color_class || "bg-yellow-500");
     setFormActivo(item.activo);
     setFormEmpresaId(item.empresa_id || "");
+    setFormDefaultRole(item.default_role || "");
     setDialogOpen(true);
   };
 
@@ -204,6 +222,9 @@ const GestionCatalogos = () => {
         if (activeTab === "unidades" || activeTab === "departamentos") {
           updateData.empresa_id = formEmpresaId;
         }
+        if (activeTab === "departamentos") {
+          updateData.default_role = formDefaultRole || null;
+        }
 
         const { error } = await supabase
           .from(tableName)
@@ -224,6 +245,9 @@ const GestionCatalogos = () => {
         }
         if (activeTab === "unidades" || activeTab === "departamentos") {
           insertData.empresa_id = formEmpresaId;
+        }
+        if (activeTab === "departamentos") {
+          insertData.default_role = formDefaultRole || null;
         }
 
         const { error } = await supabase
@@ -545,6 +569,7 @@ const GestionCatalogos = () => {
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
                     <TableHead className="text-muted-foreground">Departamento</TableHead>
+                    <TableHead className="text-muted-foreground w-40">Función (Rol)</TableHead>
                     <TableHead className="text-muted-foreground w-24">Activo</TableHead>
                     <TableHead className="text-muted-foreground w-24 text-right">Acciones</TableHead>
                   </TableRow>
@@ -553,6 +578,35 @@ const GestionCatalogos = () => {
                   {group.deptos.map((item) => (
                     <TableRow key={item.id} className="border-border">
                       <TableCell className="text-foreground">{item.nombre}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={item.default_role || "none"}
+                          onValueChange={async (value) => {
+                            const newRole = value === "none" ? null : value;
+                            try {
+                              const { error } = await supabase
+                                .from("catalogo_departamentos")
+                                .update({ default_role: newRole })
+                                .eq("id", item.id);
+                              if (error) throw error;
+                              toast.success(`Función actualizada para ${item.nombre}`);
+                              fetchAllCatalogs();
+                            } catch (err: any) {
+                              toast.error(err.message || "Error al actualizar");
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs w-36 bg-input border-border">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border z-50">
+                            <SelectItem value="none">Sin asignar</SelectItem>
+                            {roleOptions.map(r => (
+                              <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell>
                         <Switch
                           checked={item.activo}
@@ -730,6 +784,26 @@ const GestionCatalogos = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {activeTab === "departamentos" && (
+              <div className="space-y-2">
+                <Label className="text-foreground">Función (Rol por defecto)</Label>
+                <Select value={formDefaultRole || "none"} onValueChange={(v) => setFormDefaultRole(v === "none" ? "" : v)}>
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue placeholder="Sin asignar" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border z-50">
+                    <SelectItem value="none">Sin asignar</SelectItem>
+                    {roleOptions.map(r => (
+                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Se asignará automáticamente al agregar un usuario a este departamento (solo si es inactivo).
+                </p>
               </div>
             )}
 

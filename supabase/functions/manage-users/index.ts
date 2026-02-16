@@ -288,6 +288,41 @@ Deno.serve(async (req) => {
           .eq('user_id', targetUserId);
       }
 
+      // Auto-assign role based on department default_role (only if user is inactive)
+      if (departamento) {
+        // Check if user currently only has 'inactivo' role
+        const { data: currentRoles } = await supabaseAdmin
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', targetUserId);
+        
+        const isInactive = !currentRoles || currentRoles.length === 0 || 
+          (currentRoles.length === 1 && currentRoles[0].role === 'inactivo');
+        
+        if (isInactive) {
+          // Look up the department's default_role
+          const { data: deptData } = await supabaseAdmin
+            .from('catalogo_departamentos')
+            .select('default_role')
+            .eq('nombre', departamento)
+            .single();
+          
+          if (deptData?.default_role) {
+            // Delete existing roles and assign the department's default role
+            await supabaseAdmin
+              .from('user_roles')
+              .delete()
+              .eq('user_id', targetUserId);
+            
+            await supabaseAdmin
+              .from('user_roles')
+              .insert({ user_id: targetUserId, role: deptData.default_role });
+            
+            console.log(`Auto-assigned role '${deptData.default_role}' to user ${targetUserId} based on department '${departamento}'`);
+          }
+        }
+      }
+
       // Update email if provided
       if (email) {
         const { error: updateEmailError } = await supabaseAdmin.auth.admin.updateUserById(
