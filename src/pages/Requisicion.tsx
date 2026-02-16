@@ -142,7 +142,7 @@ const Requisicion = () => {
   const [wasRejected, setWasRejected] = useState(false);
   const [revisorId, setRevisorId] = useState("");
   const [userEmpresaId, setUserEmpresaId] = useState<string | null>(null);
-  const [selectedProveedores, setSelectedProveedores] = useState<string[]>([]);
+  const [selectedProveedores, setSelectedProveedores] = useState<{ id: string; justificacion: string }[]>([]);
   const [proveedorSearchOpen, setProveedorSearchOpen] = useState(false);
 
   // Form state
@@ -436,7 +436,14 @@ const Requisicion = () => {
     if (!asunto.trim()) requiredErrors.push("Asunto");
     if (!justificacion.trim()) requiredErrors.push("Justificación");
 
-    // Validar campos obligatorios de cada partida
+    // Validar justificación de proveedores seleccionados
+    selectedProveedores.forEach((sp) => {
+      if (!sp.justificacion.trim()) {
+        const prov = getProveedoresByEmpresa(empresa).find(p => p.id === sp.id);
+        requiredErrors.push(`Justificación de proveedor: ${prov?.nombre || sp.id}`);
+      }
+    });
+
     const partidasErrors: string[] = [];
     partidas.forEach((partida, index) => {
       const partidaNum = index + 1;
@@ -1156,31 +1163,46 @@ const Requisicion = () => {
               )}
 
               {/* Proveedores */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label className="text-foreground">
                   Proveedor(es)
                 </Label>
                 {!empresa ? (
                   <p className="text-sm text-muted-foreground">Primero seleccione una empresa</p>
                 ) : (
-                  <div className="space-y-2">
-                    {/* Selected proveedores */}
+                  <div className="space-y-3">
+                    {/* Selected proveedores with justificación */}
                     {selectedProveedores.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {selectedProveedores.map((provId) => {
-                          const prov = getProveedoresByEmpresa(empresa).find(p => p.id === provId);
+                      <div className="space-y-3">
+                        {selectedProveedores.map((sp) => {
+                          const prov = getProveedoresByEmpresa(empresa).find(p => p.id === sp.id);
                           return (
-                            <Badge key={provId} variant="secondary" className="flex items-center gap-1 px-2 py-1">
-                              {prov?.nombre || provId}
-                              {prov?.rfc && <span className="text-muted-foreground text-xs">({prov.rfc})</span>}
-                              <button
-                                type="button"
-                                onClick={() => setSelectedProveedores(prev => prev.filter(id => id !== provId))}
-                                className="ml-1 hover:text-destructive"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
+                            <div key={sp.id} className="p-3 rounded-md border border-border bg-muted/30 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-sm">{prov?.nombre || sp.id}</span>
+                                  {prov?.rfc && <span className="text-muted-foreground text-xs">({prov.rfc})</span>}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedProveedores(prev => prev.filter(p => p.id !== sp.id))}
+                                  className="text-muted-foreground hover:text-destructive"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">Justificación de elección <span className="text-destructive">*</span></Label>
+                                <Input
+                                  value={sp.justificacion}
+                                  onChange={(e) => setSelectedProveedores(prev =>
+                                    prev.map(p => p.id === sp.id ? { ...p, justificacion: e.target.value } : p)
+                                  )}
+                                  placeholder="¿Por qué se eligió este proveedor?"
+                                  className="bg-input border-border text-sm"
+                                />
+                              </div>
+                            </div>
                           );
                         })}
                       </div>
@@ -1189,8 +1211,8 @@ const Requisicion = () => {
                     <Select
                       value=""
                       onValueChange={(value) => {
-                        if (value && !selectedProveedores.includes(value)) {
-                          setSelectedProveedores(prev => [...prev, value]);
+                        if (value && !selectedProveedores.some(sp => sp.id === value)) {
+                          setSelectedProveedores(prev => [...prev, { id: value, justificacion: "" }]);
                         }
                       }}
                     >
@@ -1199,7 +1221,7 @@ const Requisicion = () => {
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border z-50">
                         {getProveedoresByEmpresa(empresa)
-                          .filter(p => !selectedProveedores.includes(p.id))
+                          .filter(p => !selectedProveedores.some(sp => sp.id === p.id))
                           .map((prov) => (
                             <SelectItem key={prov.id} value={prov.id}>
                               <div className="flex items-center gap-2">
