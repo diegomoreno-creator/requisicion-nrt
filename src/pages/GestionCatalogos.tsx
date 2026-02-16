@@ -780,7 +780,7 @@ const GestionCatalogos = () => {
               {group.empresa.nombre}
             </div>
             <div className="rounded-md border border-border overflow-auto max-h-[60vh]" {...dragScrollProps}>
-              <Table className="min-w-[900px]">
+              <Table className="min-w-[1100px]">
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
                     <TableHead className="text-muted-foreground">Nombre Comercial</TableHead>
@@ -842,7 +842,7 @@ const GestionCatalogos = () => {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <Button
           variant="ghost"
           onClick={() => navigate("/dashboard")}
