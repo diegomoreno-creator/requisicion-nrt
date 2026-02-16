@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -109,6 +109,44 @@ const GestionCatalogos = () => {
   const [formRazonSocial, setFormRazonSocial] = useState<string>("");
   const [formActividad, setFormActividad] = useState<string>("");
   const [formCorreo, setFormCorreo] = useState<string>("");
+
+  // Drag-to-scroll for proveedores tables
+  const dragState = useRef({ isDown: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0, el: null as HTMLElement | null });
+
+  const onMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const target = e.target as HTMLElement;
+    if (target.closest('button, input, [role="checkbox"], a, label')) return;
+    dragState.current = { isDown: true, startX: e.pageX, startY: e.pageY, scrollLeft: el.scrollLeft, scrollTop: el.scrollTop, el };
+    el.style.cursor = 'grabbing';
+    el.style.userSelect = 'none';
+  }, []);
+
+  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const ds = dragState.current;
+    if (!ds.isDown || !ds.el) return;
+    e.preventDefault();
+    ds.el.scrollLeft = ds.scrollLeft - (e.pageX - ds.startX);
+    ds.el.scrollTop = ds.scrollTop - (e.pageY - ds.startY);
+  }, []);
+
+  const onMouseUpOrLeave = useCallback(() => {
+    const ds = dragState.current;
+    if (ds.el) {
+      ds.el.style.cursor = 'grab';
+      ds.el.style.userSelect = '';
+    }
+    ds.isDown = false;
+    ds.el = null;
+  }, []);
+
+  const dragScrollProps = {
+    onMouseDown,
+    onMouseMove,
+    onMouseUp: onMouseUpOrLeave,
+    onMouseLeave: onMouseUpOrLeave,
+    style: { cursor: 'grab' as const, WebkitOverflowScrolling: 'touch' as const },
+  };
 
   // Fetch user's empresa_id for non-superadmin scoping
   useEffect(() => {
@@ -741,7 +779,7 @@ const GestionCatalogos = () => {
               <Building2 className="w-4 h-4" />
               {group.empresa.nombre}
             </div>
-            <div className="rounded-md border border-border overflow-auto max-h-[60vh]" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="rounded-md border border-border overflow-auto max-h-[60vh]" {...dragScrollProps}>
               <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
