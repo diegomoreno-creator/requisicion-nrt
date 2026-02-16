@@ -77,11 +77,12 @@ const colorOptions = [
 
 const GestionCatalogos = () => {
   const navigate = useNavigate();
-  const { hasPermission, loading: authLoading } = useAuth();
+  const { hasPermission, isSuperadmin, user, loading: authLoading } = useAuth();
   
   const [activeTab, setActiveTab] = useState("tipos");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [userEmpresaId, setUserEmpresaId] = useState<string | null>(null);
   
   // Data states
   const [tiposRequisicion, setTiposRequisicion] = useState<CatalogoItem[]>([]);
@@ -98,6 +99,29 @@ const GestionCatalogos = () => {
   const [formActivo, setFormActivo] = useState(true);
   const [formEmpresaId, setFormEmpresaId] = useState<string>("");
   const [formDefaultRole, setFormDefaultRole] = useState<string>("");
+
+  // Fetch user's empresa_id for non-superadmin scoping
+  useEffect(() => {
+    const fetchUserEmpresa = async () => {
+      if (!user || isSuperadmin) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("empresa_id")
+        .eq("user_id", user.id)
+        .single();
+      if (data?.empresa_id) setUserEmpresaId(data.empresa_id);
+    };
+    if (!authLoading && user) fetchUserEmpresa();
+  }, [authLoading, user, isSuperadmin]);
+
+  // Set default tab for non-superadmin (they can't see global catalogs)
+  useEffect(() => {
+    if (!authLoading && !isSuperadmin) {
+      if (["tipos", "empresas", "sucursales"].includes(activeTab)) {
+        setActiveTab("unidades");
+      }
+    }
+  }, [authLoading, isSuperadmin]);
 
   useEffect(() => {
     if (!authLoading && !hasPermission('gestionar_catalogos')) {
@@ -150,13 +174,26 @@ const GestionCatalogos = () => {
   const getCurrentData = () => {
     switch (activeTab) {
       case "tipos": return tiposRequisicion;
-      case "unidades": return unidadesNegocio;
+      case "unidades": return filteredUnidades;
       case "empresas": return empresas;
       case "sucursales": return sucursales;
-      case "departamentos": return departamentos;
+      case "departamentos": return filteredDepartamentos;
       default: return [];
     }
   };
+
+  // Filter data by empresa for non-superadmins
+  const filteredUnidades = !isSuperadmin && userEmpresaId
+    ? unidadesNegocio.filter(u => u.empresa_id === userEmpresaId)
+    : unidadesNegocio;
+
+  const filteredDepartamentos = !isSuperadmin && userEmpresaId
+    ? departamentos.filter(d => d.empresa_id === userEmpresaId)
+    : departamentos;
+
+  const filteredEmpresas = !isSuperadmin && userEmpresaId
+    ? empresas.filter(e => e.id === userEmpresaId)
+    : empresas;
 
   const getEmpresaNombre = (empresaId: string | undefined): string => {
     if (!empresaId) return "-";
@@ -183,7 +220,7 @@ const GestionCatalogos = () => {
     setFormNombre("");
     setFormColor("bg-yellow-500");
     setFormActivo(true);
-    setFormEmpresaId("");
+    setFormEmpresaId(!isSuperadmin && userEmpresaId ? userEmpresaId : "");
     setFormDefaultRole("");
     setDialogOpen(true);
   };
@@ -204,7 +241,7 @@ const GestionCatalogos = () => {
       return;
     }
 
-    if ((activeTab === "unidades" || activeTab === "departamentos") && !formEmpresaId) {
+    if ((activeTab === "unidades" || activeTab === "departamentos") && !formEmpresaId && isSuperadmin) {
       toast.error("Debe seleccionar una empresa");
       return;
     }
@@ -467,12 +504,12 @@ const GestionCatalogos = () => {
 
   // Group unidades by empresa for better visualization
   const renderUnidadesGrouped = () => {
-    const grouped = empresas.map(empresa => ({
+    const grouped = filteredEmpresas.map(empresa => ({
       empresa,
-      unidades: unidadesNegocio.filter(u => u.empresa_id === empresa.id)
+      unidades: filteredUnidades.filter(u => u.empresa_id === empresa.id)
     })).filter(g => g.unidades.length > 0);
 
-    const sinEmpresa = unidadesNegocio.filter(u => !u.empresa_id);
+    const sinEmpresa = filteredUnidades.filter(u => !u.empresa_id);
 
     return (
       <div className="space-y-6">
@@ -549,12 +586,12 @@ const GestionCatalogos = () => {
   };
 
   const renderDepartamentosGrouped = () => {
-    const grouped = empresas.map(empresa => ({
+    const grouped = filteredEmpresas.map(empresa => ({
       empresa,
-      deptos: departamentos.filter(d => d.empresa_id === empresa.id)
+      deptos: filteredDepartamentos.filter(d => d.empresa_id === empresa.id)
     })).filter(g => g.deptos.length > 0);
 
-    const sinEmpresa = departamentos.filter(d => !d.empresa_id);
+    const sinEmpresa = filteredDepartamentos.filter(d => !d.empresa_id);
 
     return (
       <div className="space-y-6">
@@ -683,40 +720,52 @@ const GestionCatalogos = () => {
 
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-5 mb-6 bg-muted">
-                <TabsTrigger value="tipos" className="data-[state=active]:bg-background">
-                  <Palette className="w-4 h-4 mr-2" />
-                  Tipos
-                </TabsTrigger>
-                <TabsTrigger value="empresas" className="data-[state=active]:bg-background">
-                  Empresas
-                </TabsTrigger>
+              <TabsList className={cn("grid mb-6 bg-muted", isSuperadmin ? "grid-cols-5" : "grid-cols-2")}>
+                {isSuperadmin && (
+                  <TabsTrigger value="tipos" className="data-[state=active]:bg-background">
+                    <Palette className="w-4 h-4 mr-2" />
+                    Tipos
+                  </TabsTrigger>
+                )}
+                {isSuperadmin && (
+                  <TabsTrigger value="empresas" className="data-[state=active]:bg-background">
+                    Empresas
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="unidades" className="data-[state=active]:bg-background">
                   Unidades
                 </TabsTrigger>
                 <TabsTrigger value="departamentos" className="data-[state=active]:bg-background">
                   Deptos.
                 </TabsTrigger>
-                <TabsTrigger value="sucursales" className="data-[state=active]:bg-background">
-                  Sucursales
-                </TabsTrigger>
+                {isSuperadmin && (
+                  <TabsTrigger value="sucursales" className="data-[state=active]:bg-background">
+                    Sucursales
+                  </TabsTrigger>
+                )}
               </TabsList>
 
-              <TabsContent value="tipos">
-                {renderTable(tiposRequisicion, true)}
-              </TabsContent>
-              <TabsContent value="empresas">
-                {renderEmpresasTable()}
-              </TabsContent>
+              {isSuperadmin && (
+                <TabsContent value="tipos">
+                  {renderTable(tiposRequisicion, true)}
+                </TabsContent>
+              )}
+              {isSuperadmin && (
+                <TabsContent value="empresas">
+                  {renderEmpresasTable()}
+                </TabsContent>
+              )}
               <TabsContent value="unidades">
                 {renderUnidadesGrouped()}
               </TabsContent>
               <TabsContent value="departamentos">
                 {renderDepartamentosGrouped()}
               </TabsContent>
-              <TabsContent value="sucursales">
-                {renderTable(sucursales)}
-              </TabsContent>
+              {isSuperadmin && (
+                <TabsContent value="sucursales">
+                  {renderTable(sucursales)}
+                </TabsContent>
+              )}
             </Tabs>
           </CardContent>
         </Card>
@@ -769,7 +818,7 @@ const GestionCatalogos = () => {
               </div>
             )}
 
-            {(activeTab === "unidades" || activeTab === "departamentos") && (
+            {(activeTab === "unidades" || activeTab === "departamentos") && isSuperadmin && (
               <div className="space-y-2">
                 <Label className="text-foreground">Empresa *</Label>
                 <Select value={formEmpresaId} onValueChange={setFormEmpresaId}>
