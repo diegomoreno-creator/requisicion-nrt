@@ -44,19 +44,32 @@ Deno.serve(async (req) => {
 
     const userId = claims.claims.sub;
 
-    // Check if user is superadmin - now checking for any superadmin role
-    const { data: roleData, error: roleError } = await supabaseAdmin
+    // Check if user is superadmin OR has gestionar_usuarios permission
+    const { data: roleData } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
       .eq('role', 'superadmin');
 
-    if (roleError || !roleData || roleData.length === 0) {
-      console.log('User is not superadmin:', userId);
-      return new Response(
-        JSON.stringify({ error: 'Acceso denegado. Solo superadmin puede gestionar usuarios.' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const isSuperadmin = roleData && roleData.length > 0;
+
+    if (!isSuperadmin) {
+      // Check for gestionar_usuarios permission
+      const { data: permData } = await supabaseAdmin
+        .from('user_permissions')
+        .select('permission')
+        .eq('user_id', userId)
+        .eq('permission', 'gestionar_usuarios');
+
+      const hasPermission = permData && permData.length > 0;
+
+      if (!hasPermission) {
+        console.log('User lacks access:', userId);
+        return new Response(
+          JSON.stringify({ error: 'Acceso denegado. No tienes permisos para gestionar usuarios.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const body = await req.json();
