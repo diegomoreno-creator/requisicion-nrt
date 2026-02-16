@@ -2084,6 +2084,16 @@ const TramiteDetailDialog = ({
               </div>
             )}
 
+            {/* Justificación de Devolución por Revisión */}
+            {((requisicion as any)?.justificacion_devolucion_revision || (reposicion as any)?.justificacion_devolucion_revision) && (
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                <h3 className="text-orange-500 font-semibold mb-2">Comentarios de Revisión</h3>
+                <p className="text-foreground whitespace-pre-wrap">
+                  {(requisicion as any)?.justificacion_devolucion_revision || (reposicion as any)?.justificacion_devolucion_revision}
+                </p>
+              </div>
+            )}
+
             {/* Justificación de Rechazo de Presupuestos */}
             {requisicion && (requisicion as any).justificacion_rechazo_presupuestos && (
               <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4">
@@ -2855,6 +2865,48 @@ const TramiteDetailDialog = ({
               disabled={actionLoading}
             >
               {actionLoading ? "Procesando..." : "Confirmar Pago"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Return Revision Confirmation Dialog */}
+      <AlertDialog open={showReturnRevisionConfirm} onOpenChange={setShowReturnRevisionConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-orange-500" />
+              ¿Devolver trámite al solicitador?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              El trámite <strong>{tramite?.folio}</strong> será devuelto al solicitador para que realice las correcciones indicadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="return-revision-justification" className="text-sm font-medium">
+              Comentarios para el solicitador <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="return-revision-justification"
+              value={returnRevisionJustification}
+              onChange={(e) => setReturnRevisionJustification(e.target.value)}
+              placeholder="Indique los cambios o correcciones necesarias..."
+              className="mt-2"
+              rows={4}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setReturnRevisionJustification("");
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-orange-600 text-white hover:bg-orange-700"
+              onClick={handleReviewReturn}
+              disabled={actionLoading || !returnRevisionJustification.trim()}
+            >
+              {actionLoading ? "Procesando..." : "Confirmar Devolución"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

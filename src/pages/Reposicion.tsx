@@ -62,6 +62,12 @@ interface AutorizadorOption {
   full_name: string | null;
 }
 
+interface RevisorOption {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+}
+
 const Reposicion = () => {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
@@ -75,6 +81,7 @@ const Reposicion = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
   const [autorizadores, setAutorizadores] = useState<AutorizadorOption[]>([]);
+  const [revisores, setRevisores] = useState<RevisorOption[]>([]);
   const [originalReposicionId, setOriginalReposicionId] = useState<string | null>(null);
 
   // Form state
@@ -82,6 +89,7 @@ const Reposicion = () => {
   const [fechaSolicitud, setFechaSolicitud] = useState<Date>(new Date());
   const [gastosSemana, setGastosSemana] = useState("");
   const [autorizadorId, setAutorizadorId] = useState("");
+  const [revisorId, setRevisorId] = useState("");
   const [tipoReposicion, setTipoReposicion] = useState("gastos_semanales");
   const [banco, setBanco] = useState("");
   const [cuentaClabe, setCuentaClabe] = useState("");
@@ -119,6 +127,7 @@ const Reposicion = () => {
 
   useEffect(() => {
     fetchAutorizadores();
+    fetchRevisores();
   }, []);
 
   // Load existing reposición data for editing
@@ -234,6 +243,16 @@ const Reposicion = () => {
     }
   };
 
+  const fetchRevisores = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_revisores');
+      if (error) throw error;
+      setRevisores(data || []);
+    } catch (error) {
+      console.error("Error fetching revisores:", error);
+    }
+  };
+
   const addGasto = () => {
     const newGasto: Gasto = {
       id: crypto.randomUUID(),
@@ -291,6 +310,7 @@ const Reposicion = () => {
             fecha_solicitud: fechaSolicitud?.toISOString().split("T")[0],
             gastos_semana: gastosSemana ? parseFloat(gastosSemana) : 0,
             autorizador_id: autorizadorId || null,
+            revisor_id: revisorId || null,
             monto_total: montoTotal,
             tipo_reposicion: tipoReposicion,
             banco: tipoReposicion === "colaborador" ? banco : null,
@@ -298,8 +318,10 @@ const Reposicion = () => {
             reponer_a: reponerA,
             asunto,
             justificacion,
-            estado: "pendiente", // Reset to pendiente if it was rejected
-          })
+            estado: "pendiente",
+            justificacion_rechazo: null,
+            justificacion_devolucion_revision: null,
+          } as any)
           .eq("id", originalReposicionId);
 
         if (repoError) throw repoError;
@@ -359,6 +381,11 @@ const Reposicion = () => {
         if (folioError) throw folioError;
         const newFolio = folioData as string;
 
+        // Determine initial estado based on revision
+        const selectedEmpresaForRevision = gastos[0]?.empresa_id ? empresas.find(e => e.id === gastos[0].empresa_id) : null;
+        const revisionEnabled = selectedEmpresaForRevision?.revision_habilitada && revisorId;
+        const finalEstado = revisionEnabled ? "pendiente_revision" : "pendiente";
+
         // Insert new reposición
         const { data: reposicion, error: repoError } = await supabase
           .from("reposiciones")
@@ -368,6 +395,7 @@ const Reposicion = () => {
             solicitado_por: user.id,
             gastos_semana: gastosSemana ? parseFloat(gastosSemana) : 0,
             autorizador_id: autorizadorId || null,
+            revisor_id: revisorId || null,
             monto_total: montoTotal,
             tipo_reposicion: tipoReposicion,
             banco: tipoReposicion === "colaborador" ? banco : null,
@@ -375,8 +403,8 @@ const Reposicion = () => {
             reponer_a: reponerA,
             asunto,
             justificacion,
-            estado: "pendiente",
-          })
+            estado: finalEstado,
+          } as any)
           .select()
           .single();
 
@@ -535,6 +563,25 @@ const Reposicion = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Revisor selector - only show if any empresa has revision_habilitada */}
+                {empresas.some(e => e.revision_habilitada) && revisores.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Revisor <span className="text-xs text-muted-foreground">(opcional)</span></Label>
+                    <Select value={revisorId} onValueChange={setRevisorId}>
+                      <SelectTrigger className="bg-input border-border">
+                        <SelectValue placeholder="Seleccione un revisor" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border z-50">
+                        {revisores.map((rev) => (
+                          <SelectItem key={rev.user_id} value={rev.user_id}>
+                            {rev.full_name || rev.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               {/* Gastos a reponer Section */}
