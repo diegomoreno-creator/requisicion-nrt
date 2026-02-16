@@ -31,6 +31,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   ArrowLeft, 
   Settings, 
@@ -762,7 +763,7 @@ const GestionCatalogos = () => {
                       <TableCell className="text-muted-foreground text-sm">{item.actividad || "-"}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{item.correo || "-"}</TableCell>
                       <TableCell>
-                        <Switch checked={item.activo} onCheckedChange={() => toggleActivo(item)} />
+                        <Checkbox checked={item.activo} onCheckedChange={() => toggleActivo(item)} />
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
