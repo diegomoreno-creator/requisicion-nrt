@@ -81,30 +81,39 @@ export type Database = {
       }
       catalogo_proveedores: {
         Row: {
+          actividad: string | null
           activo: boolean | null
+          correo: string | null
           created_at: string
           empresa_id: string | null
           id: string
           nombre: string
           orden: number | null
+          razon_social: string | null
           rfc: string | null
         }
         Insert: {
+          actividad?: string | null
           activo?: boolean | null
+          correo?: string | null
           created_at?: string
           empresa_id?: string | null
           id?: string
           nombre: string
           orden?: number | null
+          razon_social?: string | null
           rfc?: string | null
         }
         Update: {
+          actividad?: string | null
           activo?: boolean | null
+          correo?: string | null
           created_at?: string
           empresa_id?: string | null
           id?: string
           nombre?: string
           orden?: number | null
+          razon_social?: string | null
           rfc?: string | null
         }
         Relationships: [

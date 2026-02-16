@@ -54,6 +54,9 @@ interface CatalogoItem {
   empresa_id?: string;
   default_role?: string | null;
   rfc?: string | null;
+  razon_social?: string | null;
+  actividad?: string | null;
+  correo?: string | null;
 }
 
 interface EmpresaItem {
@@ -102,6 +105,9 @@ const GestionCatalogos = () => {
   const [formEmpresaId, setFormEmpresaId] = useState<string>("");
   const [formDefaultRole, setFormDefaultRole] = useState<string>("");
   const [formRfc, setFormRfc] = useState<string>("");
+  const [formRazonSocial, setFormRazonSocial] = useState<string>("");
+  const [formActividad, setFormActividad] = useState<string>("");
+  const [formCorreo, setFormCorreo] = useState<string>("");
 
   // Fetch user's empresa_id for non-superadmin scoping
   useEffect(() => {
@@ -234,6 +240,9 @@ const GestionCatalogos = () => {
     setFormEmpresaId(!isSuperadmin && userEmpresaId ? userEmpresaId : "");
     setFormDefaultRole("");
     setFormRfc("");
+    setFormRazonSocial("");
+    setFormActividad("");
+    setFormCorreo("");
     setDialogOpen(true);
   };
 
@@ -245,6 +254,9 @@ const GestionCatalogos = () => {
     setFormEmpresaId(item.empresa_id || (!isSuperadmin && userEmpresaId ? userEmpresaId : ""));
     setFormDefaultRole(item.default_role || "");
     setFormRfc(item.rfc || "");
+    setFormRazonSocial(item.razon_social || "");
+    setFormActividad(item.actividad || "");
+    setFormCorreo(item.correo || "");
     setDialogOpen(true);
   };
 
@@ -277,6 +289,9 @@ const GestionCatalogos = () => {
         }
         if (activeTab === "proveedores") {
           updateData.rfc = formRfc || null;
+          updateData.razon_social = formRazonSocial || null;
+          updateData.actividad = formActividad || null;
+          updateData.correo = formCorreo || null;
         }
 
         const { error } = await supabase
@@ -304,6 +319,9 @@ const GestionCatalogos = () => {
         }
         if (activeTab === "proveedores") {
           insertData.rfc = formRfc || null;
+          insertData.razon_social = formRazonSocial || null;
+          insertData.actividad = formActividad || null;
+          insertData.correo = formCorreo || null;
         }
 
         const { error } = await supabase
@@ -726,8 +744,11 @@ const GestionCatalogos = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-muted-foreground">Proveedor</TableHead>
-                    <TableHead className="text-muted-foreground w-40">RFC</TableHead>
+                    <TableHead className="text-muted-foreground">Nombre Comercial</TableHead>
+                    <TableHead className="text-muted-foreground">Razón Social</TableHead>
+                    <TableHead className="text-muted-foreground w-32">RFC</TableHead>
+                    <TableHead className="text-muted-foreground">Actividad</TableHead>
+                    <TableHead className="text-muted-foreground">Correo</TableHead>
                     <TableHead className="text-muted-foreground w-24">Activo</TableHead>
                     <TableHead className="text-muted-foreground w-24 text-right">Acciones</TableHead>
                   </TableRow>
@@ -736,7 +757,10 @@ const GestionCatalogos = () => {
                   {group.provs.map((item) => (
                     <TableRow key={item.id} className="border-border">
                       <TableCell className="text-foreground">{item.nombre}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{item.razon_social || "-"}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{item.rfc || "-"}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{item.actividad || "-"}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{item.correo || "-"}</TableCell>
                       <TableCell>
                         <Switch checked={item.activo} onCheckedChange={() => toggleActivo(item)} />
                       </TableCell>
@@ -885,12 +909,14 @@ const GestionCatalogos = () => {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label className="text-foreground">Nombre *</Label>
+              <Label className="text-foreground">
+                {activeTab === "proveedores" ? "Nombre Comercial *" : "Nombre *"}
+              </Label>
               <Input
                 value={formNombre}
                 onChange={(e) => setFormNombre(e.target.value)}
                 className="bg-input border-border"
-                placeholder="Nombre del elemento"
+                placeholder={activeTab === "proveedores" ? "Nombre comercial del proveedor" : "Nombre del elemento"}
               />
             </div>
 
@@ -934,15 +960,45 @@ const GestionCatalogos = () => {
             )}
 
             {activeTab === "proveedores" && (
-              <div className="space-y-2">
-                <Label className="text-foreground">RFC</Label>
-                <Input
-                  value={formRfc}
-                  onChange={(e) => setFormRfc(e.target.value.toUpperCase())}
-                  className="bg-input border-border"
-                  placeholder="RFC del proveedor"
-                  maxLength={13}
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-foreground">RFC</Label>
+                  <Input
+                    value={formRfc}
+                    onChange={(e) => setFormRfc(e.target.value.toUpperCase())}
+                    className="bg-input border-border"
+                    placeholder="RFC del proveedor"
+                    maxLength={13}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-foreground">Razón Social</Label>
+                  <Input
+                    value={formRazonSocial}
+                    onChange={(e) => setFormRazonSocial(e.target.value)}
+                    className="bg-input border-border"
+                    placeholder="Razón social del proveedor"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-foreground">Actividad</Label>
+                  <Input
+                    value={formActividad}
+                    onChange={(e) => setFormActividad(e.target.value)}
+                    className="bg-input border-border"
+                    placeholder="Actividad del proveedor"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-foreground">Correo</Label>
+                  <Input
+                    value={formCorreo}
+                    onChange={(e) => setFormCorreo(e.target.value)}
+                    className="bg-input border-border"
+                    placeholder="correo@proveedor.com"
+                    type="email"
+                  />
+                </div>
               </div>
             )}
 
