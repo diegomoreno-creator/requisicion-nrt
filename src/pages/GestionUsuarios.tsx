@@ -64,6 +64,8 @@ const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'revision', '
 // Role groupings for UI
 const compraPagoRoles: AppRole[] = ['admin', 'autorizador', 'revision', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo'];
 const contabilidadRoles: AppRole[] = ['contabilidad_gastos', 'contabilidad_ingresos'];
+// Roles that non-superadmin admins can assign
+const adminAllowedRoles: AppRole[] = ['solicitador', 'revision', 'autorizador'];
 
 const roleLabels: Record<AppRole, string> = {
   superadmin: "Super Admin",
@@ -570,7 +572,8 @@ const GestionUsuarios = () => {
                   <div className="space-y-2">
                     <Label className="text-foreground">Roles</Label>
                     
-                    {/* Superadmin - Separate */}
+                    {/* Superadmin - Separate (only for superadmins) */}
+                    {isSuperadmin && (
                     <div className="p-3 rounded-md border border-border bg-muted/30">
                       <div className="flex items-center space-x-2">
                         <Checkbox
@@ -586,12 +589,13 @@ const GestionUsuarios = () => {
                         </label>
                       </div>
                     </div>
+                    )}
 
                     {/* Compra-Pago Section */}
                     <div className="p-3 rounded-md border border-border">
                       <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Compra-Pago</p>
                       <div className="grid grid-cols-2 gap-2">
-                        {compraPagoRoles.map(role => (
+                        {(isSuperadmin ? compraPagoRoles : compraPagoRoles.filter(r => adminAllowedRoles.includes(r))).map(role => (
                           <div key={role} className="flex items-center space-x-2">
                             <Checkbox
                               id={`new-${role}`}
@@ -609,7 +613,8 @@ const GestionUsuarios = () => {
                       </div>
                     </div>
 
-                    {/* Contabilidad Section */}
+                    {/* Contabilidad Section (only for superadmins) */}
+                    {isSuperadmin && (
                     <div className="p-3 rounded-md border border-border">
                       <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Contabilidad</p>
                       <div className="grid grid-cols-2 gap-2">
@@ -630,6 +635,7 @@ const GestionUsuarios = () => {
                         ))}
                     </div>
                   </div>
+                    )}
 
                   {/* Empresa */}
                   <div className="space-y-2">
@@ -986,7 +992,8 @@ const GestionUsuarios = () => {
             <div className="space-y-2">
               <Label className="text-foreground">Roles</Label>
               
-              {/* Superadmin - Separate */}
+              {/* Superadmin - Separate (only for superadmins) */}
+              {isSuperadmin && (
               <div className="p-3 rounded-md border border-border bg-muted/30">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -1002,12 +1009,13 @@ const GestionUsuarios = () => {
                   </label>
                 </div>
               </div>
+              )}
 
               {/* Compra-Pago Section */}
               <div className="p-3 rounded-md border border-border">
                 <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Compra-Pago</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {compraPagoRoles.map(role => (
+                  {(isSuperadmin ? compraPagoRoles : compraPagoRoles.filter(r => adminAllowedRoles.includes(r))).map(role => (
                     <div key={role} className="flex items-center space-x-2">
                       <Checkbox
                         id={`edit-${role}`}
@@ -1025,7 +1033,8 @@ const GestionUsuarios = () => {
                 </div>
               </div>
 
-              {/* Contabilidad Section */}
+              {/* Contabilidad Section (only for superadmins) */}
+              {isSuperadmin && (
               <div className="p-3 rounded-md border border-border">
                 <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Contabilidad</p>
                 <div className="grid grid-cols-2 gap-2">
@@ -1046,6 +1055,7 @@ const GestionUsuarios = () => {
                   ))}
                 </div>
               </div>
+              )}
             </div>
 
             {/* Empresa */}
