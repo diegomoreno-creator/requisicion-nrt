@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           activo: boolean | null
           created_at: string
+          default_role: string | null
           empresa_id: string | null
           id: string
           nombre: string
@@ -26,6 +27,7 @@ export type Database = {
         Insert: {
           activo?: boolean | null
           created_at?: string
+          default_role?: string | null
           empresa_id?: string | null
           id?: string
           nombre: string
@@ -34,6 +36,7 @@ export type Database = {
         Update: {
           activo?: boolean | null
           created_at?: string
+          default_role?: string | null
           empresa_id?: string | null
           id?: string
           nombre?: string
