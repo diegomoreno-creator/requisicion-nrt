@@ -28,6 +28,7 @@ export interface Departamento {
   nombre: string;
   empresa_id: string | null;
   activo: boolean;
+  default_role: string | null;
 }
 
 export const useCatalogos = () => {
@@ -87,7 +88,7 @@ export const useCatalogos = () => {
           .order("orden"),
         supabase
           .from("catalogo_departamentos")
-          .select("id, nombre, empresa_id, activo")
+          .select("id, nombre, empresa_id, activo, default_role")
           .eq("activo", true)
           .order("orden"),
       ]);
