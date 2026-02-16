@@ -53,6 +53,9 @@ Deno.serve(async (req) => {
 
     const isSuperadmin = roleData && roleData.length > 0;
 
+    // For non-superadmin, get their empresa_id to scope access
+    let callerEmpresaId: string | null = null;
+
     if (!isSuperadmin) {
       // Check for gestionar_usuarios permission
       const { data: permData } = await supabaseAdmin
@@ -67,6 +70,22 @@ Deno.serve(async (req) => {
         console.log('User lacks access:', userId);
         return new Response(
           JSON.stringify({ error: 'Acceso denegado. No tienes permisos para gestionar usuarios.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Get the caller's empresa_id to scope their access
+      const { data: callerProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('empresa_id')
+        .eq('user_id', userId)
+        .single();
+
+      callerEmpresaId = callerProfile?.empresa_id || null;
+
+      if (!callerEmpresaId) {
+        return new Response(
+          JSON.stringify({ error: 'No tienes una empresa asignada. Contacta al superadmin.' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -137,18 +156,39 @@ Deno.serve(async (req) => {
       const empresasMap = new Map<string, string>();
       empresas?.forEach(e => empresasMap.set(e.id, e.nombre));
 
-      const usersWithRoles = users?.map(u => ({
+      let usersWithRoles = users?.map(u => ({
         ...u,
         roles: rolesMap.get(u.user_id) || ['inactivo'],
         permissions: permsMap.get(u.user_id) || [],
         empresa_nombre: u.empresa_id ? empresasMap.get(u.empresa_id) || null : null
       })) || [];
 
+      // If non-superadmin, filter to only users from same empresa
+      if (callerEmpresaId) {
+        usersWithRoles = usersWithRoles.filter(u => u.empresa_id === callerEmpresaId);
+      }
+
       return new Response(
         JSON.stringify({ users: usersWithRoles }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Helper: verify target user belongs to same empresa (for non-superadmin)
+    const verifyTargetCompany = async (targetUserId: string): Promise<boolean> => {
+      if (!callerEmpresaId) return true; // superadmin, no restriction
+      const { data: targetProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('empresa_id')
+        .eq('user_id', targetUserId)
+        .single();
+      return targetProfile?.empresa_id === callerEmpresaId;
+    };
+
+    const denyCompanyAccess = () => new Response(
+      JSON.stringify({ error: 'No puedes gestionar usuarios de otra empresa.' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
     if (action === 'createUser') {
       const { email, password, fullName, roles } = body;
@@ -222,6 +262,10 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'updateUser') {
+      // Company scope check for non-superadmin
+      const { targetUserId: tuid } = body;
+      if (tuid && !(await verifyTargetCompany(tuid))) return denyCompanyAccess();
+
       const { targetUserId, fullName, email, empresaId, departamento } = body;
       
       if (!targetUserId) {
@@ -270,6 +314,7 @@ Deno.serve(async (req) => {
 
     if (action === 'updatePassword') {
       const { targetUserId, newPassword } = body;
+      if (targetUserId && !(await verifyTargetCompany(targetUserId))) return denyCompanyAccess();
       
       if (!targetUserId || !newPassword) {
         return new Response(
@@ -303,6 +348,7 @@ Deno.serve(async (req) => {
 
     if (action === 'setRoles') {
       const { targetUserId, roles } = body;
+      if (targetUserId && !(await verifyTargetCompany(targetUserId))) return denyCompanyAccess();
       
       if (!targetUserId || !Array.isArray(roles) || roles.length === 0) {
         return new Response(
@@ -338,8 +384,9 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'updateRole') {
-      // Legacy support - now updates all roles at once
+      // Legacy support
       const { targetUserId, newRole } = body;
+      if (targetUserId && !(await verifyTargetCompany(targetUserId))) return denyCompanyAccess();
       
       if (!targetUserId || !newRole) {
         return new Response(
@@ -369,6 +416,7 @@ Deno.serve(async (req) => {
 
     if (action === 'deleteUser') {
       const { targetUserId } = body;
+      if (targetUserId && !(await verifyTargetCompany(targetUserId))) return denyCompanyAccess();
       
       if (!targetUserId) {
         return new Response(
@@ -497,6 +545,7 @@ Deno.serve(async (req) => {
 
     if (action === 'setPermissions') {
       const { targetUserId, permissions } = body;
+      if (targetUserId && !(await verifyTargetCompany(targetUserId))) return denyCompanyAccess();
       
       if (!targetUserId || !Array.isArray(permissions)) {
         return new Response(
