@@ -31,7 +31,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ArrowLeft, Plus, Trash2, CalendarIcon, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, CalendarIcon, Loader2, X, Check, ChevronsUpDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -129,6 +130,7 @@ const Requisicion = () => {
     empresas, 
     sucursales, 
     getUnidadesByEmpresa,
+    getProveedoresByEmpresa,
     loading: catalogosLoading 
   } = useCatalogos();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -138,6 +140,9 @@ const Requisicion = () => {
   const [originalRequisicionId, setOriginalRequisicionId] = useState<string | null>(null);
   const [wasRejected, setWasRejected] = useState(false);
   const [revisorId, setRevisorId] = useState("");
+  const [userEmpresaId, setUserEmpresaId] = useState<string | null>(null);
+  const [selectedProveedores, setSelectedProveedores] = useState<string[]>([]);
+  const [proveedorSearchOpen, setProveedorSearchOpen] = useState(false);
 
   // Form state
   const [folio, setFolio] = useState("");
@@ -201,6 +206,25 @@ const Requisicion = () => {
     fetchRevisores();
   }, []);
 
+  // Fetch user's assigned empresa
+  useEffect(() => {
+    const fetchUserEmpresa = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("empresa_id")
+        .eq("user_id", user.id)
+        .single();
+      if (data?.empresa_id) {
+        setUserEmpresaId(data.empresa_id);
+        if (!isEditMode) {
+          setEmpresa(data.empresa_id);
+        }
+      }
+    };
+    fetchUserEmpresa();
+  }, [user]);
+
   // Load existing requisicion data for editing
   useEffect(() => {
     if (editId && user) {
@@ -258,7 +282,20 @@ const Requisicion = () => {
       setSeDividiraGasto(req.se_dividira_gasto || false);
       setUnDivisionGasto(req.un_division_gasto || "");
       setPorcentajeCadaUn(req.porcentaje_cada_un || "");
-      setDatosProveedor(req.datos_proveedor || "");
+      // Parse proveedores from datos_proveedor (stored as JSON array of IDs)
+      if (req.datos_proveedor) {
+        try {
+          const parsed = JSON.parse(req.datos_proveedor);
+          if (Array.isArray(parsed)) {
+            setSelectedProveedores(parsed);
+          } else {
+            setDatosProveedor(req.datos_proveedor);
+          }
+        } catch {
+          // Legacy text format
+          setDatosProveedor(req.datos_proveedor);
+        }
+      }
       setDatosBanco(req.datos_banco || "");
       setNombreProyecto(req.nombre_proyecto || "");
       setAsunto(req.asunto || "");
@@ -512,7 +549,7 @@ const Requisicion = () => {
           se_dividira_gasto: seDividiraGasto,
           un_division_gasto: seDividiraGasto ? unDivisionGasto : null,
           porcentaje_cada_un: seDividiraGasto ? porcentajeCadaUn : null,
-          datos_proveedor: datosProveedor,
+          datos_proveedor: selectedProveedores.length > 0 ? JSON.stringify(selectedProveedores) : datosProveedor || null,
           datos_banco: datosBanco,
           nombre_proyecto: nombreProyecto,
           asunto,
@@ -583,7 +620,7 @@ const Requisicion = () => {
             se_dividira_gasto: seDividiraGasto,
             un_division_gasto: seDividiraGasto ? unDivisionGasto : null,
             porcentaje_cada_un: seDividiraGasto ? porcentajeCadaUn : null,
-            datos_proveedor: datosProveedor,
+            datos_proveedor: selectedProveedores.length > 0 ? JSON.stringify(selectedProveedores) : datosProveedor || null,
             datos_banco: datosBanco,
             nombre_proyecto: nombreProyecto,
             asunto,
@@ -729,7 +766,9 @@ const Requisicion = () => {
                     onValueChange={(value) => {
                       setEmpresa(value);
                       setUnidadNegocio(""); // Reset unidad when empresa changes
+                      setSelectedProveedores([]); // Reset proveedores when empresa changes
                     }}
+                    disabled={!!userEmpresaId}
                   >
                     <SelectTrigger className="bg-input border-border">
                       <SelectValue placeholder="Seleccione una empresa" />
@@ -1113,16 +1152,63 @@ const Requisicion = () => {
                 </div>
               )}
 
-              {/* Datos de proveedor */}
+              {/* Proveedores */}
               <div className="space-y-2">
                 <Label className="text-foreground">
-                  Si tramita pago a proveedor adjuntar sus datos, CSF, forma y datos para el pago
+                  Proveedor(es)
                 </Label>
-                <Textarea
-                  value={datosProveedor}
-                  onChange={(e) => setDatosProveedor(e.target.value)}
-                  className="bg-input border-border min-h-24"
-                />
+                {!empresa ? (
+                  <p className="text-sm text-muted-foreground">Primero seleccione una empresa</p>
+                ) : (
+                  <div className="space-y-2">
+                    {/* Selected proveedores */}
+                    {selectedProveedores.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedProveedores.map((provId) => {
+                          const prov = getProveedoresByEmpresa(empresa).find(p => p.id === provId);
+                          return (
+                            <Badge key={provId} variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                              {prov?.nombre || provId}
+                              {prov?.rfc && <span className="text-muted-foreground text-xs">({prov.rfc})</span>}
+                              <button
+                                type="button"
+                                onClick={() => setSelectedProveedores(prev => prev.filter(id => id !== provId))}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {/* Add proveedor selector */}
+                    <Select
+                      value=""
+                      onValueChange={(value) => {
+                        if (value && !selectedProveedores.includes(value)) {
+                          setSelectedProveedores(prev => [...prev, value]);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="bg-input border-border">
+                        <SelectValue placeholder="Agregar proveedor..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border z-50">
+                        {getProveedoresByEmpresa(empresa)
+                          .filter(p => !selectedProveedores.includes(p.id))
+                          .map((prov) => (
+                            <SelectItem key={prov.id} value={prov.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{prov.nombre}</span>
+                                {prov.rfc && <span className="text-muted-foreground text-xs">({prov.rfc})</span>}
+                              </div>
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               {/* Datos bancarios */}
