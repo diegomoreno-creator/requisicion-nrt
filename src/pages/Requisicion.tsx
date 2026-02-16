@@ -118,6 +118,7 @@ interface UserOption {
   user_id: string;
   email: string;
   full_name: string | null;
+  empresa_id?: string | null;
 }
 
 const Requisicion = () => {
@@ -852,7 +853,9 @@ const Requisicion = () => {
                       <SelectValue placeholder="Seleccione un autorizador" />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border z-50">
-                      {autorizadores.map((aut) => (
+                      {autorizadores
+                        .filter(aut => !userEmpresaId || aut.empresa_id === userEmpresaId)
+                        .map((aut) => (
                         <SelectItem key={aut.user_id} value={aut.user_id}>
                           {aut.full_name || aut.email}
                         </SelectItem>
