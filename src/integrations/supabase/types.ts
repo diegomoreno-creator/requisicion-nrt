@@ -56,6 +56,7 @@ export type Database = {
           id: string
           nombre: string
           orden: number | null
+          revision_habilitada: boolean
         }
         Insert: {
           activo?: boolean | null
@@ -63,6 +64,7 @@ export type Database = {
           id?: string
           nombre: string
           orden?: number | null
+          revision_habilitada?: boolean
         }
         Update: {
           activo?: boolean | null
@@ -70,6 +72,7 @@ export type Database = {
           id?: string
           nombre?: string
           orden?: number | null
+          revision_habilitada?: boolean
         }
         Relationships: []
       }
@@ -470,15 +473,19 @@ export type Database = {
           estado: string
           fecha_autorizacion: string | null
           fecha_pago: string | null
+          fecha_revision: string | null
           fecha_solicitud: string
           folio: string
           gastos_semana: number | null
           id: string
           justificacion: string | null
+          justificacion_devolucion_revision: string | null
           justificacion_rechazo: string | null
           monto_total: number | null
           pagado_por: string | null
           reponer_a: string | null
+          revisado_por: string | null
+          revisor_id: string | null
           solicitado_por: string
           tipo_reposicion: string
           updated_at: string
@@ -493,15 +500,19 @@ export type Database = {
           estado?: string
           fecha_autorizacion?: string | null
           fecha_pago?: string | null
+          fecha_revision?: string | null
           fecha_solicitud?: string
           folio: string
           gastos_semana?: number | null
           id?: string
           justificacion?: string | null
+          justificacion_devolucion_revision?: string | null
           justificacion_rechazo?: string | null
           monto_total?: number | null
           pagado_por?: string | null
           reponer_a?: string | null
+          revisado_por?: string | null
+          revisor_id?: string | null
           solicitado_por: string
           tipo_reposicion?: string
           updated_at?: string
@@ -516,15 +527,19 @@ export type Database = {
           estado?: string
           fecha_autorizacion?: string | null
           fecha_pago?: string | null
+          fecha_revision?: string | null
           fecha_solicitud?: string
           folio?: string
           gastos_semana?: number | null
           id?: string
           justificacion?: string | null
+          justificacion_devolucion_revision?: string | null
           justificacion_rechazo?: string | null
           monto_total?: number | null
           pagado_por?: string | null
           reponer_a?: string | null
+          revisado_por?: string | null
+          revisor_id?: string | null
           solicitado_por?: string
           tipo_reposicion?: string
           updated_at?: string
@@ -689,9 +704,11 @@ export type Database = {
           fecha_pedido_autorizado: string | null
           fecha_pedido_colocado: string | null
           fecha_rechazo_presupuestos: string | null
+          fecha_revision: string | null
           folio: string
           id: string
           justificacion: string | null
+          justificacion_devolucion_revision: string | null
           justificacion_rechazo: string | null
           justificacion_rechazo_presupuestos: string | null
           licitado_por: string | null
@@ -706,6 +723,8 @@ export type Database = {
           rechazado_por_presupuestos_id: string | null
           rechazado_por_presupuestos_nombre: string | null
           rechazado_por_presupuestos_rol: string | null
+          revisado_por: string | null
+          revisor_id: string | null
           se_dividira_gasto: boolean | null
           solicitado_por: string
           sucursal: string | null
@@ -739,9 +758,11 @@ export type Database = {
           fecha_pedido_autorizado?: string | null
           fecha_pedido_colocado?: string | null
           fecha_rechazo_presupuestos?: string | null
+          fecha_revision?: string | null
           folio: string
           id?: string
           justificacion?: string | null
+          justificacion_devolucion_revision?: string | null
           justificacion_rechazo?: string | null
           justificacion_rechazo_presupuestos?: string | null
           licitado_por?: string | null
@@ -756,6 +777,8 @@ export type Database = {
           rechazado_por_presupuestos_id?: string | null
           rechazado_por_presupuestos_nombre?: string | null
           rechazado_por_presupuestos_rol?: string | null
+          revisado_por?: string | null
+          revisor_id?: string | null
           se_dividira_gasto?: boolean | null
           solicitado_por: string
           sucursal?: string | null
@@ -789,9 +812,11 @@ export type Database = {
           fecha_pedido_autorizado?: string | null
           fecha_pedido_colocado?: string | null
           fecha_rechazo_presupuestos?: string | null
+          fecha_revision?: string | null
           folio?: string
           id?: string
           justificacion?: string | null
+          justificacion_devolucion_revision?: string | null
           justificacion_rechazo?: string | null
           justificacion_rechazo_presupuestos?: string | null
           licitado_por?: string | null
@@ -806,6 +831,8 @@ export type Database = {
           rechazado_por_presupuestos_id?: string | null
           rechazado_por_presupuestos_nombre?: string | null
           rechazado_por_presupuestos_rol?: string | null
+          revisado_por?: string | null
+          revisor_id?: string | null
           se_dividira_gasto?: boolean | null
           solicitado_por?: string
           sucursal?: string | null
