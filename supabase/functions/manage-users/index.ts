@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
     );
 
     if (action === 'createUser') {
-      const { email, password, fullName, roles } = body;
+      const { email, password, fullName, roles, empresaId, departamento } = body;
       
       if (!email || !password) {
         return new Response(
@@ -246,11 +246,16 @@ Deno.serve(async (req) => {
             });
         }
 
-        // Also update full_name in profile if provided
-        if (fullName) {
+        // Update profile with full_name, empresa_id, and departamento
+        const profileUpdate: Record<string, unknown> = {};
+        if (fullName) profileUpdate.full_name = fullName;
+        if (empresaId) profileUpdate.empresa_id = empresaId;
+        if (departamento) profileUpdate.departamento = departamento;
+        
+        if (Object.keys(profileUpdate).length > 0) {
           await supabaseAdmin
             .from('profiles')
-            .update({ full_name: fullName })
+            .update(profileUpdate)
             .eq('user_id', newUser.user.id);
         }
       }

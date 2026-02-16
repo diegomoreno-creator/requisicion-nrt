@@ -131,8 +131,9 @@ const GestionUsuarios = () => {
   const [newUserFullName, setNewUserFullName] = useState("");
   const [newUserRoles, setNewUserRoles] = useState<AppRole[]>(["solicitador"]);
   const [newUserEmpresaId, setNewUserEmpresaId] = useState<string | null>(null);
+  const [newUserDepartamento, setNewUserDepartamento] = useState<string>("");
 
-  const { empresas, getDepartamentosByEmpresa } = useCatalogos();
+  const { empresas, getDepartamentosByEmpresa, departamentos: allDepartamentos } = useCatalogos();
   const { user, isSuperadmin, hasPermission, loading: authLoading } = useAuth();
   const canManageUsers = hasPermission('gestionar_usuarios');
   const [callerEmpresaId, setCallerEmpresaId] = useState<string | null>(null);
@@ -227,7 +228,9 @@ const GestionUsuarios = () => {
           email: newUserEmail,
           password: newUserPassword,
           fullName: newUserFullName,
-          roles: newUserRoles
+          roles: newUserRoles,
+          empresaId: newUserEmpresaId,
+          departamento: newUserDepartamento || null,
         }
       });
 
@@ -261,6 +264,7 @@ const GestionUsuarios = () => {
     setNewUserFullName("");
     setNewUserRoles(["solicitador"]);
     setNewUserEmpresaId(null);
+    setNewUserDepartamento("");
   };
 
   const handleEditUser = (u: UserWithRoles) => {
@@ -635,7 +639,10 @@ const GestionUsuarios = () => {
                     </Label>
                     <Select 
                       value={newUserEmpresaId || "none"} 
-                      onValueChange={(v) => setNewUserEmpresaId(v === "none" ? null : v)}
+                      onValueChange={(v) => {
+                        setNewUserEmpresaId(v === "none" ? null : v);
+                        setNewUserDepartamento("");
+                      }}
                       disabled={!isSuperadmin && availableEmpresas.length <= 1}
                     >
                       <SelectTrigger className="bg-input border-border">
@@ -649,6 +656,41 @@ const GestionUsuarios = () => {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Departamento */}
+                  {newUserEmpresaId && (
+                    <div className="space-y-2">
+                      <Label className="text-foreground">Departamento</Label>
+                      <Select 
+                        value={newUserDepartamento || "none"} 
+                        onValueChange={(v) => {
+                          const dept = v === "none" ? "" : v;
+                          setNewUserDepartamento(dept);
+                          // Auto-check role based on department's default_role
+                          if (dept) {
+                            const deptData = getDepartamentosByEmpresa(newUserEmpresaId!).find(d => d.nombre === dept);
+                            if (deptData && deptData.default_role) {
+                              const defaultRole = deptData.default_role as AppRole;
+                              if (!newUserRoles.includes(defaultRole)) {
+                                let updated = [...newUserRoles.filter(r => r !== 'inactivo'), defaultRole];
+                                setNewUserRoles(updated);
+                              }
+                            }
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="bg-input border-border">
+                          <SelectValue placeholder="Seleccionar departamento" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover border-border">
+                          <SelectItem value="none">Sin departamento</SelectItem>
+                          {getDepartamentosByEmpresa(newUserEmpresaId!).map(d => (
+                            <SelectItem key={d.id} value={d.nombre}>{d.nombre}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
                 </div>
 
