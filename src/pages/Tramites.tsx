@@ -294,11 +294,20 @@ const Tramites = () => {
     }
   };
 
+  const searchLower = searchTerm.toLowerCase();
+  const matchesSearchFn = (tramite: Tramite) => {
+    if (!searchTerm) return true;
+    return (
+      tramite.folio.toLowerCase().includes(searchLower) ||
+      tramite.tipo.toLowerCase().includes(searchLower) ||
+      tramite.solicitante.toLowerCase().includes(searchLower) ||
+      (tramite.asunto || "").toLowerCase().includes(searchLower) ||
+      (estadoLabels[tramite.estado] || tramite.estado || "").toLowerCase().includes(searchLower)
+    );
+  };
+
   const filteredTramites = tramites.filter((tramite) => {
-    const matchesSearch =
-      tramite.folio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tramite.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tramite.solicitante.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = matchesSearchFn(tramite);
 
     const matchesTipo =
           filterTipo === "todos" ||
@@ -316,10 +325,7 @@ const Tramites = () => {
   });
 
   const filteredAttendedTramites = attendedTramites.filter((tramite) => {
-    const matchesSearch =
-      tramite.folio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tramite.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tramite.solicitante.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = matchesSearchFn(tramite);
 
     const matchesTipo =
           filterTipo === "todos" ||
@@ -331,10 +337,7 @@ const Tramites = () => {
   });
 
   const filteredRejectedTramites = rejectedTramites.filter((tramite) => {
-    const matchesSearch =
-      tramite.folio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tramite.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tramite.solicitante.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = matchesSearchFn(tramite);
 
     const matchesTipo =
           filterTipo === "todos" ||
