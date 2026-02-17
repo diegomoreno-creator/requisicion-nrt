@@ -31,7 +31,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ArrowLeft, Plus, Trash2, CalendarIcon, Loader2, X, Check, ChevronsUpDown } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, CalendarIcon, Loader2, X, Check, ChevronsUpDown, Search } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -1208,31 +1216,45 @@ const Requisicion = () => {
                         })}
                       </div>
                     )}
-                    {/* Add proveedor selector */}
-                    <Select
-                      value=""
-                      onValueChange={(value) => {
-                        if (value && !selectedProveedores.some(sp => sp.id === value)) {
-                          setSelectedProveedores(prev => [...prev, { id: value, justificacion: "" }]);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="bg-input border-border">
-                        <SelectValue placeholder="Agregar proveedor..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border z-50">
-                        {getProveedoresByEmpresa(empresa)
-                          .filter(p => !selectedProveedores.some(sp => sp.id === p.id))
-                          .map((prov) => (
-                            <SelectItem key={prov.id} value={prov.id}>
-                              <div className="flex items-center gap-2">
-                                <span>{prov.nombre}</span>
-                                {prov.rfc && <span className="text-muted-foreground text-xs">({prov.rfc})</span>}
-                              </div>
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                    {/* Add proveedor selector with search */}
+                    <Popover open={proveedorSearchOpen} onOpenChange={setProveedorSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={proveedorSearchOpen}
+                          className="w-full justify-between bg-input border-border"
+                        >
+                          <span className="text-muted-foreground">Buscar y agregar proveedor...</span>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full min-w-[var(--radix-popover-trigger-width)] p-0 bg-card border-border z-50" align="start">
+                        <Command>
+                          <CommandInput placeholder="Buscar proveedor por nombre o RFC..." />
+                          <CommandList>
+                            <CommandEmpty>No se encontró proveedor.</CommandEmpty>
+                            <CommandGroup>
+                              {getProveedoresByEmpresa(empresa)
+                                .filter(p => !selectedProveedores.some(sp => sp.id === p.id))
+                                .map((prov) => (
+                                  <CommandItem
+                                    key={prov.id}
+                                    value={`${prov.nombre} ${prov.rfc || ""}`}
+                                    onSelect={() => {
+                                      setSelectedProveedores(prev => [...prev, { id: prov.id, justificacion: "" }]);
+                                      setProveedorSearchOpen(false);
+                                    }}
+                                  >
+                                    <span>{prov.nombre}</span>
+                                    {prov.rfc && <span className="text-muted-foreground text-xs ml-2">({prov.rfc})</span>}
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 )}
               </div>
