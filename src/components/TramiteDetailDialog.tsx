@@ -289,7 +289,7 @@ const TramiteDetailDialog = ({
   const [monedaCompra, setMonedaCompra] = useState("MXN");
   const [previewFile, setPreviewFile] = useState<ArchivoAdjunto | null>(null);
   const [showPayConfirm, setShowPayConfirm] = useState(false);
-  const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  const [paymentFiles, setPaymentFiles] = useState<File[]>([]);
   const [showReturnRevisionConfirm, setShowReturnRevisionConfirm] = useState(false);
   const [returnRevisionJustification, setReturnRevisionJustification] = useState("");
 
@@ -1187,14 +1187,14 @@ const TramiteDetailDialog = ({
     setActionLoading(true);
 
     try {
-      // Upload payment proof file if provided
-      if (paymentFile) {
-        const sanitizedName = sanitizeFileName(paymentFile.name);
+      // Upload payment proof files if provided
+      for (const pFile of paymentFiles) {
+        const sanitizedName = sanitizeFileName(pFile.name);
         const fileName = `${user.id}/${tramiteId}/${Date.now()}_comprobante_${sanitizedName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('requisicion_archivos')
-          .upload(fileName, paymentFile);
+          .upload(fileName, pFile);
 
         if (uploadError) {
           toast.error("Error al subir comprobante: " + uploadError.message);
@@ -1206,14 +1206,13 @@ const TramiteDetailDialog = ({
           .from('requisicion_archivos')
           .getPublicUrl(fileName);
 
-        // Save file metadata
         await supabase.from('requisicion_archivos').insert({
           requisicion_id: tramiteId,
           uploaded_by: user.id,
-          file_name: paymentFile.name,
+          file_name: pFile.name,
           file_url: urlData.publicUrl,
-          file_type: paymentFile.type,
-          file_size: paymentFile.size,
+          file_type: pFile.type,
+          file_size: pFile.size,
         });
       }
 
@@ -1228,7 +1227,7 @@ const TramiteDetailDialog = ({
 
       if (error) throw error;
       toast.success("Pedido marcado como pagado");
-      setPaymentFile(null);
+      setPaymentFiles([]);
       setShowPayConfirm(false);
       onUpdated?.();
       onOpenChange(false);
@@ -2834,7 +2833,7 @@ const TramiteDetailDialog = ({
       {/* Payment Confirmation Dialog with file upload */}
       <AlertDialog open={showPayConfirm} onOpenChange={(open) => {
         setShowPayConfirm(open);
-        if (!open) setPaymentFile(null);
+        if (!open) setPaymentFiles([]);
       }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -2845,56 +2844,67 @@ const TramiteDetailDialog = ({
           </AlertDialogHeader>
           <div className="py-4 space-y-3">
             <Label className="text-sm font-medium">
-              Comprobante de pago <span className="text-xs text-muted-foreground">(opcional)</span>
+              Comprobantes de pago <span className="text-xs text-muted-foreground">(opcional)</span>
             </Label>
-            {!paymentFile ? (
-              <div>
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      if (file.size > 10 * 1024 * 1024) {
-                        toast.error("El archivo excede el límite de 10MB");
-                        return;
+            <div>
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                multiple
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (files) {
+                    const validFiles: File[] = [];
+                    for (let i = 0; i < files.length; i++) {
+                      if (files[i].size > 10 * 1024 * 1024) {
+                        toast.error(`${files[i].name} excede el límite de 10MB`);
+                      } else {
+                        validFiles.push(files[i]);
                       }
-                      setPaymentFile(file);
                     }
-                    e.target.value = '';
-                  }}
-                  className="hidden"
-                  id="payment-proof-upload"
-                />
-                <Label
-                  htmlFor="payment-proof-upload"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors text-sm"
-                >
-                  <Upload className="h-4 w-4" />
-                  Subir comprobante
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">PDF o imagen (máx. 10MB)</p>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <span className="text-sm truncate">{paymentFile.name}</span>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setPaymentFile(null)}
-                  className="text-destructive hover:text-destructive flex-shrink-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                    if (validFiles.length > 0) {
+                      setPaymentFiles(prev => [...prev, ...validFiles]);
+                    }
+                  }
+                  e.target.value = '';
+                }}
+                className="hidden"
+                id="payment-proof-upload"
+              />
+              <Label
+                htmlFor="payment-proof-upload"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors text-sm"
+              >
+                <Upload className="h-4 w-4" />
+                Subir comprobante(s)
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">PDF o imagen (máx. 10MB cada uno)</p>
+            </div>
+            {paymentFiles.length > 0 && (
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {paymentFiles.map((pf, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 rounded-lg border bg-muted/50">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm truncate">{pf.name}</span>
+                      <span className="text-xs text-muted-foreground">({(pf.size / 1024).toFixed(0)} KB)</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPaymentFiles(prev => prev.filter((_, i) => i !== idx))}
+                      className="text-destructive hover:text-destructive flex-shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPaymentFile(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setPaymentFiles([])}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-emerald-600 text-white hover:bg-emerald-700"
               onClick={() => handlePayPedido()}
