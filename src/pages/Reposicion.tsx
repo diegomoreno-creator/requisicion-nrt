@@ -177,6 +177,7 @@ const Reposicion = () => {
       setFechaSolicitud(new Date(repo.fecha_solicitud));
       setGastosSemana(repo.gastos_semana?.toString() || "");
       setAutorizadorId(repo.autorizador_id || "");
+      setRevisorId((repo as any).revisor_id || "");
       setTipoReposicion(repo.tipo_reposicion || "gastos_semanales");
       setBanco(repo.banco || "");
       setCuentaClabe(repo.cuenta_clabe || "");

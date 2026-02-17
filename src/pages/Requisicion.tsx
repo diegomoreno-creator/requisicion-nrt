@@ -278,6 +278,7 @@ const Requisicion = () => {
       setUnidadNegocio(req.unidad_negocio || "");
       setSucursal(req.sucursal || "");
       setAutorizadorId(req.autorizador_id || "");
+      setRevisorId((req as any).revisor_id || "");
       setDepartamentoSolicitante(req.departamento_solicitante || "");
       setPresupuestoAproximado(req.presupuesto_aproximado?.toString() || "");
       setSeDividiraGasto(req.se_dividira_gasto || false);
