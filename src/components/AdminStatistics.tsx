@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, TrendingUp, Clock, AlertTriangle, CheckCircle, FileText, DollarSign, Users, BarChart3, Zap, Timer, ArrowDown, ArrowUp, Download } from "lucide-react";
+import { Loader2, TrendingUp, Clock, AlertTriangle, CheckCircle, FileText, DollarSign, Users, BarChart3, Zap, Timer, ArrowDown, ArrowUp, Download, Settings2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { 
   BarChart, 
   Bar, 
@@ -108,6 +110,34 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
     from: undefined,
     to: undefined,
   });
+
+  // Visible statistics panels
+  const STAT_PANELS = [
+    { key: "resumen", label: "Resumen General" },
+    { key: "eficiencia", label: "Métricas de Eficiencia" },
+    { key: "detalle_etapas", label: "Métricas Detalladas por Etapa" },
+    { key: "tiempo_etapa", label: "Tiempo Promedio por Etapa" },
+    { key: "distribucion", label: "Distribución por Estado" },
+    { key: "volumen", label: "Volumen de Trámites" },
+  ] as const;
+
+  type StatPanelKey = typeof STAT_PANELS[number]["key"];
+
+  const [visiblePanels, setVisiblePanels] = useState<Set<StatPanelKey>>(
+    new Set(STAT_PANELS.map(p => p.key))
+  );
+
+  const togglePanel = (key: StatPanelKey) => {
+    setVisiblePanels(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     fetchStatistics();
@@ -550,7 +580,32 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
         </DropdownMenu>
       </div>
 
+      {/* Panel selector */}
+      <Card className="border-border bg-card">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Settings2 className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">Estadísticas visibles</span>
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {STAT_PANELS.map((panel) => (
+              <div key={panel.key} className="flex items-center gap-2">
+                <Checkbox
+                  id={`panel-${panel.key}`}
+                  checked={visiblePanels.has(panel.key)}
+                  onCheckedChange={() => togglePanel(panel.key)}
+                />
+                <Label htmlFor={`panel-${panel.key}`} className="text-sm cursor-pointer">
+                  {panel.label}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary Cards */}
+      {visiblePanels.has("resumen") && (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-border bg-card">
           <CardContent className="p-4">
@@ -608,8 +663,10 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Time Metrics Summary */}
+      {visiblePanels.has("eficiencia") && (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-border bg-card">
           <CardContent className="p-4">
@@ -680,9 +737,10 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Detailed Time Stats per Stage */}
-      {timeStats.length > 0 && (
+      {visiblePanels.has("detalle_etapas") && timeStats.length > 0 && (
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -745,8 +803,10 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
       )}
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {(visiblePanels.has("tiempo_etapa") || visiblePanels.has("distribucion")) && (
+      <div className={cn("grid gap-6", visiblePanels.has("tiempo_etapa") && visiblePanels.has("distribucion") ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
         {/* Time by Stage Chart */}
+        {visiblePanels.has("tiempo_etapa") && (
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -805,8 +865,10 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Status Distribution */}
+        {visiblePanels.has("distribucion") && (
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -852,9 +914,12 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
             )}
           </CardContent>
         </Card>
+        )}
       </div>
+      )}
 
       {/* Volume Chart */}
+      {visiblePanels.has("volumen") && (
       <Card className="border-border bg-card">
         <CardHeader className="pb-2">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -960,6 +1025,7 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
           )}
         </CardContent>
       </Card>
+      )}
     </div>
   );
 };
