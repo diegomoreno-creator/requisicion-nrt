@@ -84,6 +84,11 @@ interface RequisicionDetail {
   se_dividira_gasto: boolean | null;
   un_division_gasto: string | null;
   porcentaje_cada_un: string | null;
+  // Reviewer fields
+  revisor_id: string | null;
+  revisado_por: string | null;
+  fecha_revision: string | null;
+  justificacion_devolucion_revision: string | null;
   // Timestamp fields for timeline
   fecha_autorizacion_real: string | null;
   fecha_licitacion: string | null;
@@ -108,6 +113,11 @@ interface ReposicionDetail {
   cuenta_clabe: string | null;
   justificacion: string | null;
   justificacion_rechazo: string | null;
+  // Reviewer fields
+  revisor_id: string | null;
+  revisado_por: string | null;
+  fecha_revision: string | null;
+  justificacion_devolucion_revision: string | null;
   // Timestamp fields for timeline
   fecha_autorizacion: string | null;
   fecha_pago: string | null;
@@ -179,8 +189,10 @@ const getStepTimestamp = (
 ): string | null => {
   if (requisicion) {
     switch (stepKey) {
-      case "pendiente":
+      case "pendiente_revision":
         return requisicion.created_at;
+      case "pendiente":
+        return requisicion.revisor_id ? requisicion.fecha_revision : requisicion.created_at;
       case "aprobado":
         return requisicion.fecha_autorizacion_real;
       case "en_licitacion":
@@ -196,8 +208,10 @@ const getStepTimestamp = (
     }
   } else if (reposicion) {
     switch (stepKey) {
-      case "pendiente":
+      case "pendiente_revision":
         return reposicion.created_at;
+      case "pendiente":
+        return reposicion.revisor_id ? reposicion.fecha_revision : reposicion.created_at;
       case "aprobado":
         return reposicion.fecha_autorizacion;
       case "pedido_pagado":
@@ -235,6 +249,7 @@ const TramiteDetailDialog = ({
   const [partidas, setPartidas] = useState<Partida[]>([]);
   const [solicitanteEmail, setSolicitanteEmail] = useState("");
   const [autorizadorEmail, setAutorizadorEmail] = useState("");
+  const [revisorEmail, setRevisorEmail] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -397,7 +412,7 @@ const TramiteDetailDialog = ({
         }
 
         // Fetch user emails
-        await fetchUserEmails(repo.solicitado_por, repo.autorizador_id);
+        await fetchUserEmails(repo.solicitado_por, repo.autorizador_id, repo.revisor_id);
       } else {
         const { data: req, error } = await supabase
           .from("requisiciones")
@@ -460,7 +475,7 @@ const TramiteDetailDialog = ({
         setArchivosAdjuntos(archivosData || []);
 
         // Fetch user emails
-        await fetchUserEmails(req.solicitado_por, req.autorizador_id);
+        await fetchUserEmails(req.solicitado_por, req.autorizador_id, req.revisor_id);
       }
     } catch (error) {
       console.error("Error fetching details:", error);
@@ -470,7 +485,7 @@ const TramiteDetailDialog = ({
     }
   };
 
-  const fetchUserEmails = async (solicitadoPor: string, autorizadorId: string | null) => {
+  const fetchUserEmails = async (solicitadoPor: string, autorizadorId: string | null, revisorId: string | null = null) => {
     // Fetch solicitante using security definer function (bypasses RLS)
     const { data: solicitanteData } = await supabase.rpc("get_solicitante_info", { 
       _user_id: solicitadoPor 
@@ -508,6 +523,21 @@ const TramiteDetailDialog = ({
         if (authData && authData.length > 0) {
           const auth = authData[0];
           setAutorizadorEmail(auth.full_name || auth.email || "");
+        }
+      }
+    }
+
+    // Fetch revisor name
+    setRevisorEmail("");
+    if (revisorId) {
+      const { data: revisores } = await supabase.rpc("get_revisores" as any);
+      const revisor = (revisores as any[])?.find((r: any) => r.user_id === revisorId);
+      if (revisor) {
+        setRevisorEmail(revisor.full_name || revisor.email || "");
+      } else {
+        const { data: revData } = await supabase.rpc("get_profile_name", { _user_id: revisorId });
+        if (revData) {
+          setRevisorEmail(revData as string);
         }
       }
     }
@@ -1447,7 +1477,7 @@ const TramiteDetailDialog = ({
     // Estado badge
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    const pdfTimelineSteps = (requisicion as any)?.revisor_id ? timelineStepsWithRevision : timelineStepsBase;
+    const pdfTimelineSteps = (requisicion?.revisor_id || reposicion?.revisor_id) ? timelineStepsWithRevision : timelineStepsBase;
     const estadoLabel = pdfTimelineSteps.find(s => s.key === tramite.estado)?.label.replace("\n", " ") || tramite.estado;
     doc.text(`Estado: ${estadoLabel}`, pageWidth / 2, yPosition, { align: "center" });
     yPosition += 15;
@@ -1691,7 +1721,7 @@ const TramiteDetailDialog = ({
   };
 
   const tramite = reposicion || requisicion;
-  const hasRevision = !!(requisicion as any)?.revisor_id;
+  const hasRevision = !!(requisicion?.revisor_id || reposicion?.revisor_id);
   const timelineSteps = hasRevision ? timelineStepsWithRevision : timelineStepsBase;
   const currentStep = tramite ? getStepIndex(tramite.estado, timelineSteps) : 0;
 
@@ -1801,6 +1831,12 @@ const TramiteDetailDialog = ({
                   <p className="text-muted-foreground text-sm">Autorizador:</p>
                   <p className="text-foreground">{autorizadorEmail || "-"}</p>
                 </div>
+                {hasRevision && (
+                  <div>
+                    <p className="text-muted-foreground text-sm">Revisor:</p>
+                    <p className="text-foreground">{revisorEmail || "-"}</p>
+                  </div>
+                )}
 
                 {/* Reposición specific fields */}
                 {reposicion && (
