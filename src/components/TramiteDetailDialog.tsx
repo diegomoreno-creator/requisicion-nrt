@@ -2845,7 +2845,7 @@ const TramiteDetailDialog = ({
           </AlertDialogHeader>
           <div className="py-4 space-y-3">
             <Label className="text-sm font-medium">
-              Comprobante de pago <span className="text-xs text-destructive">*</span>
+              Comprobante de pago <span className="text-xs text-muted-foreground">(opcional)</span>
             </Label>
             {!paymentFile ? (
               <div>
@@ -2898,7 +2898,7 @@ const TramiteDetailDialog = ({
             <AlertDialogAction
               className="bg-emerald-600 text-white hover:bg-emerald-700"
               onClick={() => handlePayPedido()}
-              disabled={actionLoading || !paymentFile}
+              disabled={actionLoading}
             >
               {actionLoading ? "Procesando..." : "Confirmar Pago"}
             </AlertDialogAction>
