@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent } from "@/components/ui/sidebar";
 import { SuperadminSidebar } from "@/components/SuperadminSidebar";
 import {
   DropdownMenu,
@@ -61,6 +62,31 @@ interface ProfileData {
   full_name: string | null;
   avatar_url: string | null;
 }
+
+const SidebarSkeleton = () => (
+  <Sidebar className="w-60 border-r border-border bg-card" collapsible="icon">
+    <div className="flex items-center justify-between p-3 border-b border-border">
+      <Skeleton className="h-4 w-24" />
+    </div>
+    <SidebarContent>
+      <SidebarGroup>
+        <div className="px-2 py-2">
+          <Skeleton className="h-3 w-20 mb-3" />
+        </div>
+        <SidebarGroupContent>
+          <div className="flex flex-col gap-1 px-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3 rounded-md p-2">
+                <Skeleton className="h-4 w-4 rounded" />
+                <Skeleton className="h-4 flex-1" />
+              </div>
+            ))}
+          </div>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </SidebarContent>
+  </Sidebar>
+);
 
 const Dashboard = () => {
   const { user, role, roles, loading, signOut, isSuperadmin, isSolicitador, isAdmin, canAccessApp, hasRole, hasPermission } = useAuth();
@@ -413,11 +439,17 @@ const Dashboard = () => {
   // This prevents layout shift when roles load
   const showSidebarLayout = hasAnyAdminPermission || roles.length === 0;
 
+  const rolesLoading = roles.length === 0 && !loading;
+
   if (showSidebarLayout) {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
-          {hasAnyAdminPermission && <SuperadminSidebar />}
+          {hasAnyAdminPermission ? (
+            <SuperadminSidebar />
+          ) : rolesLoading ? (
+            <SidebarSkeleton />
+          ) : null}
           {dashboardContent(true)}
         </div>
       </SidebarProvider>
