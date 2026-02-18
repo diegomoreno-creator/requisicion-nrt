@@ -63,7 +63,7 @@ interface ProfileData {
 }
 
 const Dashboard = () => {
-  const { user, role, loading, signOut, isSuperadmin, isSolicitador, isAdmin, canAccessApp, hasRole, hasPermission } = useAuth();
+  const { user, role, roles, loading, signOut, isSuperadmin, isSolicitador, isAdmin, canAccessApp, hasRole, hasPermission } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -409,11 +409,15 @@ const Dashboard = () => {
     hasPermission('gestionar_catalogos') || 
     hasPermission('gestionar_notificaciones');
 
-  if (hasAnyAdminPermission) {
+  // Always wrap in SidebarProvider if user has admin permissions OR if roles are still loading
+  // This prevents layout shift when roles load
+  const showSidebarLayout = hasAnyAdminPermission || roles.length === 0;
+
+  if (showSidebarLayout) {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
-          <SuperadminSidebar />
+          {hasAnyAdminPermission && <SuperadminSidebar />}
           {dashboardContent(true)}
         </div>
       </SidebarProvider>

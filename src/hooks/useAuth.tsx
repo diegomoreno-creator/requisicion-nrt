@@ -199,6 +199,7 @@ export const useAuth = () => {
 
   return {
     ...authState,
+    roles: authState.roles,
     role, // Legacy single role
     signOut,
     hasRole,
