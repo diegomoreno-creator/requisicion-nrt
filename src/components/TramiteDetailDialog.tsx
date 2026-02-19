@@ -34,7 +34,7 @@ import { useCatalogos } from "@/hooks/useCatalogos";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { AlertTriangle, ChevronRight, Download, Eye, ExternalLink, FileText, Lightbulb, Loader2, Pencil, Upload, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, Download, Eye, ExternalLink, FileText, Lightbulb, Link2, Loader2, Pencil, Upload, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -2056,10 +2056,14 @@ const TramiteDetailDialog = ({
                       className="flex items-center justify-between p-3 rounded-lg border bg-background"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        {archivo.file_type === 'external_link' ? (
+                          <Link2 className="h-5 w-5 text-primary flex-shrink-0" />
+                        ) : (
+                          <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        )}
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">{archivo.file_name}</p>
-                          {archivo.file_size && (
+                          {archivo.file_size != null && archivo.file_size > 0 && (
                             <p className="text-xs text-muted-foreground">
                               {archivo.file_size < 1024 
                                 ? `${archivo.file_size} B` 
@@ -2071,23 +2075,38 @@ const TramiteDetailDialog = ({
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setPreviewFile(archivo)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                        >
-                          <a href={archivo.file_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
+                        {archivo.file_type === 'external_link' ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                          >
+                            <a href={archivo.file_url} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Abrir
+                            </a>
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setPreviewFile(archivo)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                            >
+                              <a href={archivo.file_url} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
