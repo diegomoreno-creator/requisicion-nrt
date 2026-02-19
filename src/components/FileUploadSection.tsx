@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Upload, X, FileText, Loader2, ExternalLink } from "lucide-react";
+import { Upload, X, FileText, Loader2, ExternalLink, Link2, Plus } from "lucide-react";
 
 interface UploadedFile {
   id?: string;
@@ -30,6 +30,7 @@ const FileUploadSection = ({
   disabled = false,
 }: FileUploadSectionProps) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [externalLink, setExternalLink] = useState("");
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
@@ -135,6 +136,39 @@ const FileUploadSection = ({
     onFilesChange(updatedFiles);
   };
 
+  const handleAddExternalLink = () => {
+    const trimmed = externalLink.trim();
+    if (!trimmed) return;
+
+    try {
+      new URL(trimmed);
+    } catch {
+      toast({
+        title: "Enlace inválido",
+        description: "Por favor ingresa una URL válida (ej. https://drive.google.com/...)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Extract a friendly name from the URL
+    const hostname = new URL(trimmed).hostname.replace('www.', '');
+    const linkName = `Enlace externo (${hostname})`;
+
+    onFilesChange([...files, {
+      file_name: linkName,
+      file_url: trimmed,
+      file_type: 'external_link',
+      file_size: 0,
+    }]);
+
+    setExternalLink("");
+    toast({
+      title: "Enlace agregado",
+      description: "El enlace externo se agregó correctamente",
+    });
+  };
+
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return '';
     if (bytes < 1024) return `${bytes} B`;
@@ -187,6 +221,38 @@ const FileUploadSection = ({
         </div>
       )}
 
+      {/* External link input */}
+      {!disabled && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-sm text-muted-foreground">
+              ¿Archivo mayor a 10MB? Agrega un enlace externo
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              type="url"
+              placeholder="https://drive.google.com/... o Dropbox, iCloud, etc."
+              value={externalLink}
+              onChange={(e) => setExternalLink(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddExternalLink())}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddExternalLink}
+              disabled={!externalLink.trim()}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Agregar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* File list */}
       {files.length > 0 && (
         <div className="space-y-2">
@@ -196,10 +262,14 @@ const FileUploadSection = ({
               className="flex items-center justify-between p-3 rounded-lg border bg-muted/50"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                {file.file_type === 'external_link' ? (
+                  <Link2 className="h-5 w-5 text-primary flex-shrink-0" />
+                ) : (
+                  <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                )}
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{file.file_name}</p>
-                  {file.file_size && (
+                  {file.file_size && file.file_size > 0 && (
                     <p className="text-xs text-muted-foreground">
                       {formatFileSize(file.file_size)}
                     </p>
