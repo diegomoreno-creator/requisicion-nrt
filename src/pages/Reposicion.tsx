@@ -322,6 +322,13 @@ const Reposicion = () => {
             estado: "pendiente",
             justificacion_rechazo: null,
             justificacion_devolucion_revision: null,
+            // Clear workflow metadata so item appears as new in Pendientes
+            autorizado_por: null,
+            fecha_autorizacion: null,
+            revisado_por: null,
+            fecha_revision: null,
+            pagado_por: null,
+            fecha_pago: null,
           } as any)
           .eq("id", originalReposicionId);
 
