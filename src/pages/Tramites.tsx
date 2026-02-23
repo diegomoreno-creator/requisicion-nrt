@@ -241,8 +241,9 @@ const Tramites = () => {
         } else if (isComprador && r.pedido_colocado_por === user.id) {
           // Comprador: items where THEY placed the order go to Atendidos
           attended.push(tramite);
-        } else if (processorField && (r as any)[processorField] === user.id) {
+        } else if (processorField && (r as any)[processorField] === user.id && !['pendiente', 'pendiente_revision', 'rechazado'].includes(r.estado || '')) {
           // User processed this tramite - goes to Atendidos
+          // BUT if it was sent back to pendiente/rechazado, keep it in Pendientes so they see it again
           attended.push(tramite);
         } else {
           activeTramites.push(tramite);
