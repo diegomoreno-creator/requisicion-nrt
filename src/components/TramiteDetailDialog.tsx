@@ -1909,24 +1909,31 @@ const TramiteDetailDialog = ({
                     </p>
                     <div className="mt-1 space-y-1">
                       {multiAutorizadores.map((auth) => (
-                        <div key={auth.id} className="flex items-center gap-2 text-sm">
-                          <span className={`w-2 h-2 rounded-full ${
-                            auth.estado === "aprobado" ? "bg-green-500" :
-                            auth.estado === "rechazado" ? "bg-red-500" :
-                            "bg-yellow-500"
-                          }`} />
-                          <span className="text-foreground">{auth.autorizador_nombre}</span>
-                          <Badge variant="outline" className={`text-xs ${
-                            auth.estado === "aprobado" ? "text-green-500 border-green-500/30" :
-                            auth.estado === "rechazado" ? "text-red-500 border-red-500/30" :
-                            "text-yellow-500 border-yellow-500/30"
-                          }`}>
-                            {auth.estado === "aprobado" ? "Aprobado" : auth.estado === "rechazado" ? "Rechazado" : "Pendiente"}
-                          </Badge>
-                          {auth.fecha_accion && (
-                            <span className="text-xs text-muted-foreground">
-                              {formatTimestamp(auth.fecha_accion)}
-                            </span>
+                        <div key={auth.id} className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className={`w-2 h-2 rounded-full ${
+                              auth.estado === "aprobado" ? "bg-green-500" :
+                              auth.estado === "rechazado" ? "bg-red-500" :
+                              "bg-yellow-500"
+                            }`} />
+                            <span className="text-foreground">{auth.autorizador_nombre}</span>
+                            <Badge variant="outline" className={`text-xs ${
+                              auth.estado === "aprobado" ? "text-green-500 border-green-500/30" :
+                              auth.estado === "rechazado" ? "text-red-500 border-red-500/30" :
+                              "text-yellow-500 border-yellow-500/30"
+                            }`}>
+                              {auth.estado === "aprobado" ? "Aprobado" : auth.estado === "rechazado" ? "Rechazado" : "Pendiente"}
+                            </Badge>
+                            {auth.fecha_accion && (
+                              <span className="text-xs text-muted-foreground">
+                                {formatTimestamp(auth.fecha_accion)}
+                              </span>
+                            )}
+                          </div>
+                          {auth.estado === "rechazado" && auth.justificacion_rechazo && (
+                            <div className="ml-4 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive">
+                              <strong>Motivo de rechazo:</strong> {auth.justificacion_rechazo}
+                            </div>
                           )}
                         </div>
                       ))}
