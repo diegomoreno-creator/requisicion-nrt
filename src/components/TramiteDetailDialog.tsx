@@ -34,8 +34,9 @@ import { useCatalogos } from "@/hooks/useCatalogos";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { AlertTriangle, ChevronRight, Download, Eye, ExternalLink, FileText, Lightbulb, Link2, Loader2, Pencil, Upload, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, Download, Eye, ExternalLink, FileText, Lightbulb, Link2, Loader2, Pencil, Upload, X, Users } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { useMultiAuth, isMultiAuthType } from "@/hooks/useMultiAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import jsPDF from "jspdf";
@@ -241,7 +242,7 @@ const TramiteDetailDialog = ({
 }: TramiteDetailDialogProps) => {
   const navigate = useNavigate();
   const { user, isAutorizador, isSuperadmin, isAdmin, isComprador, isPresupuestos, isTesoreria, isSolicitador, isRevision } = useAuth();
-  const { empresas, unidadesNegocio, sucursales, getTipoNombre } = useCatalogos();
+  const { empresas, unidadesNegocio, sucursales, getTipoNombre, tiposRequisicion } = useCatalogos();
   const [loading, setLoading] = useState(true);
   const [requisicion, setRequisicion] = useState<RequisicionDetail | null>(null);
   const [reposicion, setReposicion] = useState<ReposicionDetail | null>(null);
@@ -292,6 +293,16 @@ const TramiteDetailDialog = ({
   const [paymentFiles, setPaymentFiles] = useState<File[]>([]);
   const [showReturnRevisionConfirm, setShowReturnRevisionConfirm] = useState(false);
   const [returnRevisionJustification, setReturnRevisionJustification] = useState("");
+
+  // Multi-authorizer support
+  const multiAuthReqId = tramiteTipo === "Requisición" ? tramiteId : null;
+  const { autorizadores: multiAutorizadores, isMultiAuth, getUserApprovalStatus, isUserAssigned, refetch: refetchMultiAuth, pendingCount: multiAuthPendingCount } = useMultiAuth(multiAuthReqId);
+
+  // Check if current requisicion type is multi-auth
+  const currentTipoNombre = requisicion?.tipo_requisicion
+    ? (tiposRequisicion.find(t => t.id === requisicion.tipo_requisicion)?.nombre || "")
+    : "";
+  const isCurrentMultiAuth = isMultiAuthType(currentTipoNombre) || isMultiAuth;
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
@@ -547,11 +558,20 @@ const TramiteDetailDialog = ({
     const tramite = reposicion || requisicion;
     if (!tramite || !user) return false;
     
+    // Multi-auth: check if user is one of the assigned multi-authorizers and hasn't acted yet
+    if (isCurrentMultiAuth && requisicion) {
+      const myStatus = getUserApprovalStatus(user.id);
+      if (myStatus && myStatus.estado === "pendiente" && requisicion.estado === "pendiente") {
+        return true;
+      }
+    }
+    
     // Check if user is the assigned autorizador or is superadmin/admin
     const isAssignedAutorizador = tramite.autorizador_id === user.id;
+    const isMultiAuthAssigned = isCurrentMultiAuth && isUserAssigned(user.id);
     const canAct = tramite.estado === "pendiente" || tramite.estado === "aprobado" || tramite.estado === "en_licitacion";
     
-    return canAct && (isAssignedAutorizador || isSuperadmin || isAdmin || isAutorizador);
+    return canAct && (isAssignedAutorizador || isMultiAuthAssigned || isSuperadmin || isAdmin || isAutorizador);
   };
 
   const canCancel = () => {
@@ -834,8 +854,51 @@ const TramiteDetailDialog = ({
           .eq("id", tramiteId);
 
         if (error) throw error;
+      } else if (isCurrentMultiAuth && isUserAssigned(user.id)) {
+        // Multi-authorizer: update only this user's approval row
+        const { error: authError } = await supabase
+          .from("requisicion_autorizadores")
+          .update({
+            estado: "aprobado",
+            fecha_accion: new Date().toISOString(),
+          })
+          .eq("requisicion_id", tramiteId)
+          .eq("autorizador_id", user.id);
+
+        if (authError) throw authError;
+
+        // Check if all authorizers have now approved
+        const { data: allAuths } = await supabase
+          .from("requisicion_autorizadores")
+          .select("estado")
+          .eq("requisicion_id", tramiteId);
+
+        const allApproved = allAuths && allAuths.every((a: any) => a.estado === "aprobado");
+
+        if (allApproved) {
+          // All approved - advance the requisition
+          const { error } = await supabase
+            .from("requisiciones")
+            .update({ 
+              estado: "aprobado",
+              autorizado_por: user.id,
+              fecha_autorizacion_real: new Date().toISOString()
+            })
+            .eq("id", tramiteId);
+
+          if (error) throw error;
+          toast.success("Todos los autorizadores aprobaron. Requisición aprobada.");
+        } else {
+          const pending = allAuths?.filter((a: any) => a.estado === "pendiente").length || 0;
+          toast.success(`Tu aprobación fue registrada. Faltan ${pending} autorizador(es) por aprobar.`);
+        }
+        
+        refetchMultiAuth();
+        onUpdated?.();
+        onOpenChange(false);
+        return;
       } else {
-        // Requisiciones have fecha_autorizacion_real column
+        // Requisiciones have fecha_autorizacion_real column (single authorizer)
         const { error } = await supabase
           .from("requisiciones")
           .update({ 
@@ -868,6 +931,19 @@ const TramiteDetailDialog = ({
     setActionLoading(true);
 
     try {
+      // Multi-auth: update this user's row and reject the whole requisition
+      if (isCurrentMultiAuth && isUserAssigned(user?.id || "")) {
+        await supabase
+          .from("requisicion_autorizadores")
+          .update({
+            estado: "rechazado",
+            justificacion_rechazo: rejectAutorizadorJustification.trim(),
+            fecha_accion: new Date().toISOString(),
+          })
+          .eq("requisicion_id", tramiteId)
+          .eq("autorizador_id", user?.id);
+      }
+
       const table = tramiteTipo === "Reposición" ? "reposiciones" : "requisiciones";
       const currentEstado = requisicion?.estado || reposicion?.estado;
       const updateData: any = { 
@@ -1826,10 +1902,42 @@ const TramiteDetailDialog = ({
                       : "-"}
                   </p>
                 </div>
-                <div>
-                  <p className="text-muted-foreground text-sm">Autorizador:</p>
-                  <p className="text-foreground">{autorizadorEmail || "-"}</p>
-                </div>
+                {isCurrentMultiAuth ? (
+                  <div className="col-span-full">
+                    <p className="text-muted-foreground text-sm flex items-center gap-1">
+                      <Users className="w-3 h-3" /> Autorizadores ({multiAutorizadores.length}):
+                    </p>
+                    <div className="mt-1 space-y-1">
+                      {multiAutorizadores.map((auth) => (
+                        <div key={auth.id} className="flex items-center gap-2 text-sm">
+                          <span className={`w-2 h-2 rounded-full ${
+                            auth.estado === "aprobado" ? "bg-green-500" :
+                            auth.estado === "rechazado" ? "bg-red-500" :
+                            "bg-yellow-500"
+                          }`} />
+                          <span className="text-foreground">{auth.autorizador_nombre}</span>
+                          <Badge variant="outline" className={`text-xs ${
+                            auth.estado === "aprobado" ? "text-green-500 border-green-500/30" :
+                            auth.estado === "rechazado" ? "text-red-500 border-red-500/30" :
+                            "text-yellow-500 border-yellow-500/30"
+                          }`}>
+                            {auth.estado === "aprobado" ? "Aprobado" : auth.estado === "rechazado" ? "Rechazado" : "Pendiente"}
+                          </Badge>
+                          {auth.fecha_accion && (
+                            <span className="text-xs text-muted-foreground">
+                              {formatTimestamp(auth.fecha_accion)}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-muted-foreground text-sm">Autorizador:</p>
+                    <p className="text-foreground">{autorizadorEmail || "-"}</p>
+                  </div>
+                )}
                 {hasRevision && (
                   <div>
                     <p className="text-muted-foreground text-sm">Revisor:</p>
@@ -2513,9 +2621,13 @@ const TramiteDetailDialog = ({
                     <Button
                       className="bg-green-600 hover:bg-green-700"
                       onClick={handleApprove}
-                      disabled={actionLoading}
+                      disabled={actionLoading || (isCurrentMultiAuth && !!user && getUserApprovalStatus(user.id)?.estado === "aprobado")}
                     >
-                      Aprobar
+                      {isCurrentMultiAuth 
+                        ? (getUserApprovalStatus(user?.id || "")?.estado === "aprobado" 
+                          ? "Ya Aprobaste" 
+                          : `Aprobar (${multiAuthPendingCount} pendiente${multiAuthPendingCount !== 1 ? 's' : ''})`)
+                        : "Aprobar"}
                     </Button>
                   )}
                 </>
