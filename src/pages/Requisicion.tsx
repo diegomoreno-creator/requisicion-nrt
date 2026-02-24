@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCatalogos } from "@/hooks/useCatalogos";
+import { isMultiAuthType } from "@/hooks/useMultiAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -152,6 +153,7 @@ const Requisicion = () => {
   const [userEmpresaId, setUserEmpresaId] = useState<string | null>(null);
   const [selectedProveedores, setSelectedProveedores] = useState<{ id: string; justificacion: string }[]>([]);
   const [proveedorSearchOpen, setProveedorSearchOpen] = useState(false);
+  const [selectedAutorizadores, setSelectedAutorizadores] = useState<string[]>([]);
 
   // Form state
   const [folio, setFolio] = useState("");
@@ -197,6 +199,17 @@ const Requisicion = () => {
       sucursal: "",
     },
   ]);
+
+  // Check if selected tipo requires multi-auth
+  const selectedTipoNombre = tiposRequisicion.find(t => t.id === tipoRequisicion)?.nombre || "";
+  const requiresMultiAuth = isMultiAuthType(selectedTipoNombre);
+
+  // Reset multi-auth when tipo changes away from multi-auth type
+  useEffect(() => {
+    if (!requiresMultiAuth) {
+      setSelectedAutorizadores([]);
+    }
+  }, [requiresMultiAuth]);
 
   // Calculate approximate budget from sum of all partidas' costo_estimado
   useEffect(() => {
@@ -287,6 +300,15 @@ const Requisicion = () => {
       setSucursal(req.sucursal || "");
       setAutorizadorId(req.autorizador_id || "");
       setRevisorId((req as any).revisor_id || "");
+
+      // Load multi-authorizer entries
+      const { data: multiAuthData } = await supabase
+        .from("requisicion_autorizadores")
+        .select("autorizador_id")
+        .eq("requisicion_id", requisicionId);
+      if (multiAuthData && multiAuthData.length > 0) {
+        setSelectedAutorizadores(multiAuthData.map((a: any) => a.autorizador_id));
+      }
       setDepartamentoSolicitante(req.departamento_solicitante || "");
       setPresupuestoAproximado(req.presupuesto_aproximado?.toString() || "");
       setSeDividiraGasto(req.se_dividira_gasto || false);
@@ -440,7 +462,8 @@ const Requisicion = () => {
     if (!tipoRequisicion) requiredErrors.push("Tipo de requisición");
     if (!empresa) requiredErrors.push("Empresa");
     if (!unidadNegocio) requiredErrors.push("Unidad de Negocio");
-    if (!autorizadorId) requiredErrors.push("Autorizador");
+    if (!autorizadorId && !requiresMultiAuth) requiredErrors.push("Autorizador");
+    if (requiresMultiAuth && selectedAutorizadores.length < 2) requiredErrors.push("Autorizadores (mínimo 2)");
     if (!departamentoSolicitante.trim()) requiredErrors.push("Departamento Solicitante");
     if (!asunto.trim()) requiredErrors.push("Asunto");
     if (!justificacion.trim()) requiredErrors.push("Justificación");
@@ -558,7 +581,7 @@ const Requisicion = () => {
           empresa,
           fecha_autorizacion: fechaAutorizacion.toISOString().split("T")[0],
           sucursal,
-          autorizador_id: autorizadorId || null,
+          autorizador_id: requiresMultiAuth ? selectedAutorizadores[0] : (autorizadorId || null),
           departamento_solicitante: departamentoSolicitante,
           presupuesto_aproximado: presupuestoAproximado
             ? parseFloat(presupuestoAproximado)
@@ -603,6 +626,21 @@ const Requisicion = () => {
 
         if (updateError) throw updateError;
 
+        // Handle multi-authorizer entries
+        await supabaseAuthed
+          .from("requisicion_autorizadores")
+          .delete()
+          .eq("requisicion_id", originalRequisicionId);
+
+        if (requiresMultiAuth && selectedAutorizadores.length >= 2) {
+          const multiAuthRows = selectedAutorizadores.map(authId => ({
+            requisicion_id: originalRequisicionId,
+            autorizador_id: authId,
+            estado: "pendiente",
+          }));
+          await supabaseAuthed.from("requisicion_autorizadores").insert(multiAuthRows);
+        }
+
         // Save files metadata (delete existing and insert new)
         await supabaseAuthed
           .from("requisicion_archivos")
@@ -645,7 +683,7 @@ const Requisicion = () => {
             empresa,
             fecha_autorizacion: fechaAutorizacion.toISOString().split("T")[0],
             sucursal,
-            autorizador_id: autorizadorId || null,
+            autorizador_id: requiresMultiAuth ? selectedAutorizadores[0] : (autorizadorId || null),
             revisor_id: revisionEnabled ? revisorId : null,
             departamento_solicitante: departamentoSolicitante,
             solicitado_por: user.id,
@@ -679,6 +717,16 @@ const Requisicion = () => {
         }
 
         if (reqError) throw reqError;
+
+        // Insert multi-authorizer entries if needed
+        if (requiresMultiAuth && selectedAutorizadores.length >= 2) {
+          const multiAuthRows = selectedAutorizadores.map(authId => ({
+            requisicion_id: requisicionId,
+            autorizador_id: authId,
+            estado: "pendiente",
+          }));
+          await supabaseAuthed.from("requisicion_autorizadores").insert(multiAuthRows);
+        }
 
         // Insert partidas
         const partidasToInsert = partidas.map((p) => ({
@@ -880,23 +928,54 @@ const Requisicion = () => {
               {/* Row: Autorizador, Revisor (conditional), Departamento, Solicitado por */}
               <div className={`grid grid-cols-1 gap-4 ${empresas.find(e => e.id === empresa)?.revision_habilitada ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
 
-                <div className="space-y-2">
-                  <Label className="text-foreground">Autorizador <span className="text-destructive">*</span></Label>
-                  <Select value={autorizadorId} onValueChange={setAutorizadorId}>
-                    <SelectTrigger className="bg-input border-border">
-                      <SelectValue placeholder="Seleccione un autorizador" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border z-50">
+                {requiresMultiAuth ? (
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Autorizadores (mínimo 2) <span className="text-destructive">*</span></Label>
+                    <div className="bg-input border border-border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
                       {autorizadores
                         .filter(aut => !userEmpresaId || aut.empresa_id === userEmpresaId)
                         .map((aut) => (
-                        <SelectItem key={aut.user_id} value={aut.user_id}>
-                          {aut.full_name || aut.email}
-                        </SelectItem>
+                        <label key={aut.user_id} className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 rounded p-1">
+                          <Checkbox
+                            checked={selectedAutorizadores.includes(aut.user_id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedAutorizadores(prev => [...prev, aut.user_id]);
+                              } else {
+                                setSelectedAutorizadores(prev => prev.filter(id => id !== aut.user_id));
+                              }
+                            }}
+                          />
+                          <span className="text-sm text-foreground">{aut.full_name || aut.email}</span>
+                        </label>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    </div>
+                    {selectedAutorizadores.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {selectedAutorizadores.length} autorizador{selectedAutorizadores.length !== 1 ? "es" : ""} seleccionado{selectedAutorizadores.length !== 1 ? "s" : ""}
+                        {selectedAutorizadores.length < 2 && " — se requieren mínimo 2"}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Autorizador <span className="text-destructive">*</span></Label>
+                    <Select value={autorizadorId} onValueChange={setAutorizadorId}>
+                      <SelectTrigger className="bg-input border-border">
+                        <SelectValue placeholder="Seleccione un autorizador" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border z-50">
+                        {autorizadores
+                          .filter(aut => !userEmpresaId || aut.empresa_id === userEmpresaId)
+                          .map((aut) => (
+                          <SelectItem key={aut.user_id} value={aut.user_id}>
+                            {aut.full_name || aut.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {/* Revisor selector - only shown when empresa has revision enabled */}
                 {empresas.find(e => e.id === empresa)?.revision_habilitada && (

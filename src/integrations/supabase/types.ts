@@ -637,6 +637,44 @@ export type Database = {
           },
         ]
       }
+      requisicion_autorizadores: {
+        Row: {
+          autorizador_id: string
+          created_at: string
+          estado: string
+          fecha_accion: string | null
+          id: string
+          justificacion_rechazo: string | null
+          requisicion_id: string
+        }
+        Insert: {
+          autorizador_id: string
+          created_at?: string
+          estado?: string
+          fecha_accion?: string | null
+          id?: string
+          justificacion_rechazo?: string | null
+          requisicion_id: string
+        }
+        Update: {
+          autorizador_id?: string
+          created_at?: string
+          estado?: string
+          fecha_accion?: string | null
+          id?: string
+          justificacion_rechazo?: string | null
+          requisicion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requisicion_autorizadores_requisicion_id_fkey"
+            columns: ["requisicion_id"]
+            isOneToOne: false
+            referencedRelation: "requisiciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       requisicion_partidas: {
         Row: {
           cantidad: number | null

@@ -194,6 +194,20 @@ const Tramites = () => {
         userMap.set(userId, name);
       });
 
+      // Fetch multi-authorizer assignments for the current user
+      let multiAuthMap = new Map<string, string>(); // requisicion_id -> user's approval estado
+      if (isAutorizador && user) {
+        const { data: multiAuthData } = await supabase
+          .from("requisicion_autorizadores")
+          .select("requisicion_id, estado")
+          .eq("autorizador_id", user.id);
+        if (multiAuthData) {
+          multiAuthData.forEach((ma: any) => {
+            multiAuthMap.set(ma.requisicion_id, ma.estado);
+          });
+        }
+      }
+
       // Combine and format tramites - separate active, attended, rejected, and deleted
       const activeTramites: Tramite[] = [];
       const attended: Tramite[] = [];
@@ -241,6 +255,17 @@ const Tramites = () => {
         } else if (isComprador && r.pedido_colocado_por === user.id) {
           // Comprador: items where THEY placed the order go to Atendidos
           attended.push(tramite);
+        } else if (isAutorizador && multiAuthMap.has(r.id)) {
+          // Multi-authorizer: check user's approval status
+          const myStatus = multiAuthMap.get(r.id);
+          if (myStatus === "aprobado" && !['pendiente', 'pendiente_revision', 'rechazado'].includes(r.estado || '')) {
+            attended.push(tramite);
+          } else if (myStatus === "aprobado" && r.estado === 'pendiente') {
+            // User approved but requisition still pending (waiting for others) - show in Atendidos
+            attended.push(tramite);
+          } else {
+            activeTramites.push(tramite);
+          }
         } else if (processorField && (r as any)[processorField] === user.id && !['pendiente', 'pendiente_revision', 'rechazado'].includes(r.estado || '')) {
           // User processed this tramite - goes to Atendidos
           // BUT if it was sent back to pendiente/rechazado, keep it in Pendientes so they see it again
