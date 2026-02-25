@@ -36,7 +36,7 @@ import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { AlertTriangle, ChevronRight, Download, Eye, ExternalLink, FileText, Lightbulb, Link2, Loader2, Pencil, Upload, X, Users } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useMultiAuth, isMultiAuthType, isBudgetMultiAuth, FORCED_AUTHORIZER_IDS } from "@/hooks/useMultiAuth";
+import { useMultiAuth, isBudgetMultiAuth, FORCED_AUTHORIZER_IDS } from "@/hooks/useMultiAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import jsPDF from "jspdf";
@@ -298,11 +298,8 @@ const TramiteDetailDialog = ({
   const multiAuthReqId = tramiteTipo === "Requisición" ? tramiteId : null;
   const { autorizadores: multiAutorizadores, isMultiAuth, isSequential, getUserApprovalStatus, isUserAssigned, isUserTurn, currentTurnAutorizador, refetch: refetchMultiAuth, pendingCount: multiAuthPendingCount } = useMultiAuth(multiAuthReqId);
 
-  // Check if current requisicion type is multi-auth
-  const currentTipoNombre = requisicion?.tipo_requisicion
-    ? (tiposRequisicion.find(t => t.id === requisicion.tipo_requisicion)?.nombre || "")
-    : "";
-  const isCurrentMultiAuth = isMultiAuthType(currentTipoNombre) || isMultiAuth;
+  // Check if current requisicion uses multi-auth (budget-based only now)
+  const isCurrentMultiAuth = isMultiAuth;
 
   useEffect(() => {
     if (open && tramiteId && tramiteTipo) {
@@ -563,7 +560,7 @@ const TramiteDetailDialog = ({
       return isUserTurn(user.id);
     }
     
-    // Parallel multi-auth (compra de vehículo): check if user is assigned and pending
+    // Parallel multi-auth: check if user is assigned and pending
     if (isCurrentMultiAuth && !isSequential && requisicion) {
       const myStatus = getUserApprovalStatus(user.id);
       if (myStatus && myStatus.estado === "pendiente" && requisicion.estado === "pendiente") {

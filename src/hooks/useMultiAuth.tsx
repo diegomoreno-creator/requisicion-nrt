@@ -22,14 +22,6 @@ export const FORCED_AUTHORIZER_IDS = [
 ];
 
 /**
- * Check if a requisition type name requires multiple authorizers.
- */
-export const isMultiAuthType = (tipoNombre: string): boolean => {
-  return tipoNombre.toLowerCase().includes("compra de vehículo") ||
-         tipoNombre.toLowerCase().includes("compra de vehiculo");
-};
-
-/**
  * Check if budget amount triggers multi-auth requirement.
  */
 export const isBudgetMultiAuth = (presupuesto: number): boolean => {
