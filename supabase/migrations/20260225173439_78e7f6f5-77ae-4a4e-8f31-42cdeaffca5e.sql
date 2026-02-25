@@ -1,0 +1,1 @@
+ALTER TABLE public.requisicion_autorizadores ADD COLUMN orden integer NOT NULL DEFAULT 0;
