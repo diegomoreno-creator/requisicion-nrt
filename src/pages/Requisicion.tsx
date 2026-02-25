@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCatalogos } from "@/hooks/useCatalogos";
-import { isMultiAuthType, isBudgetMultiAuth, FORCED_AUTHORIZER_IDS } from "@/hooks/useMultiAuth";
+import { isBudgetMultiAuth, FORCED_AUTHORIZER_IDS } from "@/hooks/useMultiAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -200,16 +200,14 @@ const Requisicion = () => {
     },
   ]);
 
-  // Check if selected tipo requires multi-auth
-  const selectedTipoNombre = tiposRequisicion.find(t => t.id === tipoRequisicion)?.nombre || "";
-  const isTypeMultiAuth = isMultiAuthType(selectedTipoNombre);
+  // Check if budget requires multi-auth
   const budgetValue = parseFloat(presupuestoAproximado) || 0;
   const isBudgetTriggered = isBudgetMultiAuth(budgetValue);
-  const requiresMultiAuth = isTypeMultiAuth || isBudgetTriggered;
+  const requiresMultiAuth = isBudgetTriggered;
 
   // Auto-populate forced authorizers when budget exceeds threshold
   useEffect(() => {
-    if (isBudgetTriggered && !isTypeMultiAuth) {
+    if (isBudgetTriggered) {
       // Ensure forced authorizers + selected authorizer are included
       setSelectedAutorizadores(prev => {
         const forced = [...FORCED_AUTHORIZER_IDS];
@@ -222,7 +220,7 @@ const Requisicion = () => {
         return merged;
       });
     }
-  }, [isBudgetTriggered, isTypeMultiAuth, autorizadorId]);
+  }, [isBudgetTriggered, autorizadorId]);
 
   // Reset multi-auth when no longer required
   useEffect(() => {
@@ -483,8 +481,7 @@ const Requisicion = () => {
     if (!empresa) requiredErrors.push("Empresa");
     if (!unidadNegocio) requiredErrors.push("Unidad de Negocio");
     if (!autorizadorId && !requiresMultiAuth) requiredErrors.push("Autorizador");
-    const minAutorizadores = isBudgetTriggered && !isTypeMultiAuth ? 3 : 2;
-    if (requiresMultiAuth && selectedAutorizadores.length < minAutorizadores) requiredErrors.push(`Autorizadores (mínimo ${minAutorizadores})`);
+    if (requiresMultiAuth && selectedAutorizadores.length < 3) requiredErrors.push("Autorizadores (mínimo 3)");
     if (!departamentoSolicitante.trim()) requiredErrors.push("Departamento Solicitante");
     if (!asunto.trim()) requiredErrors.push("Asunto");
     if (!justificacion.trim()) requiredErrors.push("Justificación");
@@ -661,7 +658,7 @@ const Requisicion = () => {
             requisicion_id: originalRequisicionId,
             autorizador_id: authId,
             estado: "pendiente",
-            orden: isBudgetTriggered && !isTypeMultiAuth ? index + 1 : 0,
+            orden: index + 1,
           }));
           await supabaseAuthed.from("requisicion_autorizadores").insert(multiAuthRows);
         }
@@ -749,7 +746,7 @@ const Requisicion = () => {
             requisicion_id: requisicionId,
             autorizador_id: authId,
             estado: "pendiente",
-            orden: isBudgetTriggered && !isTypeMultiAuth ? index + 1 : 0,
+            orden: index + 1,
           }));
           await supabaseAuthed.from("requisicion_autorizadores").insert(multiAuthRows);
         }
@@ -957,17 +954,13 @@ const Requisicion = () => {
                 {requiresMultiAuth ? (
                   <div className="space-y-2">
                     <Label className="text-foreground">
-                      Autorizadores {isBudgetTriggered && !isTypeMultiAuth ? "(mínimo 3 — presupuesto &gt; $50,000)" : "(mínimo 2)"} <span className="text-destructive">*</span>
+                      Autorizadores (mínimo 3 — presupuesto &gt; $50,000) <span className="text-destructive">*</span>
                     </Label>
                     <div className="bg-input border border-border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
                       {autorizadores
                         .filter(aut => {
                           if (!userEmpresaId || aut.empresa_id === userEmpresaId) {
-                            // For budget-triggered multi-auth, only show selected + forced
-                            if (isBudgetTriggered && !isTypeMultiAuth) {
-                              return aut.user_id === autorizadorId || FORCED_AUTHORIZER_IDS.includes(aut.user_id);
-                            }
-                            return true;
+                            return aut.user_id === autorizadorId || FORCED_AUTHORIZER_IDS.includes(aut.user_id);
                           }
                           return false;
                         })
@@ -975,14 +968,7 @@ const Requisicion = () => {
                         <label key={aut.user_id} className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 rounded p-1">
                           <Checkbox
                             checked={selectedAutorizadores.includes(aut.user_id)}
-                            disabled={isBudgetTriggered && !isTypeMultiAuth}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedAutorizadores(prev => [...prev, aut.user_id]);
-                              } else {
-                                setSelectedAutorizadores(prev => prev.filter(id => id !== aut.user_id));
-                              }
-                            }}
+                            disabled
                           />
                           <span className="text-sm text-foreground">{aut.full_name || aut.email}</span>
                         </label>
@@ -991,7 +977,7 @@ const Requisicion = () => {
                     {selectedAutorizadores.length > 0 && (
                       <p className="text-xs text-muted-foreground">
                         {selectedAutorizadores.length} autorizador{selectedAutorizadores.length !== 1 ? "es" : ""} seleccionado{selectedAutorizadores.length !== 1 ? "s" : ""}
-                        {selectedAutorizadores.length < (isBudgetTriggered && !isTypeMultiAuth ? 3 : 2) && ` — se requieren mínimo ${isBudgetTriggered && !isTypeMultiAuth ? 3 : 2}`}
+                        {selectedAutorizadores.length < 3 && " — se requieren mínimo 3"}
                       </p>
                     )}
                   </div>
