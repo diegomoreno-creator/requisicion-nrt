@@ -11,12 +11,28 @@ export interface AutorizadorEntry {
   autorizador_nombre?: string;
 }
 
+// Budget threshold for automatic multi-auth (MXN)
+export const MULTI_AUTH_BUDGET_THRESHOLD = 50000;
+
+// Fixed authorizer user IDs that must be included when budget exceeds threshold
+export const FORCED_AUTHORIZER_IDS = [
+  "f27c379d-47e5-4e6b-9046-a79d84f79f2b", // Gabriel Aguilar
+  "d894fca9-4bcc-49f5-a011-7bdef16cb872", // Lic. Rolando A.
+];
+
 /**
  * Check if a requisition type name requires multiple authorizers.
  */
 export const isMultiAuthType = (tipoNombre: string): boolean => {
   return tipoNombre.toLowerCase().includes("compra de vehículo") ||
          tipoNombre.toLowerCase().includes("compra de vehiculo");
+};
+
+/**
+ * Check if budget amount triggers multi-auth requirement.
+ */
+export const isBudgetMultiAuth = (presupuesto: number): boolean => {
+  return presupuesto > MULTI_AUTH_BUDGET_THRESHOLD;
 };
 
 /**
