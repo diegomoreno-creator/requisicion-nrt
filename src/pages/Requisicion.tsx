@@ -1033,7 +1033,7 @@ const Requisicion = () => {
                         <TableHead className="text-muted-foreground">Modelo/# Parte</TableHead>
                         <TableHead className="text-muted-foreground w-24">UM</TableHead>
                         <TableHead className="text-muted-foreground w-24">Cantidad <span className="text-destructive">*</span></TableHead>
-                        <TableHead className="text-muted-foreground w-32">Costo Estimado</TableHead>
+                        <TableHead className="text-muted-foreground w-32">Costo Estimado <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground w-40">Fecha de Necesidad</TableHead>
                         <TableHead className="text-muted-foreground w-12"></TableHead>
                       </TableRow>
@@ -1224,7 +1224,7 @@ const Requisicion = () => {
               {/* Presupuesto y División de gasto */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-foreground">Presupuesto aproximado ($)</Label>
+                  <Label className="text-foreground">Presupuesto aproximado ($) <span className="text-destructive">*</span></Label>
                   <Input
                     type="number"
                     step="0.01"
