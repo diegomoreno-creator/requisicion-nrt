@@ -491,6 +491,9 @@ const Requisicion = () => {
       if (!partida.categoria_gasto) {
         partidasErrors.push(`Partida ${partidaNum}: Categoría de gasto`);
       }
+      if (partida.costo_estimado === null || partida.costo_estimado === undefined || partida.costo_estimado <= 0) {
+        partidasErrors.push(`Partida ${partidaNum}: Costo estimado`);
+      }
     });
 
     if (requiredErrors.length > 0 || partidasErrors.length > 0) {
