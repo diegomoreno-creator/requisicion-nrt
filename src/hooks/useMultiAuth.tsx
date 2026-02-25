@@ -8,6 +8,7 @@ export interface AutorizadorEntry {
   estado: string;
   justificacion_rechazo: string | null;
   fecha_accion: string | null;
+  orden: number;
   autorizador_nombre?: string;
 }
 
@@ -69,10 +70,13 @@ export const useMultiAuth = (requisicionId: string | null) => {
             });
             return {
               ...entry,
+              orden: entry.orden ?? 0,
               autorizador_nombre: name || "Usuario",
             } as AutorizadorEntry;
           })
         );
+        // Sort by orden
+        withNames.sort((a, b) => a.orden - b.orden);
         setAutorizadores(withNames);
       } else {
         setAutorizadores([]);
@@ -96,6 +100,24 @@ export const useMultiAuth = (requisicionId: string | null) => {
 
   const pendingCount = autorizadores.filter(a => a.estado === "pendiente").length;
 
+  // Sequential auth: check if all authorizers have orden > 0 (sequential mode)
+  const isSequential = isMultiAuth && autorizadores.length > 0 && autorizadores.every(a => a.orden > 0);
+
+  // Get the current authorizer whose turn it is (lowest orden with estado pendiente)
+  const currentTurnAutorizador = isSequential 
+    ? autorizadores.find(a => a.estado === "pendiente")
+    : null;
+
+  // Check if it's a specific user's turn in sequential flow
+  const isUserTurn = (userId: string): boolean => {
+    if (!isSequential) {
+      // Parallel mode: any pending user can act
+      return autorizadores.some(a => a.autorizador_id === userId && a.estado === "pendiente");
+    }
+    // Sequential mode: only the current turn user can act
+    return currentTurnAutorizador?.autorizador_id === userId;
+  };
+
   const getUserApprovalStatus = (userId: string): AutorizadorEntry | undefined => {
     return autorizadores.find(a => a.autorizador_id === userId);
   };
@@ -107,10 +129,13 @@ export const useMultiAuth = (requisicionId: string | null) => {
   return {
     autorizadores,
     isMultiAuth,
+    isSequential,
     loading,
     allApproved,
     anyRejected,
     pendingCount,
+    currentTurnAutorizador,
+    isUserTurn,
     getUserApprovalStatus,
     isUserAssigned,
     refetch: fetchAutorizadores,

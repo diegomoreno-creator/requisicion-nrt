@@ -645,6 +645,7 @@ export type Database = {
           fecha_accion: string | null
           id: string
           justificacion_rechazo: string | null
+          orden: number
           requisicion_id: string
         }
         Insert: {
@@ -654,6 +655,7 @@ export type Database = {
           fecha_accion?: string | null
           id?: string
           justificacion_rechazo?: string | null
+          orden?: number
           requisicion_id: string
         }
         Update: {
@@ -663,6 +665,7 @@ export type Database = {
           fecha_accion?: string | null
           id?: string
           justificacion_rechazo?: string | null
+          orden?: number
           requisicion_id?: string
         }
         Relationships: [

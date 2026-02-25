@@ -36,7 +36,7 @@ import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { AlertTriangle, ChevronRight, Download, Eye, ExternalLink, FileText, Lightbulb, Link2, Loader2, Pencil, Upload, X, Users } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useMultiAuth, isMultiAuthType } from "@/hooks/useMultiAuth";
+import { useMultiAuth, isMultiAuthType, isBudgetMultiAuth, FORCED_AUTHORIZER_IDS } from "@/hooks/useMultiAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import jsPDF from "jspdf";
@@ -296,7 +296,7 @@ const TramiteDetailDialog = ({
 
   // Multi-authorizer support
   const multiAuthReqId = tramiteTipo === "Requisición" ? tramiteId : null;
-  const { autorizadores: multiAutorizadores, isMultiAuth, getUserApprovalStatus, isUserAssigned, refetch: refetchMultiAuth, pendingCount: multiAuthPendingCount } = useMultiAuth(multiAuthReqId);
+  const { autorizadores: multiAutorizadores, isMultiAuth, isSequential, getUserApprovalStatus, isUserAssigned, isUserTurn, currentTurnAutorizador, refetch: refetchMultiAuth, pendingCount: multiAuthPendingCount } = useMultiAuth(multiAuthReqId);
 
   // Check if current requisicion type is multi-auth
   const currentTipoNombre = requisicion?.tipo_requisicion
@@ -558,8 +558,13 @@ const TramiteDetailDialog = ({
     const tramite = reposicion || requisicion;
     if (!tramite || !user) return false;
     
-    // Multi-auth: check if user is one of the assigned multi-authorizers and hasn't acted yet
-    if (isCurrentMultiAuth && requisicion) {
+    // Sequential multi-auth (budget > $50k): only the current-turn user can act
+    if (isSequential && requisicion && requisicion.estado === "pendiente") {
+      return isUserTurn(user.id);
+    }
+    
+    // Parallel multi-auth (compra de vehículo): check if user is assigned and pending
+    if (isCurrentMultiAuth && !isSequential && requisicion) {
       const myStatus = getUserApprovalStatus(user.id);
       if (myStatus && myStatus.estado === "pendiente" && requisicion.estado === "pendiente") {
         return true;
@@ -870,8 +875,9 @@ const TramiteDetailDialog = ({
         // Check if all authorizers have now approved
         const { data: allAuths } = await supabase
           .from("requisicion_autorizadores")
-          .select("estado")
-          .eq("requisicion_id", tramiteId);
+          .select("estado, orden")
+          .eq("requisicion_id", tramiteId)
+          .order("orden");
 
         const allApproved = allAuths && allAuths.every((a: any) => a.estado === "aprobado");
 
@@ -889,8 +895,14 @@ const TramiteDetailDialog = ({
           if (error) throw error;
           toast.success("Todos los autorizadores aprobaron. Requisición aprobada.");
         } else {
-          const pending = allAuths?.filter((a: any) => a.estado === "pendiente").length || 0;
-          toast.success(`Tu aprobación fue registrada. Faltan ${pending} autorizador(es) por aprobar.`);
+          // Find the next pending authorizer
+          const nextPending = allAuths?.find((a: any) => a.estado === "pendiente");
+          if (isSequential && nextPending) {
+            toast.success(`Tu aprobación fue registrada. El siguiente autorizador ha sido notificado.`);
+          } else {
+            const pending = allAuths?.filter((a: any) => a.estado === "pendiente").length || 0;
+            toast.success(`Tu aprobación fue registrada. Faltan ${pending} autorizador(es) por aprobar.`);
+          }
         }
         
         refetchMultiAuth();
@@ -1797,8 +1809,64 @@ const TramiteDetailDialog = ({
 
   const tramite = reposicion || requisicion;
   const hasRevision = !!(requisicion?.revisor_id || reposicion?.revisor_id);
-  const timelineSteps = hasRevision ? timelineStepsWithRevision : timelineStepsBase;
-  const currentStep = tramite ? getStepIndex(tramite.estado, timelineSteps) : 0;
+  
+  // Build dynamic timeline steps
+  const buildTimelineSteps = () => {
+    const base = hasRevision ? timelineStepsWithRevision : timelineStepsBase;
+    
+    // For sequential multi-auth (budget > $50k), inject extra steps after "pendiente"
+    if (isSequential && multiAutorizadores.length > 1) {
+      const pendienteIdx = base.findIndex(s => s.key === "pendiente");
+      const aprobadoIdx = base.findIndex(s => s.key === "aprobado");
+      
+      if (pendienteIdx >= 0 && aprobadoIdx >= 0) {
+        const before = base.slice(0, pendienteIdx);
+        const after = base.slice(aprobadoIdx); // includes "aprobado" onward
+        
+        // Replace "pendiente" with first authorizer's name and add steps for auth 2+
+        const firstAuth = multiAutorizadores[0];
+        const firstStep = {
+          key: "pendiente",
+          label: `Autorizado por\n${firstAuth?.autorizador_nombre || "Autorizador"}`,
+        };
+        
+        const extraSteps = multiAutorizadores.slice(1).map((auth) => ({
+          key: `seq_auth_${auth.orden}`,
+          label: `Autorizado por\n${auth.autorizador_nombre || "Autorizador"}`,
+        }));
+        
+        return [...before, firstStep, ...extraSteps, ...after];
+      }
+    }
+    
+    return base;
+  };
+  
+  const timelineSteps = buildTimelineSteps();
+  
+  // Compute current step for sequential flow
+  const computeCurrentStep = () => {
+    if (!tramite) return 0;
+    
+    if (isSequential && tramite.estado === "pendiente" && multiAutorizadores.length > 1) {
+      // Find how many authorizers have approved (in order)
+      const pendienteIdx = timelineSteps.findIndex(s => s.key === "pendiente");
+      let approvedCount = 0;
+      for (const auth of multiAutorizadores) {
+        if (auth.estado === "aprobado") {
+          approvedCount++;
+        } else {
+          break; // Stop at first non-approved (sequential)
+        }
+      }
+      // Current step = pendiente step + approved count
+      return pendienteIdx + approvedCount;
+    }
+    
+    return getStepIndex(tramite.estado, timelineSteps);
+  };
+  
+  const currentStep = computeCurrentStep();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1832,7 +1900,24 @@ const TramiteDetailDialog = ({
               </h3>
               <div className="flex items-center justify-between overflow-x-auto pb-2">
                 {timelineSteps.map((step, index) => {
-                  const stepTimestamp = getStepTimestamp(step.key, requisicion, reposicion);
+                  // Handle timestamps for sequential auth steps
+                  let stepTimestamp: string | null = null;
+                  if (step.key.startsWith("seq_auth_")) {
+                    const orden = parseInt(step.key.split("_")[2]);
+                    const auth = multiAutorizadores.find(a => a.orden === orden);
+                    stepTimestamp = auth?.fecha_accion || null;
+                  } else if (isSequential && step.key === "pendiente" && multiAutorizadores.length > 0) {
+                    // In sequential mode, "pendiente" step shows the first authorizer's action timestamp
+                    const firstAuth = multiAutorizadores[0];
+                    if (firstAuth?.estado === "aprobado") {
+                      stepTimestamp = firstAuth.fecha_accion;
+                    } else {
+                      // Show when it was sent to the first authorizer (requisicion creation)
+                      stepTimestamp = requisicion?.revisor_id ? requisicion?.fecha_revision : requisicion?.created_at || null;
+                    }
+                  } else {
+                    stepTimestamp = getStepTimestamp(step.key, requisicion, reposicion);
+                  }
                   const formattedTime = formatTimestamp(stepTimestamp);
                   const hasTimestamp = stepTimestamp && index <= currentStep;
                   
@@ -1905,24 +1990,31 @@ const TramiteDetailDialog = ({
                 {isCurrentMultiAuth ? (
                   <div className="col-span-full">
                     <p className="text-muted-foreground text-sm flex items-center gap-1">
-                      <Users className="w-3 h-3" /> Autorizadores ({multiAutorizadores.length}):
+                      <Users className="w-3 h-3" /> Autorizadores ({multiAutorizadores.length}){isSequential ? " — Secuencial" : ""}:
                     </p>
                     <div className="mt-1 space-y-1">
-                      {multiAutorizadores.map((auth) => (
+                      {multiAutorizadores.map((auth, idx) => {
+                        const isCurrentTurn = isSequential && currentTurnAutorizador?.autorizador_id === auth.autorizador_id;
+                        return (
                         <div key={auth.id} className="space-y-1">
                           <div className="flex items-center gap-2 text-sm">
+                            {isSequential && (
+                              <span className="text-xs text-muted-foreground font-mono w-4">{auth.orden}.</span>
+                            )}
                             <span className={`w-2 h-2 rounded-full ${
                               auth.estado === "aprobado" ? "bg-green-500" :
                               auth.estado === "rechazado" ? "bg-red-500" :
+                              isCurrentTurn ? "bg-orange-500 animate-pulse" :
                               "bg-yellow-500"
                             }`} />
                             <span className="text-foreground">{auth.autorizador_nombre}</span>
                             <Badge variant="outline" className={`text-xs ${
                               auth.estado === "aprobado" ? "text-green-500 border-green-500/30" :
                               auth.estado === "rechazado" ? "text-red-500 border-red-500/30" :
+                              isCurrentTurn ? "text-orange-500 border-orange-500/30" :
                               "text-yellow-500 border-yellow-500/30"
                             }`}>
-                              {auth.estado === "aprobado" ? "Aprobado" : auth.estado === "rechazado" ? "Rechazado" : "Pendiente"}
+                              {auth.estado === "aprobado" ? "Aprobado" : auth.estado === "rechazado" ? "Rechazado" : isCurrentTurn ? "En turno" : "Pendiente"}
                             </Badge>
                             {auth.fecha_accion && (
                               <span className="text-xs text-muted-foreground">
@@ -1936,7 +2028,8 @@ const TramiteDetailDialog = ({
                             </div>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ) : (

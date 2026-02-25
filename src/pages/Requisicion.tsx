@@ -657,10 +657,11 @@ const Requisicion = () => {
           .eq("requisicion_id", originalRequisicionId);
 
         if (requiresMultiAuth && selectedAutorizadores.length >= 2) {
-          const multiAuthRows = selectedAutorizadores.map(authId => ({
+          const multiAuthRows = selectedAutorizadores.map((authId, index) => ({
             requisicion_id: originalRequisicionId,
             autorizador_id: authId,
             estado: "pendiente",
+            orden: isBudgetTriggered && !isTypeMultiAuth ? index + 1 : 0,
           }));
           await supabaseAuthed.from("requisicion_autorizadores").insert(multiAuthRows);
         }
@@ -744,10 +745,11 @@ const Requisicion = () => {
 
         // Insert multi-authorizer entries if needed
         if (requiresMultiAuth && selectedAutorizadores.length >= 2) {
-          const multiAuthRows = selectedAutorizadores.map(authId => ({
+          const multiAuthRows = selectedAutorizadores.map((authId, index) => ({
             requisicion_id: requisicionId,
             autorizador_id: authId,
             estado: "pendiente",
+            orden: isBudgetTriggered && !isTypeMultiAuth ? index + 1 : 0,
           }));
           await supabaseAuthed.from("requisicion_autorizadores").insert(multiAuthRows);
         }
