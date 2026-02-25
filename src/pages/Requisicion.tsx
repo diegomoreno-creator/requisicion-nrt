@@ -959,12 +959,21 @@ const Requisicion = () => {
                     </Label>
                     <div className="bg-input border border-border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
                       {autorizadores
-                        .filter(aut => !userEmpresaId || aut.empresa_id === userEmpresaId)
+                        .filter(aut => {
+                          if (!userEmpresaId || aut.empresa_id === userEmpresaId) {
+                            // For budget-triggered multi-auth, only show selected + forced
+                            if (isBudgetTriggered && !isTypeMultiAuth) {
+                              return aut.user_id === autorizadorId || FORCED_AUTHORIZER_IDS.includes(aut.user_id);
+                            }
+                            return true;
+                          }
+                          return false;
+                        })
                         .map((aut) => (
                         <label key={aut.user_id} className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 rounded p-1">
                           <Checkbox
                             checked={selectedAutorizadores.includes(aut.user_id)}
-                            disabled={isBudgetTriggered && !isTypeMultiAuth && FORCED_AUTHORIZER_IDS.includes(aut.user_id)}
+                            disabled={isBudgetTriggered && !isTypeMultiAuth}
                             onCheckedChange={(checked) => {
                               if (checked) {
                                 setSelectedAutorizadores(prev => [...prev, aut.user_id]);
