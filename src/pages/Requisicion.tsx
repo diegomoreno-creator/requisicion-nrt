@@ -978,7 +978,7 @@ const Requisicion = () => {
                     {selectedAutorizadores.length > 0 && (
                       <p className="text-xs text-muted-foreground">
                         {selectedAutorizadores.length} autorizador{selectedAutorizadores.length !== 1 ? "es" : ""} seleccionado{selectedAutorizadores.length !== 1 ? "s" : ""}
-                        {selectedAutorizadores.length < 3 && " — se requieren mínimo 3"}
+                        {selectedAutorizadores.length < (FORCED_AUTHORIZER_IDS.length + 1) && ` — se requieren mínimo ${FORCED_AUTHORIZER_IDS.length + 1}`}
                       </p>
                     )}
                   </div>
