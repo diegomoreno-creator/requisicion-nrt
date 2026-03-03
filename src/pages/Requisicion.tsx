@@ -204,7 +204,7 @@ const Requisicion = () => {
   // Check if budget requires multi-auth
   const budgetValue = parseFloat(presupuestoAproximado) || 0;
   const isBudgetTriggered = isBudgetMultiAuth(budgetValue);
-  const requiresMultiAuth = isBudgetTriggered;
+  const requiresMultiAuth = isBudgetTriggered && FORCED_AUTHORIZER_IDS.length > 0;
 
   // Auto-populate forced authorizers when budget exceeds threshold
   useEffect(() => {
