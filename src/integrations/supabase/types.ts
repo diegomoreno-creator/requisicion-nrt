@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      autorizadores_presupuesto: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          orden: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          orden?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          orden?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       catalogo_departamentos: {
         Row: {
           activo: boolean | null
