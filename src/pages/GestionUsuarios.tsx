@@ -1241,6 +1241,9 @@ const GestionUsuarios = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Forced Authorizers Config - Superadmin only */}
+      {isSuperadmin && <AutorizadoresPresupuestoConfig />}
     </div>
   );
 };
