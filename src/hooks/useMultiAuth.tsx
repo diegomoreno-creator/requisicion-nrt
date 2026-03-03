@@ -1,25 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export interface AutorizadorEntry {
-  id: string;
-  requisicion_id: string;
-  autorizador_id: string;
-  estado: string;
-  justificacion_rechazo: string | null;
-  fecha_accion: string | null;
-  orden: number;
-  autorizador_nombre?: string;
-}
+/**
+ * Hook to fetch the configured forced authorizer IDs from the database.
+ */
+export const useForcedAuthorizers = () => {
+  const [forcedIds, setForcedIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
-// Budget threshold for automatic multi-auth (MXN)
-export const MULTI_AUTH_BUDGET_THRESHOLD = 50000;
+  useEffect(() => {
+    const fetch = async () => {
+      const { data, error } = await supabase
+        .from("autorizadores_presupuesto")
+        .select("user_id, orden")
+        .order("orden", { ascending: true });
+      if (!error && data) {
+        setForcedIds(data.map((d: any) => d.user_id));
+      }
+      setLoading(false);
+    };
+    fetch();
+  }, []);
 
-// Fixed authorizer user IDs that must be included when budget exceeds threshold
-export const FORCED_AUTHORIZER_IDS = [
-  "f27c379d-47e5-4e6b-9046-a79d84f79f2b", // Gabriel Aguilar
-  "d894fca9-4bcc-49f5-a011-7bdef16cb872", // Lic. Rolando A.
-];
+  return { forcedIds, loading };
+};
 
 /**
  * Check if budget amount triggers multi-auth requirement.
