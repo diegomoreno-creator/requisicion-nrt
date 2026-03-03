@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCatalogos } from "@/hooks/useCatalogos";
-import { isBudgetMultiAuth, FORCED_AUTHORIZER_IDS } from "@/hooks/useMultiAuth";
+import { isBudgetMultiAuth, useForcedAuthorizers } from "@/hooks/useMultiAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
