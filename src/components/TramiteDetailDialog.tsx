@@ -571,7 +571,10 @@ const TramiteDetailDialog = ({
     // Check if user is the assigned autorizador or is superadmin/admin
     const isAssignedAutorizador = tramite.autorizador_id === user.id;
     const isMultiAuthAssigned = isCurrentMultiAuth && isUserAssigned(user.id);
-    const canAct = tramite.estado === "pendiente" || tramite.estado === "aprobado" || tramite.estado === "en_licitacion";
+    // Only allow authorize actions for "pendiente" state here;
+    // "aprobado"/"en_licitacion" rejection is handled by canRejectBeforeLicitacion,
+    // and "pedido_colocado" rejection by canRejectByPresupuestos.
+    const canAct = tramite.estado === "pendiente";
     
     return canAct && (isAssignedAutorizador || isMultiAuthAssigned || isSuperadmin || isAdmin || isAutorizador);
   };
