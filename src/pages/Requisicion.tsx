@@ -482,7 +482,7 @@ const Requisicion = () => {
     if (!empresa) requiredErrors.push("Empresa");
     if (!unidadNegocio) requiredErrors.push("Unidad de Negocio");
     if (!autorizadorId && !requiresMultiAuth) requiredErrors.push("Autorizador");
-    if (requiresMultiAuth && selectedAutorizadores.length < 3) requiredErrors.push("Autorizadores (mínimo 3)");
+    if (requiresMultiAuth && selectedAutorizadores.length < (FORCED_AUTHORIZER_IDS.length + 1)) requiredErrors.push(`Autorizadores (mínimo ${FORCED_AUTHORIZER_IDS.length + 1})`);
     if (!departamentoSolicitante.trim()) requiredErrors.push("Departamento Solicitante");
     if (!asunto.trim()) requiredErrors.push("Asunto");
     if (!justificacion.trim()) requiredErrors.push("Justificación");
