@@ -135,6 +135,7 @@ const Requisicion = () => {
   const { id: editId } = useParams<{ id: string }>();
   const isEditMode = !!editId;
   const { user, loading: authLoading, canAccessApp, isSolicitador, isSuperadmin, isAdmin } = useAuth();
+  const { forcedIds: FORCED_AUTHORIZER_IDS } = useForcedAuthorizers();
   const { 
     tiposRequisicion, 
     empresas, 
