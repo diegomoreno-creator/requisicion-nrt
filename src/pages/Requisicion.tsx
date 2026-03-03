@@ -955,7 +955,7 @@ const Requisicion = () => {
                 {requiresMultiAuth ? (
                   <div className="space-y-2">
                     <Label className="text-foreground">
-                      Autorizadores (mínimo 3 — presupuesto &gt; $50,000) <span className="text-destructive">*</span>
+                      Autorizadores (mínimo {FORCED_AUTHORIZER_IDS.length + 1} — presupuesto &gt; $50,000) <span className="text-destructive">*</span>
                     </Label>
                     <div className="bg-input border border-border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
                       {autorizadores
