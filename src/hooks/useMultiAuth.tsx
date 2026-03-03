@@ -1,6 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface AutorizadorEntry {
+  id: string;
+  requisicion_id: string;
+  autorizador_id: string;
+  estado: string;
+  justificacion_rechazo: string | null;
+  fecha_accion: string | null;
+  orden: number;
+  autorizador_nombre?: string;
+}
+
+// Budget threshold for automatic multi-auth (MXN)
+export const MULTI_AUTH_BUDGET_THRESHOLD = 50000;
+
 /**
  * Hook to fetch the configured forced authorizer IDs from the database.
  */
@@ -8,21 +22,22 @@ export const useForcedAuthorizers = () => {
   const [forcedIds, setForcedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetch = async () => {
-      const { data, error } = await supabase
-        .from("autorizadores_presupuesto")
-        .select("user_id, orden")
-        .order("orden", { ascending: true });
-      if (!error && data) {
-        setForcedIds(data.map((d: any) => d.user_id));
-      }
-      setLoading(false);
-    };
-    fetch();
+  const refetch = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("autorizadores_presupuesto")
+      .select("user_id, orden")
+      .order("orden", { ascending: true });
+    if (!error && data) {
+      setForcedIds(data.map((d: any) => d.user_id));
+    }
+    setLoading(false);
   }, []);
 
-  return { forcedIds, loading };
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  return { forcedIds, loading, refetch };
 };
 
 /**
@@ -58,7 +73,6 @@ export const useMultiAuth = (requisicionId: string | null) => {
 
       if (data && data.length > 0) {
         setIsMultiAuth(true);
-        // Fetch names for each authorizer
         const withNames = await Promise.all(
           data.map(async (entry: any) => {
             const { data: name } = await supabase.rpc("get_profile_name", {
@@ -71,7 +85,6 @@ export const useMultiAuth = (requisicionId: string | null) => {
             } as AutorizadorEntry;
           })
         );
-        // Sort by orden
         withNames.sort((a, b) => a.orden - b.orden);
         setAutorizadores(withNames);
       } else {
@@ -96,21 +109,16 @@ export const useMultiAuth = (requisicionId: string | null) => {
 
   const pendingCount = autorizadores.filter(a => a.estado === "pendiente").length;
 
-  // Sequential auth: check if all authorizers have orden > 0 (sequential mode)
   const isSequential = isMultiAuth && autorizadores.length > 0 && autorizadores.every(a => a.orden > 0);
 
-  // Get the current authorizer whose turn it is (lowest orden with estado pendiente)
   const currentTurnAutorizador = isSequential 
     ? autorizadores.find(a => a.estado === "pendiente")
     : null;
 
-  // Check if it's a specific user's turn in sequential flow
   const isUserTurn = (userId: string): boolean => {
     if (!isSequential) {
-      // Parallel mode: any pending user can act
       return autorizadores.some(a => a.autorizador_id === userId && a.estado === "pendiente");
     }
-    // Sequential mode: only the current turn user can act
     return currentTurnAutorizador?.autorizador_id === userId;
   };
 
