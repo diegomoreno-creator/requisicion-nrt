@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCatalogos } from "@/hooks/useCatalogos";
-import { isBudgetMultiAuth, FORCED_AUTHORIZER_IDS } from "@/hooks/useMultiAuth";
+import { isBudgetMultiAuth, useForcedAuthorizers } from "@/hooks/useMultiAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -135,6 +135,7 @@ const Requisicion = () => {
   const { id: editId } = useParams<{ id: string }>();
   const isEditMode = !!editId;
   const { user, loading: authLoading, canAccessApp, isSolicitador, isSuperadmin, isAdmin } = useAuth();
+  const { forcedIds: FORCED_AUTHORIZER_IDS } = useForcedAuthorizers();
   const { 
     tiposRequisicion, 
     empresas, 
@@ -203,7 +204,7 @@ const Requisicion = () => {
   // Check if budget requires multi-auth
   const budgetValue = parseFloat(presupuestoAproximado) || 0;
   const isBudgetTriggered = isBudgetMultiAuth(budgetValue);
-  const requiresMultiAuth = isBudgetTriggered;
+  const requiresMultiAuth = isBudgetTriggered && FORCED_AUTHORIZER_IDS.length > 0;
 
   // Auto-populate forced authorizers when budget exceeds threshold
   useEffect(() => {
@@ -481,7 +482,7 @@ const Requisicion = () => {
     if (!empresa) requiredErrors.push("Empresa");
     if (!unidadNegocio) requiredErrors.push("Unidad de Negocio");
     if (!autorizadorId && !requiresMultiAuth) requiredErrors.push("Autorizador");
-    if (requiresMultiAuth && selectedAutorizadores.length < 3) requiredErrors.push("Autorizadores (mínimo 3)");
+    if (requiresMultiAuth && selectedAutorizadores.length < (FORCED_AUTHORIZER_IDS.length + 1)) requiredErrors.push(`Autorizadores (mínimo ${FORCED_AUTHORIZER_IDS.length + 1})`);
     if (!departamentoSolicitante.trim()) requiredErrors.push("Departamento Solicitante");
     if (!asunto.trim()) requiredErrors.push("Asunto");
     if (!justificacion.trim()) requiredErrors.push("Justificación");
@@ -954,7 +955,7 @@ const Requisicion = () => {
                 {requiresMultiAuth ? (
                   <div className="space-y-2">
                     <Label className="text-foreground">
-                      Autorizadores (mínimo 3 — presupuesto &gt; $50,000) <span className="text-destructive">*</span>
+                      Autorizadores (mínimo {FORCED_AUTHORIZER_IDS.length + 1} — presupuesto &gt; $50,000) <span className="text-destructive">*</span>
                     </Label>
                     <div className="bg-input border border-border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
                       {autorizadores
@@ -977,7 +978,7 @@ const Requisicion = () => {
                     {selectedAutorizadores.length > 0 && (
                       <p className="text-xs text-muted-foreground">
                         {selectedAutorizadores.length} autorizador{selectedAutorizadores.length !== 1 ? "es" : ""} seleccionado{selectedAutorizadores.length !== 1 ? "s" : ""}
-                        {selectedAutorizadores.length < 3 && " — se requieren mínimo 3"}
+                        {selectedAutorizadores.length < (FORCED_AUTHORIZER_IDS.length + 1) && ` — se requieren mínimo ${FORCED_AUTHORIZER_IDS.length + 1}`}
                       </p>
                     )}
                   </div>

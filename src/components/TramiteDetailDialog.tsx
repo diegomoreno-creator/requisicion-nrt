@@ -36,7 +36,7 @@ import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { AlertTriangle, ChevronRight, Download, Eye, ExternalLink, FileText, Lightbulb, Link2, Loader2, Pencil, Upload, X, Users } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useMultiAuth, isBudgetMultiAuth, FORCED_AUTHORIZER_IDS } from "@/hooks/useMultiAuth";
+import { useMultiAuth, isBudgetMultiAuth } from "@/hooks/useMultiAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import jsPDF from "jspdf";
