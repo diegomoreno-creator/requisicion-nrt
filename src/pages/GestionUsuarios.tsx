@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Users, Shield, Loader2, UserPlus, Trash2, Pencil, Key, Search, Building2, ShieldCheck } from "lucide-react";
+import AutorizadoresPresupuestoConfig from "@/components/AutorizadoresPresupuestoConfig";
 import {
   Select,
   SelectContent,
