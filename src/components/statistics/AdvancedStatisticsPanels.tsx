@@ -501,8 +501,8 @@ export const SLAPanel = ({ requisiciones }: { requisiciones: ExtendedRequisicion
           </div>
         </div>
         {overdue.length > 0 && (
-          <div className="max-h-[160px] overflow-y-auto space-y-1">
-            {overdue.slice(0, 15).map((r) => {
+          <div className="max-h-[320px] overflow-y-auto space-y-1">
+            {overdue.map((r) => {
               const days = differenceInDays(new Date(), new Date(r.updated_at));
               return (
                 <div key={r.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-destructive/5 border border-destructive/10 gap-2">
@@ -514,9 +514,6 @@ export const SLAPanel = ({ requisiciones }: { requisiciones: ExtendedRequisicion
                 </div>
               );
             })}
-            {overdue.length > 15 && (
-              <p className="text-xs text-muted-foreground text-center">...y {overdue.length - 15} más</p>
-            )}
           </div>
         )}
         {overdue.length === 0 && (
