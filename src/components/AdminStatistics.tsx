@@ -950,12 +950,9 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                     ))}
                   </Pie>
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--muted))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))',
-                    }}
+                    contentStyle={CHART_TOOLTIP_STYLE}
+                    itemStyle={CHART_TOOLTIP_TEXT_STYLE}
+                    labelStyle={CHART_TOOLTIP_TEXT_STYLE}
                   />
                   <Legend 
                     layout="vertical" 
