@@ -666,6 +666,8 @@ export const TendenciaGastoPanel = ({
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
+              itemStyle={TOOLTIP_TEXT_STYLE}
+              labelStyle={TOOLTIP_TEXT_STYLE}
               formatter={(value: number) => [formatCurrency(value), "Gasto"]}
             />
             <Line type="monotone" dataKey="gasto" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: "hsl(var(--primary))" }} name="Gasto Total" />
