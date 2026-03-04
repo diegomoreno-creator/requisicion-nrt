@@ -46,6 +46,7 @@ interface RequisicionStats {
   id: string;
   estado: string;
   created_at: string;
+  updated_at: string;
   fecha_autorizacion_real: string | null;
   fecha_licitacion: string | null;
   fecha_pedido_colocado: string | null;
@@ -53,6 +54,10 @@ interface RequisicionStats {
   fecha_pago: string | null;
   tipo_requisicion: string | null;
   empresa: string | null;
+  departamento_solicitante: string | null;
+  datos_proveedor: string | null;
+  presupuesto_aproximado: number | null;
+  monto_total_compra: number | null;
 }
 
 interface TimeStats {
