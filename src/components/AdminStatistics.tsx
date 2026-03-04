@@ -1058,66 +1058,9 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
       {visiblePanels.has("volumen") && (
       <Card className="border-border bg-card">
         <CardHeader className="pb-2">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Volumen de Trámites
-            </CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={volumePeriod} onValueChange={(value: VolumePeriod) => setVolumePeriod(value)}>
-                <SelectTrigger className="w-36 h-8 text-xs bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  <SelectItem value="week">Última semana</SelectItem>
-                  <SelectItem value="month">Último mes</SelectItem>
-                  <SelectItem value="3months">3 meses</SelectItem>
-                  <SelectItem value="6months">6 meses</SelectItem>
-                  <SelectItem value="year">1 año</SelectItem>
-                  <SelectItem value="custom">Personalizado</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {volumePeriod === "custom" && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "h-8 text-xs justify-start text-left font-normal",
-                        !customDateRange.from && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-3 w-3" />
-                      {customDateRange.from ? (
-                        customDateRange.to ? (
-                          <>
-                            {format(customDateRange.from, "d MMM", { locale: es })} -{" "}
-                            {format(customDateRange.to, "d MMM yy", { locale: es })}
-                          </>
-                        ) : (
-                          format(customDateRange.from, "d MMM yy", { locale: es })
-                        )
-                      ) : (
-                        "Seleccionar fechas"
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-card border-border" align="end">
-                    <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={customDateRange.from}
-                      selected={{ from: customDateRange.from, to: customDateRange.to }}
-                      onSelect={(range) => setCustomDateRange({ from: range?.from, to: range?.to })}
-                      numberOfMonths={2}
-                      locale={es}
-                    />
-                  </PopoverContent>
-                </Popover>
-              )}
-            </div>
-          </div>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Volumen de Trámites
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {monthlyVolume.length > 0 ? (
@@ -1163,42 +1106,38 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
 
       {/* ─── Advanced Panels – Reorganized Layout ─── */}
 
-      {/* Row: Aprobadas/Rechazadas (compact) + Tipo de Gasto + SLA/Stale alerts */}
       {(visiblePanels.has("aprobacion") || visiblePanels.has("tipo_gasto") || visiblePanels.has("sla") || visiblePanels.has("stale")) && (
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 items-stretch">
           {visiblePanels.has("aprobacion") && (
-            <ResumenAprobacionPanel requisiciones={requisiciones} />
+            <ResumenAprobacionPanel requisiciones={filteredRequisiciones} />
           )}
           {visiblePanels.has("sla") && (
-            <SLAPanel requisiciones={requisiciones} />
+            <SLAPanel requisiciones={filteredRequisiciones} />
           )}
           {visiblePanels.has("stale") && (
-            <StalePanel requisiciones={requisiciones} />
+            <StalePanel requisiciones={filteredRequisiciones} />
           )}
         </div>
       )}
 
-      {/* Row: Tendencia de gasto (full width) */}
       {visiblePanels.has("tendencia_gasto") && (
-        <TendenciaGastoPanel requisiciones={requisiciones} empresasMap={empresasMap} />
+        <TendenciaGastoPanel requisiciones={filteredRequisiciones} empresasMap={empresasMap} />
       )}
 
-      {/* Row: Gasto por Empresa (full width, stacked bars) */}
       {visiblePanels.has("gasto_empresa") && (
-        <GastoMensualEmpresaPanel requisiciones={requisiciones} empresasMap={empresasMap} />
+        <GastoMensualEmpresaPanel requisiciones={filteredRequisiciones} empresasMap={empresasMap} />
       )}
 
-      {/* Row: Departamento + Proveedor + Tipo de Gasto (3-col) */}
       {(visiblePanels.has("gasto_depto") || visiblePanels.has("gasto_proveedor") || visiblePanels.has("tipo_gasto")) && (
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
           {visiblePanels.has("gasto_depto") && (
-            <GastoDepartamentoPanel requisiciones={requisiciones} departamentosMap={departamentosMap} />
+            <GastoDepartamentoPanel requisiciones={filteredRequisiciones} departamentosMap={departamentosMap} />
           )}
           {visiblePanels.has("gasto_proveedor") && (
-            <GastoProveedorPanel requisiciones={requisiciones} />
+            <GastoProveedorPanel requisiciones={filteredRequisiciones} />
           )}
           {visiblePanels.has("tipo_gasto") && (
-            <TipoGastoPanel requisiciones={requisiciones} tiposMap={tiposMap} />
+            <TipoGastoPanel requisiciones={filteredRequisiciones} tiposMap={tiposMap} />
           )}
         </div>
       )}
