@@ -25,6 +25,13 @@ const generateDistinctColors = (count: number): string[] => {
 
 const CHART_COLORS = generateDistinctColors(30);
 
+const TOOLTIP_STYLE = {
+  backgroundColor: "hsl(var(--popover))",
+  border: "1px solid hsl(var(--border))",
+  borderRadius: "8px",
+  color: "hsl(var(--popover-foreground))",
+};
+
 interface ExtendedRequisicion {
   id: string;
   folio: string;
