@@ -27,6 +27,8 @@ const CHART_COLORS = generateDistinctColors(30);
 
 interface ExtendedRequisicion {
   id: string;
+  folio: string;
+  asunto: string | null;
   estado: string;
   created_at: string;
   updated_at: string;

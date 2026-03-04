@@ -44,6 +44,8 @@ import { renderNRTHeader } from "@/lib/pdfFonts";
 
 interface RequisicionStats {
   id: string;
+  folio: string;
+  asunto: string | null;
   estado: string;
   created_at: string;
   updated_at: string;
