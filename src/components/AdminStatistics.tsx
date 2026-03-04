@@ -894,9 +894,10 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                   />
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
+                      backgroundColor: 'hsl(var(--popover))', 
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      color: 'hsl(var(--popover-foreground))',
                     }}
                     formatter={(value: number) => {
                       const unitLabel = timeUnit === "minutes" ? "minutos" : timeUnit === "hours" ? "horas" : "días";
