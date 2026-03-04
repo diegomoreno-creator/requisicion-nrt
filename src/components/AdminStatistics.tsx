@@ -111,6 +111,17 @@ const estadoLabels: Record<string, string> = {
   borrador: "Borrador",
 };
 
+const CHART_TOOLTIP_STYLE = {
+  backgroundColor: 'hsl(var(--chart-tooltip-bg))',
+  border: '1px solid hsl(var(--border))',
+  borderRadius: '8px',
+};
+
+const CHART_TOOLTIP_TEXT_STYLE = {
+  color: 'hsl(var(--chart-tooltip-fg))',
+  fontWeight: 500,
+};
+
 interface AdminStatisticsProps {
   empresaId?: string | null;
   empresaNombre?: string | null;
