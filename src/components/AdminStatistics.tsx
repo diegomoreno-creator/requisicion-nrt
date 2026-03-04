@@ -69,6 +69,7 @@ const periodLabels: Record<VolumePeriod, string> = {
 
 // Unique colors for each status in the pie chart
 const ESTADO_COLORS: Record<string, string> = {
+  "En Revisión": "hsl(30, 90%, 50%)",             // Orange
   "Pendiente": "hsl(45, 93%, 47%)",           // Yellow/Amber
   "Aprobado": "hsl(142, 71%, 45%)",           // Green
   "Rechazado": "hsl(0, 84%, 60%)",            // Red
@@ -77,9 +78,11 @@ const ESTADO_COLORS: Record<string, string> = {
   "Pedido Colocado": "hsl(280, 65%, 60%)",    // Purple
   "Pedido Autorizado": "hsl(25, 95%, 53%)",   // Orange
   "Pedido Pagado": "hsl(162, 73%, 46%)",      // Teal/Emerald
+  "Borrador": "hsl(200, 10%, 60%)",           // Light Gray
 };
 
 const estadoLabels: Record<string, string> = {
+  pendiente_revision: "En Revisión",
   pendiente: "Pendiente",
   aprobado: "Aprobado",
   rechazado: "Rechazado",
@@ -88,6 +91,7 @@ const estadoLabels: Record<string, string> = {
   pedido_colocado: "Pedido Colocado",
   pedido_autorizado: "Pedido Autorizado",
   pedido_pagado: "Pedido Pagado",
+  borrador: "Borrador",
 };
 
 interface AdminStatisticsProps {
