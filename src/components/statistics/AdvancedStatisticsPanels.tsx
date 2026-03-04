@@ -569,8 +569,8 @@ export const StalePanel = ({ requisiciones }: { requisiciones: ExtendedRequisici
         </div>
         <p className="text-2xl font-bold text-chart-4 mb-3">{stale.length} requisiciones</p>
         {stale.length > 0 && (
-          <div className="max-h-[160px] overflow-y-auto space-y-1">
-            {stale.slice(0, 15).map((r) => {
+          <div className="max-h-[320px] overflow-y-auto space-y-1">
+            {stale.map((r) => {
               const days = differenceInDays(new Date(), new Date(r.updated_at));
               return (
                 <div key={r.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-muted/50 border border-border gap-2">
@@ -582,9 +582,6 @@ export const StalePanel = ({ requisiciones }: { requisiciones: ExtendedRequisici
                 </div>
               );
             })}
-            {stale.length > 15 && (
-              <p className="text-xs text-muted-foreground text-center">...y {stale.length - 15} más</p>
-            )}
           </div>
         )}
         {stale.length === 0 && (
