@@ -904,12 +904,9 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                     width={120}
                   />
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--muted))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))',
-                    }}
+                    contentStyle={CHART_TOOLTIP_STYLE}
+                    itemStyle={CHART_TOOLTIP_TEXT_STYLE}
+                    labelStyle={CHART_TOOLTIP_TEXT_STYLE}
                     formatter={(value: number) => {
                       const unitLabel = timeUnit === "minutes" ? "minutos" : timeUnit === "hours" ? "horas" : "días";
                       return [`${value} ${unitLabel}`, 'Promedio'];
