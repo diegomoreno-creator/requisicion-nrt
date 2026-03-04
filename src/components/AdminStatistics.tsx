@@ -1,9 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, TrendingUp, Clock, AlertTriangle, CheckCircle, FileText, DollarSign, Users, BarChart3, Zap, Timer, ArrowDown, ArrowUp, Download, Settings2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  GastoMensualEmpresaPanel,
+  GastoDepartamentoPanel,
+  GastoProveedorPanel,
+  ResumenAprobacionPanel,
+  TipoGastoPanel,
+  SLAPanel,
+  StalePanel,
+  TendenciaGastoPanel,
+} from "@/components/statistics/AdvancedStatisticsPanels";
 import { Label } from "@/components/ui/label";
 import { 
   BarChart, 
