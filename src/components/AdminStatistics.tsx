@@ -120,6 +120,9 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
   const [reposiciones, setReposiciones] = useState<any[]>([]);
   const [timeStats, setTimeStats] = useState<TimeStats[]>([]);
   const [statusDistribution, setStatusDistribution] = useState<{ name: string; value: number }[]>([]);
+  const [empresasMap, setEmpresasMap] = useState<Record<string, string>>({});
+  const [tiposMap, setTiposMap] = useState<Record<string, string>>({});
+  const [departamentosMap, setDepartamentosMap] = useState<Record<string, string>>({});
   const [monthlyVolume, setMonthlyVolume] = useState<{ month: string; requisiciones: number; reposiciones: number }[]>([]);
   const [avgTotalTime, setAvgTotalTime] = useState<number>(0);
   const [bottleneck, setBottleneck] = useState<string>("");
