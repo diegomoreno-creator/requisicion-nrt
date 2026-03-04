@@ -138,6 +138,14 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
     { key: "tiempo_etapa", label: "Tiempo Promedio por Etapa" },
     { key: "distribucion", label: "Distribución por Estado" },
     { key: "volumen", label: "Volumen de Trámites" },
+    { key: "gasto_empresa", label: "Gasto Mensual por Empresa" },
+    { key: "gasto_depto", label: "Gasto por Departamento" },
+    { key: "gasto_proveedor", label: "Gasto por Proveedor" },
+    { key: "aprobacion", label: "Aprobadas vs Rechazadas" },
+    { key: "tipo_gasto", label: "Tipo de Gasto" },
+    { key: "sla", label: "Fuera de SLA" },
+    { key: "stale", label: "Sin Movimiento" },
+    { key: "tendencia_gasto", label: "Tendencia de Gasto" },
   ] as const;
 
   type StatPanelKey = typeof STAT_PANELS[number]["key"];
