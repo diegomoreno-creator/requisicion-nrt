@@ -111,6 +111,17 @@ const estadoLabels: Record<string, string> = {
   borrador: "Borrador",
 };
 
+const CHART_TOOLTIP_STYLE = {
+  backgroundColor: 'hsl(var(--chart-tooltip-bg))',
+  border: '1px solid hsl(var(--border))',
+  borderRadius: '8px',
+};
+
+const CHART_TOOLTIP_TEXT_STYLE = {
+  color: 'hsl(var(--chart-tooltip-fg))',
+  fontWeight: 500,
+};
+
 interface AdminStatisticsProps {
   empresaId?: string | null;
   empresaNombre?: string | null;
@@ -893,12 +904,9 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                     width={120}
                   />
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--muted))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))',
-                    }}
+                    contentStyle={CHART_TOOLTIP_STYLE}
+                    itemStyle={CHART_TOOLTIP_TEXT_STYLE}
+                    labelStyle={CHART_TOOLTIP_TEXT_STYLE}
                     formatter={(value: number) => {
                       const unitLabel = timeUnit === "minutes" ? "minutos" : timeUnit === "hours" ? "horas" : "días";
                       return [`${value} ${unitLabel}`, 'Promedio'];
@@ -942,12 +950,9 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                     ))}
                   </Pie>
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--muted))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))',
-                    }}
+                    contentStyle={CHART_TOOLTIP_STYLE}
+                    itemStyle={CHART_TOOLTIP_TEXT_STYLE}
+                    labelStyle={CHART_TOOLTIP_TEXT_STYLE}
                   />
                   <Legend 
                     layout="vertical" 
@@ -1041,12 +1046,9 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                 <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--muted))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    color: 'hsl(var(--foreground))',
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  itemStyle={CHART_TOOLTIP_TEXT_STYLE}
+                  labelStyle={CHART_TOOLTIP_TEXT_STYLE}
                 />
                 <Legend />
                 <Line 

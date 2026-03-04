@@ -26,10 +26,14 @@ const generateDistinctColors = (count: number): string[] => {
 const CHART_COLORS = generateDistinctColors(30);
 
 const TOOLTIP_STYLE = {
-  backgroundColor: "hsl(var(--muted))",
+  backgroundColor: "hsl(var(--chart-tooltip-bg))",
   border: "1px solid hsl(var(--border))",
   borderRadius: "8px",
-  color: "hsl(var(--foreground))",
+};
+
+const TOOLTIP_TEXT_STYLE = {
+  color: "hsl(var(--chart-tooltip-fg))",
+  fontWeight: 500,
 };
 
 interface ExtendedRequisicion {
@@ -158,6 +162,8 @@ export const GastoMensualEmpresaPanel = ({
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
+              itemStyle={TOOLTIP_TEXT_STYLE}
+              labelStyle={TOOLTIP_TEXT_STYLE}
               formatter={(value: number) => [formatCurrency(value), ""]}
             />
             <Legend wrapperStyle={{ fontSize: "11px" }} />
@@ -247,6 +253,8 @@ export const GastoDepartamentoPanel = ({
             <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} width={130} />
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
+              itemStyle={TOOLTIP_TEXT_STYLE}
+              labelStyle={TOOLTIP_TEXT_STYLE}
               formatter={(value: number) => [formatCurrency(value), "Gasto"]}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
@@ -310,6 +318,8 @@ export const GastoProveedorPanel = ({ requisiciones }: { requisiciones: Extended
             <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={9} width={140} />
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
+              itemStyle={TOOLTIP_TEXT_STYLE}
+              labelStyle={TOOLTIP_TEXT_STYLE}
               formatter={(value: number) => [formatCurrency(value), "Acumulado"]}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
@@ -380,7 +390,7 @@ export const ResumenAprobacionPanel = ({ requisiciones }: { requisiciones: Exten
                   <Cell key={i} fill={colors[i % colors.length]} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={TOOLTIP_STYLE} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={TOOLTIP_TEXT_STYLE} labelStyle={TOOLTIP_TEXT_STYLE} />
               <Legend formatter={(value) => <span className="text-xs text-foreground">{value}</span>} />
             </PieChart>
           </ResponsiveContainer>
@@ -656,6 +666,8 @@ export const TendenciaGastoPanel = ({
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
+              itemStyle={TOOLTIP_TEXT_STYLE}
+              labelStyle={TOOLTIP_TEXT_STYLE}
               formatter={(value: number) => [formatCurrency(value), "Gasto"]}
             />
             <Line type="monotone" dataKey="gasto" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: "hsl(var(--primary))" }} name="Gasto Total" />
