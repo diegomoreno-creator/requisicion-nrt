@@ -1072,6 +1072,54 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
         </CardContent>
       </Card>
       )}
+
+      {/* ─── New Advanced Panels ─── */}
+
+      {/* Gasto Mensual por Empresa */}
+      {visiblePanels.has("gasto_empresa") && (
+        <GastoMensualEmpresaPanel requisiciones={requisiciones} empresasMap={empresasMap} />
+      )}
+
+      {/* Gasto por Departamento + Proveedor */}
+      {(visiblePanels.has("gasto_depto") || visiblePanels.has("gasto_proveedor")) && (
+        <div className={cn("grid gap-6", visiblePanels.has("gasto_depto") && visiblePanels.has("gasto_proveedor") ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
+          {visiblePanels.has("gasto_depto") && (
+            <GastoDepartamentoPanel requisiciones={requisiciones} departamentosMap={departamentosMap} />
+          )}
+          {visiblePanels.has("gasto_proveedor") && (
+            <GastoProveedorPanel requisiciones={requisiciones} />
+          )}
+        </div>
+      )}
+
+      {/* Aprobadas vs Rechazadas + Tipo de Gasto */}
+      {(visiblePanels.has("aprobacion") || visiblePanels.has("tipo_gasto")) && (
+        <div className={cn("grid gap-6", visiblePanels.has("aprobacion") && visiblePanels.has("tipo_gasto") ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
+          {visiblePanels.has("aprobacion") && (
+            <ResumenAprobacionPanel requisiciones={requisiciones} />
+          )}
+          {visiblePanels.has("tipo_gasto") && (
+            <TipoGastoPanel requisiciones={requisiciones} tiposMap={tiposMap} />
+          )}
+        </div>
+      )}
+
+      {/* SLA + Stale */}
+      {(visiblePanels.has("sla") || visiblePanels.has("stale")) && (
+        <div className={cn("grid gap-6", visiblePanels.has("sla") && visiblePanels.has("stale") ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
+          {visiblePanels.has("sla") && (
+            <SLAPanel requisiciones={requisiciones} />
+          )}
+          {visiblePanels.has("stale") && (
+            <StalePanel requisiciones={requisiciones} />
+          )}
+        </div>
+      )}
+
+      {/* Tendencia de Gasto */}
+      {visiblePanels.has("tendencia_gasto") && (
+        <TendenciaGastoPanel requisiciones={requisiciones} empresasMap={empresasMap} />
+      )}
     </div>
   );
 };
