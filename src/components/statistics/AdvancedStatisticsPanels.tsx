@@ -318,6 +318,8 @@ export const GastoProveedorPanel = ({ requisiciones }: { requisiciones: Extended
             <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={9} width={140} />
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
+              itemStyle={TOOLTIP_TEXT_STYLE}
+              labelStyle={TOOLTIP_TEXT_STYLE}
               formatter={(value: number) => [formatCurrency(value), "Acumulado"]}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
