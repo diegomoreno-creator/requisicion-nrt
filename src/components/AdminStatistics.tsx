@@ -80,6 +80,7 @@ const ESTADO_COLORS: Record<string, string> = {
 };
 
 const estadoLabels: Record<string, string> = {
+  pendiente_revision: "En Revisión",
   pendiente: "Pendiente",
   aprobado: "Aprobado",
   rechazado: "Rechazado",
@@ -88,6 +89,7 @@ const estadoLabels: Record<string, string> = {
   pedido_colocado: "Pedido Colocado",
   pedido_autorizado: "Pedido Autorizado",
   pedido_pagado: "Pedido Pagado",
+  borrador: "Borrador",
 };
 
 interface AdminStatisticsProps {

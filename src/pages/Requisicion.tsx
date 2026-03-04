@@ -297,11 +297,12 @@ const Requisicion = () => {
         return;
       }
 
-      // Can edit if pending or rejected
+      // Can edit if pending, pending_revision (returned by reviewer), or rejected
       const isPending = req.estado === "pendiente" && !req.deleted_at;
+      const isPendingRevision = req.estado === "pendiente_revision" && !req.deleted_at;
       const isRejected = req.estado === "rechazado" && !req.deleted_at;
       
-      if (!isPending && !isRejected) {
+      if (!isPending && !isPendingRevision && !isRejected) {
         toast.error("Solo puedes editar requisiciones pendientes o rechazadas");
         navigate("/tramites");
         return;
