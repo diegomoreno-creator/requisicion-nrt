@@ -35,6 +35,8 @@ All colors MUST be HSL.
     --border: 0 0% 88%;
     --input: 0 0% 94%;
     --ring: 7 70% 48%;
+    --chart-tooltip-bg: 0 0% 12%;
+    --chart-tooltip-fg: 0 0% 98%;
 
     --radius: 0.5rem;
 

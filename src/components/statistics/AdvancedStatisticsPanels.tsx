@@ -26,10 +26,14 @@ const generateDistinctColors = (count: number): string[] => {
 const CHART_COLORS = generateDistinctColors(30);
 
 const TOOLTIP_STYLE = {
-  backgroundColor: "hsl(var(--muted))",
+  backgroundColor: "hsl(var(--chart-tooltip-bg))",
   border: "1px solid hsl(var(--border))",
   borderRadius: "8px",
-  color: "hsl(var(--foreground))",
+};
+
+const TOOLTIP_TEXT_STYLE = {
+  color: "hsl(var(--chart-tooltip-fg))",
+  fontWeight: 500,
 };
 
 interface ExtendedRequisicion {
