@@ -1078,6 +1078,7 @@ const TramiteDetailDialog = ({
       const { error } = await supabase
         .from(table)
         .update({ 
+          estado: "rechazado",
           justificacion_devolucion_revision: returnRevisionJustification.trim(),
           revisado_por: user.id,
         } as any)
