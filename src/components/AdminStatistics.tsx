@@ -1073,40 +1073,14 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
       </Card>
       )}
 
-      {/* ─── New Advanced Panels ─── */}
+      {/* ─── Advanced Panels – Reorganized Layout ─── */}
 
-      {/* Gasto Mensual por Empresa */}
-      {visiblePanels.has("gasto_empresa") && (
-        <GastoMensualEmpresaPanel requisiciones={requisiciones} empresasMap={empresasMap} />
-      )}
-
-      {/* Gasto por Departamento + Proveedor */}
-      {(visiblePanels.has("gasto_depto") || visiblePanels.has("gasto_proveedor")) && (
-        <div className={cn("grid gap-6", visiblePanels.has("gasto_depto") && visiblePanels.has("gasto_proveedor") ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
-          {visiblePanels.has("gasto_depto") && (
-            <GastoDepartamentoPanel requisiciones={requisiciones} departamentosMap={departamentosMap} />
-          )}
-          {visiblePanels.has("gasto_proveedor") && (
-            <GastoProveedorPanel requisiciones={requisiciones} />
-          )}
-        </div>
-      )}
-
-      {/* Aprobadas vs Rechazadas + Tipo de Gasto */}
-      {(visiblePanels.has("aprobacion") || visiblePanels.has("tipo_gasto")) && (
-        <div className={cn("grid gap-6", visiblePanels.has("aprobacion") && visiblePanels.has("tipo_gasto") ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
+      {/* Row: Aprobadas/Rechazadas (compact) + Tipo de Gasto + SLA/Stale alerts */}
+      {(visiblePanels.has("aprobacion") || visiblePanels.has("tipo_gasto") || visiblePanels.has("sla") || visiblePanels.has("stale")) && (
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {visiblePanels.has("aprobacion") && (
             <ResumenAprobacionPanel requisiciones={requisiciones} />
           )}
-          {visiblePanels.has("tipo_gasto") && (
-            <TipoGastoPanel requisiciones={requisiciones} tiposMap={tiposMap} />
-          )}
-        </div>
-      )}
-
-      {/* SLA + Stale */}
-      {(visiblePanels.has("sla") || visiblePanels.has("stale")) && (
-        <div className={cn("grid gap-6", visiblePanels.has("sla") && visiblePanels.has("stale") ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
           {visiblePanels.has("sla") && (
             <SLAPanel requisiciones={requisiciones} />
           )}
@@ -1116,9 +1090,29 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
         </div>
       )}
 
-      {/* Tendencia de Gasto */}
+      {/* Row: Tendencia de gasto (full width) */}
       {visiblePanels.has("tendencia_gasto") && (
         <TendenciaGastoPanel requisiciones={requisiciones} empresasMap={empresasMap} />
+      )}
+
+      {/* Row: Gasto por Empresa (full width, stacked bars) */}
+      {visiblePanels.has("gasto_empresa") && (
+        <GastoMensualEmpresaPanel requisiciones={requisiciones} empresasMap={empresasMap} />
+      )}
+
+      {/* Row: Departamento + Proveedor + Tipo de Gasto (3-col) */}
+      {(visiblePanels.has("gasto_depto") || visiblePanels.has("gasto_proveedor") || visiblePanels.has("tipo_gasto")) && (
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+          {visiblePanels.has("gasto_depto") && (
+            <GastoDepartamentoPanel requisiciones={requisiciones} departamentosMap={departamentosMap} />
+          )}
+          {visiblePanels.has("gasto_proveedor") && (
+            <GastoProveedorPanel requisiciones={requisiciones} />
+          )}
+          {visiblePanels.has("tipo_gasto") && (
+            <TipoGastoPanel requisiciones={requisiciones} tiposMap={tiposMap} />
+          )}
+        </div>
       )}
     </div>
   );
