@@ -2378,7 +2378,7 @@ const TramiteDetailDialog = ({
             {((requisicion as any)?.justificacion_devolucion_revision || (reposicion as any)?.justificacion_devolucion_revision) && (
               <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
                 <h3 className="text-orange-500 font-semibold mb-2">Comentarios de Revisión</h3>
-                <p className="text-foreground whitespace-pre-wrap">
+                <p className="text-foreground whitespace-pre-wrap break-words">
                   {(requisicion as any)?.justificacion_devolucion_revision || (reposicion as any)?.justificacion_devolucion_revision}
                 </p>
               </div>
