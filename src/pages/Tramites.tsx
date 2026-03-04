@@ -240,35 +240,27 @@ const Tramites = () => {
         
         if (r.deleted_at) {
           deleted.push(tramite);
-        } else if ((isSolicitador && r.solicitado_por === user.id && r.estado === 'pendiente' && r.justificacion_rechazo) ||
-                   (isComprador && r.justificacion_rechazo && r.estado === 'pendiente') ||
-                   (isAutorizador && r.autorizador_id === user.id && (r as any).justificacion_rechazo_presupuestos)) {
-          // Items with rejection justification go to rejected tab
-          // For solicitador: their own items with justificacion_rechazo
-          // For comprador: items they rejected (any item with justificacion_rechazo)
-          // For autorizador: items they authorized that have justificacion_rechazo_presupuestos
+        } else if (
+          // Rechazadas tab: items with estado 'rechazado' OR with pending rejection justifications
+          (isSolicitador && r.solicitado_por === user.id && r.estado === 'rechazado') ||
+          (isComprador && r.justificacion_rechazo && r.estado === 'rechazado') ||
+          (isAutorizador && r.autorizador_id === user.id && (r as any).justificacion_rechazo_presupuestos)
+        ) {
           rejected.push(tramite);
         } else if (isComprador && ['pedido_autorizado', 'pedido_pagado'].includes(r.estado || '')) {
-          // Comprador: items that are beyond their workflow (authorized or paid) go to Atendidos
-          // These items are done from the Comprador's perspective - regardless of who processed them
           attended.push(tramite);
         } else if (isComprador && r.pedido_colocado_por === user.id) {
-          // Comprador: items where THEY placed the order go to Atendidos
           attended.push(tramite);
         } else if (isAutorizador && multiAuthMap.has(r.id)) {
-          // Multi-authorizer: check user's approval status
           const myStatus = multiAuthMap.get(r.id);
           if (myStatus === "aprobado" && !['pendiente', 'pendiente_revision', 'rechazado'].includes(r.estado || '')) {
             attended.push(tramite);
           } else if (myStatus === "aprobado" && r.estado === 'pendiente') {
-            // User approved but requisition still pending (waiting for others) - show in Atendidos
             attended.push(tramite);
           } else {
             activeTramites.push(tramite);
           }
         } else if (processorField && (r as any)[processorField] === user.id && !['pendiente', 'pendiente_revision', 'rechazado'].includes(r.estado || '')) {
-          // User processed this tramite - goes to Atendidos
-          // BUT if it was sent back to pendiente/rechazado, keep it in Pendientes so they see it again
           attended.push(tramite);
         } else {
           activeTramites.push(tramite);
