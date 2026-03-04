@@ -715,11 +715,9 @@ const TramiteDetailDialog = ({
     // For requisiciones
     if (requisicion && user) {
       const isOwner = requisicion.solicitado_por === user.id;
-      const isPending = requisicion.estado === "pendiente" || requisicion.estado === "pendiente_revision";
+      const isPending = requisicion.estado === "pendiente" || requisicion.estado === "pendiente_revision" || requisicion.estado === "rechazado";
       const notDeleted = !requisicion.deleted_at;
-      // Check if returned by reviewer - allow editing
-      const returnedByReviewer = requisicion.estado === "pendiente_revision" && !!(requisicion as any).justificacion_devolucion_revision;
-      return isOwner && (isPending || returnedByReviewer) && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
+      return isOwner && isPending && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
     }
     // For reposiciones
     if (reposicion && user) {
