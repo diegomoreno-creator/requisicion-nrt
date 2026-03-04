@@ -186,17 +186,9 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
     fetchStatistics();
   }, [empresaId]);
 
-  // Recalculate volume when period or custom range changes
-  useEffect(() => {
-    if (requisiciones.length > 0 || reposiciones.length > 0) {
-      calculateVolumeByPeriod(requisiciones, reposiciones, volumePeriod, customDateRange);
-    }
-  }, [volumePeriod, customDateRange, requisiciones, reposiciones]);
-
   const fetchStatistics = async () => {
     setLoading(true);
     try {
-      // Fetch requisiciones, catalogs in parallel
       let reqQuery = supabase
         .from("requisiciones")
         .select("id, folio, asunto, estado, created_at, updated_at, fecha_autorizacion_real, fecha_licitacion, fecha_pedido_colocado, fecha_pedido_autorizado, fecha_pago, tipo_requisicion, empresa, departamento_solicitante, datos_proveedor, presupuesto_aproximado, monto_total_compra")
@@ -214,7 +206,6 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
         supabase.from("catalogo_departamentos").select("id, nombre").eq("activo", true),
       ]);
 
-      // Build lookup maps
       if (empresasData) {
         const map: Record<string, string> = {};
         empresasData.forEach((e) => { map[e.id] = e.nombre; });
@@ -231,24 +222,56 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
         setDepartamentosMap(map);
       }
 
-      if (reqData) {
-        setRequisiciones(reqData as RequisicionStats[]);
-        calculateTimeStats(reqData as RequisicionStats[]);
-        calculateStatusDistribution(reqData as RequisicionStats[]);
-      }
-      if (repoData) {
-        setReposiciones(repoData);
-      }
-
-      if (reqData && repoData) {
-        calculateVolumeByPeriod(reqData as RequisicionStats[], repoData, volumePeriod, customDateRange);
-      }
+      if (reqData) setRequisiciones(reqData as RequisicionStats[]);
+      if (repoData) setReposiciones(repoData);
     } catch (error) {
       console.error("Error fetching statistics:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  // ─── Global date filter ───
+  const getDateRange = (): { start: Date; end: Date } => {
+    const now = new Date();
+    const end = endOfDay(now);
+    switch (volumePeriod) {
+      case "week": return { start: startOfDay(subWeeks(now, 1)), end };
+      case "month": return { start: startOfDay(subMonths(now, 1)), end };
+      case "3months": return { start: startOfMonth(subMonths(now, 2)), end };
+      case "6months": return { start: startOfMonth(subMonths(now, 5)), end };
+      case "year": return { start: startOfMonth(subMonths(now, 11)), end };
+      case "custom":
+        if (customDateRange.from && customDateRange.to) {
+          return { start: startOfDay(customDateRange.from), end: endOfDay(customDateRange.to) };
+        }
+        return { start: startOfMonth(subMonths(now, 5)), end }; // fallback
+      default: return { start: startOfMonth(subMonths(now, 5)), end };
+    }
+  };
+
+  const filteredRequisiciones = useMemo(() => {
+    const { start, end } = getDateRange();
+    return requisiciones.filter(r => {
+      const d = new Date(r.created_at);
+      return d >= start && d <= end;
+    });
+  }, [requisiciones, volumePeriod, customDateRange]);
+
+  const filteredReposiciones = useMemo(() => {
+    const { start, end } = getDateRange();
+    return reposiciones.filter(r => {
+      const d = new Date(r.created_at);
+      return d >= start && d <= end;
+    });
+  }, [reposiciones, volumePeriod, customDateRange]);
+
+  // Recalculate derived stats when filtered data changes
+  useEffect(() => {
+    calculateTimeStats(filteredRequisiciones);
+    calculateStatusDistribution(filteredRequisiciones);
+    calculateVolumeByPeriod(filteredRequisiciones, filteredReposiciones, volumePeriod, customDateRange);
+  }, [filteredRequisiciones, filteredReposiciones, volumePeriod, customDateRange]);
 
   const calculateTimeStats = (data: RequisicionStats[]) => {
     // Filter completed requisitions for time analysis
@@ -461,10 +484,11 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
     
     // Summary
     csv += "RESUMEN GENERAL\n";
-    csv += `Total Requisiciones,${requisiciones.length}\n`;
-    csv += `Total Reposiciones,${reposiciones.length}\n`;
-    csv += `Pendientes,${requisiciones.filter(r => r.estado === "pendiente").length}\n`;
-    csv += `Completados,${requisiciones.filter(r => r.estado === "pedido_pagado").length}\n`;
+    csv += `Período,${periodLabels[volumePeriod]}\n`;
+    csv += `Total Requisiciones,${filteredRequisiciones.length}\n`;
+    csv += `Total Reposiciones,${filteredReposiciones.length}\n`;
+    csv += `Pendientes,${filteredRequisiciones.filter(r => r.estado === "pendiente").length}\n`;
+    csv += `Completados,${filteredRequisiciones.filter(r => r.estado === "pedido_pagado").length}\n`;
     csv += `Tiempo Promedio Total (días),${avgTotalTime}\n`;
     csv += `Cuello de Botella,${bottleneck || "Sin datos"}\n\n`;
     
@@ -534,10 +558,11 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
       startY: y,
       head: [["Métrica", "Valor"]],
       body: [
-        ["Total Requisiciones", String(requisiciones.length)],
-        ["Total Reposiciones", String(reposiciones.length)],
-        ["Pendientes", String(requisiciones.filter(r => r.estado === "pendiente").length)],
-        ["Completados", String(requisiciones.filter(r => r.estado === "pedido_pagado").length)],
+        ["Período", periodLabels[volumePeriod]],
+        ["Total Requisiciones", String(filteredRequisiciones.length)],
+        ["Total Reposiciones", String(filteredReposiciones.length)],
+        ["Pendientes", String(filteredRequisiciones.filter(r => r.estado === "pendiente").length)],
+        ["Completados", String(filteredRequisiciones.filter(r => r.estado === "pedido_pagado").length)],
         ["Tiempo Promedio Total", `${avgTotalTime} días`],
         ["Cuello de Botella", bottleneck || "Sin datos"],
       ],
@@ -602,14 +627,15 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
     );
   }
 
-  const totalRequisiciones = requisiciones.length;
-  const totalReposiciones = reposiciones.length;
-  const pendientes = requisiciones.filter(r => r.estado === "pendiente").length;
-  const completados = requisiciones.filter(r => r.estado === "pedido_pagado").length;
+  const totalRequisiciones = filteredRequisiciones.length;
+  const totalReposiciones = filteredReposiciones.length;
+  const pendientes = filteredRequisiciones.filter(r => r.estado === "pendiente").length;
+  const completados = filteredRequisiciones.filter(r => r.estado === "pedido_pagado").length;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
+      {/* Header with title, date filter, and export */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-6 h-6 text-primary" />
           <h2 className="text-xl font-bold text-foreground">
@@ -619,24 +645,81 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
             )}
           </h2>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Download className="w-4 h-4" />
-              Exportar
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={exportToCSV}>
-              <FileText className="w-4 h-4 mr-2" />
-              Exportar a Excel/CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportToPDF}>
-              <FileText className="w-4 h-4 mr-2" />
-              Exportar a PDF
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={volumePeriod} onValueChange={(value: VolumePeriod) => setVolumePeriod(value)}>
+            <SelectTrigger className="w-36 h-8 text-xs bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              <SelectItem value="week">Última semana</SelectItem>
+              <SelectItem value="month">Último mes</SelectItem>
+              <SelectItem value="3months">3 meses</SelectItem>
+              <SelectItem value="6months">6 meses</SelectItem>
+              <SelectItem value="year">1 año</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {volumePeriod === "custom" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "h-8 text-xs justify-start text-left font-normal",
+                    !customDateRange.from && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-3 w-3" />
+                  {customDateRange.from ? (
+                    customDateRange.to ? (
+                      <>
+                        {format(customDateRange.from, "d MMM", { locale: es })} -{" "}
+                        {format(customDateRange.to, "d MMM yy", { locale: es })}
+                      </>
+                    ) : (
+                      format(customDateRange.from, "d MMM yy", { locale: es })
+                    )
+                  ) : (
+                    "Seleccionar fechas"
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-card border-border" align="end">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={customDateRange.from}
+                  selected={{ from: customDateRange.from, to: customDateRange.to }}
+                  onSelect={(range) => setCustomDateRange({ from: range?.from, to: range?.to })}
+                  numberOfMonths={2}
+                  locale={es}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-2">
+                <Download className="w-4 h-4" />
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportToCSV}>
+                <FileText className="w-4 h-4 mr-2" />
+                Exportar a Excel/CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToPDF}>
+                <FileText className="w-4 h-4 mr-2" />
+                Exportar a PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Panel selector */}
@@ -977,66 +1060,9 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
       {visiblePanels.has("volumen") && (
       <Card className="border-border bg-card">
         <CardHeader className="pb-2">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Volumen de Trámites
-            </CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={volumePeriod} onValueChange={(value: VolumePeriod) => setVolumePeriod(value)}>
-                <SelectTrigger className="w-36 h-8 text-xs bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  <SelectItem value="week">Última semana</SelectItem>
-                  <SelectItem value="month">Último mes</SelectItem>
-                  <SelectItem value="3months">3 meses</SelectItem>
-                  <SelectItem value="6months">6 meses</SelectItem>
-                  <SelectItem value="year">1 año</SelectItem>
-                  <SelectItem value="custom">Personalizado</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {volumePeriod === "custom" && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "h-8 text-xs justify-start text-left font-normal",
-                        !customDateRange.from && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-3 w-3" />
-                      {customDateRange.from ? (
-                        customDateRange.to ? (
-                          <>
-                            {format(customDateRange.from, "d MMM", { locale: es })} -{" "}
-                            {format(customDateRange.to, "d MMM yy", { locale: es })}
-                          </>
-                        ) : (
-                          format(customDateRange.from, "d MMM yy", { locale: es })
-                        )
-                      ) : (
-                        "Seleccionar fechas"
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-card border-border" align="end">
-                    <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={customDateRange.from}
-                      selected={{ from: customDateRange.from, to: customDateRange.to }}
-                      onSelect={(range) => setCustomDateRange({ from: range?.from, to: range?.to })}
-                      numberOfMonths={2}
-                      locale={es}
-                    />
-                  </PopoverContent>
-                </Popover>
-              )}
-            </div>
-          </div>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Volumen de Trámites
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {monthlyVolume.length > 0 ? (
@@ -1082,42 +1108,38 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
 
       {/* ─── Advanced Panels – Reorganized Layout ─── */}
 
-      {/* Row: Aprobadas/Rechazadas (compact) + Tipo de Gasto + SLA/Stale alerts */}
       {(visiblePanels.has("aprobacion") || visiblePanels.has("tipo_gasto") || visiblePanels.has("sla") || visiblePanels.has("stale")) && (
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 items-stretch">
           {visiblePanels.has("aprobacion") && (
-            <ResumenAprobacionPanel requisiciones={requisiciones} />
+            <ResumenAprobacionPanel requisiciones={filteredRequisiciones} />
           )}
           {visiblePanels.has("sla") && (
-            <SLAPanel requisiciones={requisiciones} />
+            <SLAPanel requisiciones={filteredRequisiciones} />
           )}
           {visiblePanels.has("stale") && (
-            <StalePanel requisiciones={requisiciones} />
+            <StalePanel requisiciones={filteredRequisiciones} />
           )}
         </div>
       )}
 
-      {/* Row: Tendencia de gasto (full width) */}
       {visiblePanels.has("tendencia_gasto") && (
-        <TendenciaGastoPanel requisiciones={requisiciones} empresasMap={empresasMap} />
+        <TendenciaGastoPanel requisiciones={filteredRequisiciones} empresasMap={empresasMap} />
       )}
 
-      {/* Row: Gasto por Empresa (full width, stacked bars) */}
       {visiblePanels.has("gasto_empresa") && (
-        <GastoMensualEmpresaPanel requisiciones={requisiciones} empresasMap={empresasMap} />
+        <GastoMensualEmpresaPanel requisiciones={filteredRequisiciones} empresasMap={empresasMap} />
       )}
 
-      {/* Row: Departamento + Proveedor + Tipo de Gasto (3-col) */}
       {(visiblePanels.has("gasto_depto") || visiblePanels.has("gasto_proveedor") || visiblePanels.has("tipo_gasto")) && (
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
           {visiblePanels.has("gasto_depto") && (
-            <GastoDepartamentoPanel requisiciones={requisiciones} departamentosMap={departamentosMap} />
+            <GastoDepartamentoPanel requisiciones={filteredRequisiciones} departamentosMap={departamentosMap} />
           )}
           {visiblePanels.has("gasto_proveedor") && (
-            <GastoProveedorPanel requisiciones={requisiciones} />
+            <GastoProveedorPanel requisiciones={filteredRequisiciones} />
           )}
           {visiblePanels.has("tipo_gasto") && (
-            <TipoGastoPanel requisiciones={requisiciones} tiposMap={tiposMap} />
+            <TipoGastoPanel requisiciones={filteredRequisiciones} tiposMap={tiposMap} />
           )}
         </div>
       )}
