@@ -357,13 +357,13 @@ export const ResumenAprobacionPanel = ({ requisiciones }: { requisiciones: Exten
   const colors = ["hsl(142, 71%, 45%)", "hsl(0, 84%, 60%)", "hsl(220, 9%, 46%)", "hsl(45, 93%, 47%)"];
 
   return (
-    <Card className="border-border bg-card h-fit">
+    <Card className="border-border bg-card h-full flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           Requisiciones: Aprobadas vs Rechazadas
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col justify-center">
         <div className="grid grid-cols-4 gap-3 mb-4">
           <div className="text-center">
             <p className="text-xl font-bold text-foreground">{stats.total}</p>
@@ -485,13 +485,13 @@ export const SLAPanel = ({ requisiciones }: { requisiciones: ExtendedRequisicion
   }, [requisiciones, slaDays]);
 
   return (
-    <Card className="border-border bg-card">
+    <Card className="border-border bg-card h-full flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-destructive" /> Requisiciones Fuera de SLA
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col">
         <div className="flex items-center gap-2 mb-3">
           <Label className="text-xs text-muted-foreground whitespace-nowrap">SLA (días):</Label>
           <Input
@@ -566,13 +566,13 @@ export const StalePanel = ({ requisiciones }: { requisiciones: ExtendedRequisici
   };
 
   return (
-    <Card className="border-border bg-card">
+    <Card className="border-border bg-card h-full flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
           <Clock className="w-4 h-4 text-chart-4" /> Requisiciones Sin Movimiento
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col">
         <div className="flex items-center gap-2 mb-3">
           <Label className="text-xs text-muted-foreground whitespace-nowrap">Días sin movimiento:</Label>
           <Input

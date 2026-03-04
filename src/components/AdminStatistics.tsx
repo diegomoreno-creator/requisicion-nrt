@@ -1084,7 +1084,7 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
 
       {/* Row: Aprobadas/Rechazadas (compact) + Tipo de Gasto + SLA/Stale alerts */}
       {(visiblePanels.has("aprobacion") || visiblePanels.has("tipo_gasto") || visiblePanels.has("sla") || visiblePanels.has("stale")) && (
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 items-start">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 items-stretch">
           {visiblePanels.has("aprobacion") && (
             <ResumenAprobacionPanel requisiciones={requisiciones} />
           )}
