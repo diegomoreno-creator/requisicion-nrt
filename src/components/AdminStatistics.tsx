@@ -1,9 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, TrendingUp, Clock, AlertTriangle, CheckCircle, FileText, DollarSign, Users, BarChart3, Zap, Timer, ArrowDown, ArrowUp, Download, Settings2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  GastoMensualEmpresaPanel,
+  GastoDepartamentoPanel,
+  GastoProveedorPanel,
+  ResumenAprobacionPanel,
+  TipoGastoPanel,
+  SLAPanel,
+  StalePanel,
+  TendenciaGastoPanel,
+} from "@/components/statistics/AdvancedStatisticsPanels";
 import { Label } from "@/components/ui/label";
 import { 
   BarChart, 
@@ -36,6 +46,7 @@ interface RequisicionStats {
   id: string;
   estado: string;
   created_at: string;
+  updated_at: string;
   fecha_autorizacion_real: string | null;
   fecha_licitacion: string | null;
   fecha_pedido_colocado: string | null;
@@ -43,6 +54,10 @@ interface RequisicionStats {
   fecha_pago: string | null;
   tipo_requisicion: string | null;
   empresa: string | null;
+  departamento_solicitante: string | null;
+  datos_proveedor: string | null;
+  presupuesto_aproximado: number | null;
+  monto_total_compra: number | null;
 }
 
 interface TimeStats {
@@ -105,6 +120,9 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
   const [reposiciones, setReposiciones] = useState<any[]>([]);
   const [timeStats, setTimeStats] = useState<TimeStats[]>([]);
   const [statusDistribution, setStatusDistribution] = useState<{ name: string; value: number }[]>([]);
+  const [empresasMap, setEmpresasMap] = useState<Record<string, string>>({});
+  const [tiposMap, setTiposMap] = useState<Record<string, string>>({});
+  const [departamentosMap, setDepartamentosMap] = useState<Record<string, string>>({});
   const [monthlyVolume, setMonthlyVolume] = useState<{ month: string; requisiciones: number; reposiciones: number }[]>([]);
   const [avgTotalTime, setAvgTotalTime] = useState<number>(0);
   const [bottleneck, setBottleneck] = useState<string>("");
@@ -123,6 +141,14 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
     { key: "tiempo_etapa", label: "Tiempo Promedio por Etapa" },
     { key: "distribucion", label: "Distribución por Estado" },
     { key: "volumen", label: "Volumen de Trámites" },
+    { key: "gasto_empresa", label: "Gasto Mensual por Empresa" },
+    { key: "gasto_depto", label: "Gasto por Departamento" },
+    { key: "gasto_proveedor", label: "Gasto por Proveedor" },
+    { key: "aprobacion", label: "Aprobadas vs Rechazadas" },
+    { key: "tipo_gasto", label: "Tipo de Gasto" },
+    { key: "sla", label: "Fuera de SLA" },
+    { key: "stale", label: "Sin Movimiento" },
+    { key: "tendencia_gasto", label: "Tendencia de Gasto" },
   ] as const;
 
   type StatPanelKey = typeof STAT_PANELS[number]["key"];
@@ -157,36 +183,52 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
   const fetchStatistics = async () => {
     setLoading(true);
     try {
-      // Fetch requisiciones with timestamps, filtered by empresa if provided
+      // Fetch requisiciones, catalogs in parallel
       let reqQuery = supabase
         .from("requisiciones")
-        .select("id, estado, created_at, fecha_autorizacion_real, fecha_licitacion, fecha_pedido_colocado, fecha_pedido_autorizado, fecha_pago, tipo_requisicion, empresa")
+        .select("id, estado, created_at, updated_at, fecha_autorizacion_real, fecha_licitacion, fecha_pedido_colocado, fecha_pedido_autorizado, fecha_pago, tipo_requisicion, empresa, departamento_solicitante, datos_proveedor, presupuesto_aproximado, monto_total_compra")
         .is("deleted_at", null);
       
       if (empresaId) {
         reqQuery = reqQuery.eq("empresa", empresaId);
       }
       
-      const { data: reqData } = await reqQuery;
+      const [{ data: reqData }, { data: repoData }, { data: empresasData }, { data: tiposData }, { data: deptData }] = await Promise.all([
+        reqQuery,
+        supabase.from("reposiciones").select("id, estado, created_at, fecha_autorizacion, fecha_pago"),
+        supabase.from("catalogo_empresas").select("id, nombre").eq("activo", true),
+        supabase.from("catalogo_tipos_requisicion").select("id, nombre").eq("activo", true),
+        supabase.from("catalogo_departamentos").select("id, nombre").eq("activo", true),
+      ]);
 
-      // Fetch reposiciones - filter via solicitado_por users of the empresa
-      // Reposiciones don't have empresa field, so we fetch all visible ones
-      const { data: repoData } = await supabase
-        .from("reposiciones")
-        .select("id, estado, created_at, fecha_autorizacion, fecha_pago");
+      // Build lookup maps
+      if (empresasData) {
+        const map: Record<string, string> = {};
+        empresasData.forEach((e) => { map[e.id] = e.nombre; });
+        setEmpresasMap(map);
+      }
+      if (tiposData) {
+        const map: Record<string, string> = {};
+        tiposData.forEach((t) => { map[t.id] = t.nombre; });
+        setTiposMap(map);
+      }
+      if (deptData) {
+        const map: Record<string, string> = {};
+        deptData.forEach((d) => { map[d.id] = d.nombre; });
+        setDepartamentosMap(map);
+      }
 
       if (reqData) {
-        setRequisiciones(reqData);
-        calculateTimeStats(reqData);
-        calculateStatusDistribution(reqData);
+        setRequisiciones(reqData as RequisicionStats[]);
+        calculateTimeStats(reqData as RequisicionStats[]);
+        calculateStatusDistribution(reqData as RequisicionStats[]);
       }
       if (repoData) {
         setReposiciones(repoData);
       }
 
-      // Calculate volume - will be handled by useEffect
       if (reqData && repoData) {
-        calculateVolumeByPeriod(reqData, repoData, volumePeriod, customDateRange);
+        calculateVolumeByPeriod(reqData as RequisicionStats[], repoData, volumePeriod, customDateRange);
       }
     } catch (error) {
       console.error("Error fetching statistics:", error);
@@ -1029,6 +1071,54 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
           )}
         </CardContent>
       </Card>
+      )}
+
+      {/* ─── New Advanced Panels ─── */}
+
+      {/* Gasto Mensual por Empresa */}
+      {visiblePanels.has("gasto_empresa") && (
+        <GastoMensualEmpresaPanel requisiciones={requisiciones} empresasMap={empresasMap} />
+      )}
+
+      {/* Gasto por Departamento + Proveedor */}
+      {(visiblePanels.has("gasto_depto") || visiblePanels.has("gasto_proveedor")) && (
+        <div className={cn("grid gap-6", visiblePanels.has("gasto_depto") && visiblePanels.has("gasto_proveedor") ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
+          {visiblePanels.has("gasto_depto") && (
+            <GastoDepartamentoPanel requisiciones={requisiciones} departamentosMap={departamentosMap} />
+          )}
+          {visiblePanels.has("gasto_proveedor") && (
+            <GastoProveedorPanel requisiciones={requisiciones} />
+          )}
+        </div>
+      )}
+
+      {/* Aprobadas vs Rechazadas + Tipo de Gasto */}
+      {(visiblePanels.has("aprobacion") || visiblePanels.has("tipo_gasto")) && (
+        <div className={cn("grid gap-6", visiblePanels.has("aprobacion") && visiblePanels.has("tipo_gasto") ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
+          {visiblePanels.has("aprobacion") && (
+            <ResumenAprobacionPanel requisiciones={requisiciones} />
+          )}
+          {visiblePanels.has("tipo_gasto") && (
+            <TipoGastoPanel requisiciones={requisiciones} tiposMap={tiposMap} />
+          )}
+        </div>
+      )}
+
+      {/* SLA + Stale */}
+      {(visiblePanels.has("sla") || visiblePanels.has("stale")) && (
+        <div className={cn("grid gap-6", visiblePanels.has("sla") && visiblePanels.has("stale") ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
+          {visiblePanels.has("sla") && (
+            <SLAPanel requisiciones={requisiciones} />
+          )}
+          {visiblePanels.has("stale") && (
+            <StalePanel requisiciones={requisiciones} />
+          )}
+        </div>
+      )}
+
+      {/* Tendencia de Gasto */}
+      {visiblePanels.has("tendencia_gasto") && (
+        <TendenciaGastoPanel requisiciones={requisiciones} empresasMap={empresasMap} />
       )}
     </div>
   );
