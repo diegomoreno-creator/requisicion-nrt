@@ -302,7 +302,11 @@ export const GastoProveedorPanel = ({ requisiciones }: { requisiciones: Extended
               contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
               formatter={(value: number) => [formatCurrency(value), "Acumulado"]}
             />
-            <Bar dataKey="value" fill="hsl(var(--chart-3))" radius={[0, 4, 4, 0]} />
+            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+              {data.map((_, i) => (
+                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
