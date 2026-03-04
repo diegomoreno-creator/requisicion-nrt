@@ -894,9 +894,10 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                   />
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
+                      backgroundColor: 'hsl(var(--muted))', 
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      color: 'hsl(var(--foreground))',
                     }}
                     formatter={(value: number) => {
                       const unitLabel = timeUnit === "minutes" ? "minutos" : timeUnit === "hours" ? "horas" : "días";
@@ -942,9 +943,10 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                   </Pie>
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
+                      backgroundColor: 'hsl(var(--muted))', 
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      color: 'hsl(var(--foreground))',
                     }}
                   />
                   <Legend 
@@ -1040,9 +1042,10 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
+                    backgroundColor: 'hsl(var(--muted))', 
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
+                    borderRadius: '8px',
+                    color: 'hsl(var(--foreground))',
                   }}
                 />
                 <Legend />

@@ -25,6 +25,13 @@ const generateDistinctColors = (count: number): string[] => {
 
 const CHART_COLORS = generateDistinctColors(30);
 
+const TOOLTIP_STYLE = {
+  backgroundColor: "hsl(var(--muted))",
+  border: "1px solid hsl(var(--border))",
+  borderRadius: "8px",
+  color: "hsl(var(--foreground))",
+};
+
 interface ExtendedRequisicion {
   id: string;
   folio: string;
@@ -150,7 +157,7 @@ export const GastoMensualEmpresaPanel = ({
             <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={11} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
-              contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
+              contentStyle={TOOLTIP_STYLE}
               formatter={(value: number) => [formatCurrency(value), ""]}
             />
             <Legend wrapperStyle={{ fontSize: "11px" }} />
@@ -239,7 +246,7 @@ export const GastoDepartamentoPanel = ({
             <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
             <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} width={130} />
             <Tooltip
-              contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
+              contentStyle={TOOLTIP_STYLE}
               formatter={(value: number) => [formatCurrency(value), "Gasto"]}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
@@ -302,7 +309,7 @@ export const GastoProveedorPanel = ({ requisiciones }: { requisiciones: Extended
             <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
             <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={9} width={140} />
             <Tooltip
-              contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
+              contentStyle={TOOLTIP_STYLE}
               formatter={(value: number) => [formatCurrency(value), "Acumulado"]}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
@@ -373,7 +380,7 @@ export const ResumenAprobacionPanel = ({ requisiciones }: { requisiciones: Exten
                   <Cell key={i} fill={colors[i % colors.length]} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} />
               <Legend formatter={(value) => <span className="text-xs text-foreground">{value}</span>} />
             </PieChart>
           </ResponsiveContainer>
@@ -648,7 +655,7 @@ export const TendenciaGastoPanel = ({
             <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={11} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
-              contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
+              contentStyle={TOOLTIP_STYLE}
               formatter={(value: number) => [formatCurrency(value), "Gasto"]}
             />
             <Line type="monotone" dataKey="gasto" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: "hsl(var(--primary))" }} name="Gasto Total" />
