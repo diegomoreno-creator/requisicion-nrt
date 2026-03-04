@@ -10,19 +10,20 @@ import { format, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { useState, useMemo } from "react";
 
-// Colors palette for charts
-const CHART_COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-  "hsl(217, 91%, 60%)",
-  "hsl(280, 65%, 60%)",
-  "hsl(25, 95%, 53%)",
-  "hsl(162, 73%, 46%)",
-  "hsl(45, 93%, 47%)",
-];
+// Generate a large palette of distinct colors using golden angle distribution
+const generateDistinctColors = (count: number): string[] => {
+  const colors: string[] = [];
+  const goldenAngle = 137.508;
+  for (let i = 0; i < count; i++) {
+    const hue = (i * goldenAngle) % 360;
+    const sat = 65 + (i % 3) * 10; // 65-85%
+    const light = 50 + (i % 4) * 5; // 50-65%
+    colors.push(`hsl(${Math.round(hue)}, ${sat}%, ${light}%)`);
+  }
+  return colors;
+};
+
+const CHART_COLORS = generateDistinctColors(30);
 
 interface ExtendedRequisicion {
   id: string;
