@@ -242,7 +242,7 @@ const TramiteDetailDialog = ({
 }: TramiteDetailDialogProps) => {
   const navigate = useNavigate();
   const { user, isAutorizador, isSuperadmin, isAdmin, isComprador, isPresupuestos, isTesoreria, isSolicitador, isRevision } = useAuth();
-  const { empresas, unidadesNegocio, sucursales, getTipoNombre, tiposRequisicion } = useCatalogos();
+  const { empresas, unidadesNegocio, sucursales, getTipoNombre, tiposRequisicion, proveedores } = useCatalogos();
   const [loading, setLoading] = useState(true);
   const [requisicion, setRequisicion] = useState<RequisicionDetail | null>(null);
   const [reposicion, setReposicion] = useState<ReposicionDetail | null>(null);
@@ -715,11 +715,9 @@ const TramiteDetailDialog = ({
     // For requisiciones
     if (requisicion && user) {
       const isOwner = requisicion.solicitado_por === user.id;
-      const isPending = requisicion.estado === "pendiente" || requisicion.estado === "pendiente_revision";
+      const isPending = requisicion.estado === "pendiente" || requisicion.estado === "pendiente_revision" || requisicion.estado === "rechazado";
       const notDeleted = !requisicion.deleted_at;
-      // Check if returned by reviewer - allow editing
-      const returnedByReviewer = requisicion.estado === "pendiente_revision" && !!(requisicion as any).justificacion_devolucion_revision;
-      return isOwner && (isPending || returnedByReviewer) && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
+      return isOwner && isPending && notDeleted && (isSolicitador || isAdmin || isSuperadmin);
     }
     // For reposiciones
     if (reposicion && user) {
@@ -1078,6 +1076,7 @@ const TramiteDetailDialog = ({
       const { error } = await supabase
         .from(table)
         .update({ 
+          estado: "rechazado",
           justificacion_devolucion_revision: returnRevisionJustification.trim(),
           revisado_por: user.id,
         } as any)
@@ -2163,7 +2162,34 @@ const TramiteDetailDialog = ({
                     {requisicion.datos_proveedor && (
                       <div className="md:col-span-3">
                         <p className="text-muted-foreground text-sm">Datos del Proveedor:</p>
-                        <p className="text-foreground whitespace-pre-wrap">{requisicion.datos_proveedor}</p>
+                        {(() => {
+                          try {
+                            const parsed = JSON.parse(requisicion.datos_proveedor);
+                            if (Array.isArray(parsed)) {
+                              return (
+                                <div className="space-y-2 mt-1">
+                                  {parsed.map((sp: { id: string; justificacion: string }, idx: number) => {
+                                    const prov = proveedores.find(p => p.id === sp.id);
+                                    return (
+                                      <div key={idx} className="bg-muted/50 rounded-md p-2">
+                                        <p className="text-foreground font-medium text-sm">
+                                          {prov?.nombre || "Proveedor desconocido"}
+                                          {prov?.rfc && <span className="text-muted-foreground ml-2">({prov.rfc})</span>}
+                                        </p>
+                                        {sp.justificacion && (
+                                          <p className="text-muted-foreground text-xs mt-1 whitespace-pre-wrap break-words">
+                                            Justificación: {sp.justificacion}
+                                          </p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            }
+                          } catch { /* legacy text format */ }
+                          return <p className="text-foreground whitespace-pre-wrap break-words">{requisicion.datos_proveedor}</p>;
+                        })()}
                       </div>
                     )}
                     {requisicion.datos_banco && (
@@ -2350,7 +2376,7 @@ const TramiteDetailDialog = ({
             {((requisicion as any)?.justificacion_devolucion_revision || (reposicion as any)?.justificacion_devolucion_revision) && (
               <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
                 <h3 className="text-orange-500 font-semibold mb-2">Comentarios de Revisión</h3>
-                <p className="text-foreground whitespace-pre-wrap">
+                <p className="text-foreground whitespace-pre-wrap break-words">
                   {(requisicion as any)?.justificacion_devolucion_revision || (reposicion as any)?.justificacion_devolucion_revision}
                 </p>
               </div>
