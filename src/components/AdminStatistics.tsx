@@ -183,7 +183,7 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
   const fetchStatistics = async () => {
     setLoading(true);
     try {
-      // Fetch requisiciones with timestamps, filtered by empresa if provided
+      // Fetch requisiciones, catalogs in parallel
       let reqQuery = supabase
         .from("requisiciones")
         .select("id, estado, created_at, updated_at, fecha_autorizacion_real, fecha_licitacion, fecha_pedido_colocado, fecha_pedido_autorizado, fecha_pago, tipo_requisicion, empresa, departamento_solicitante, datos_proveedor, presupuesto_aproximado, monto_total_compra")
@@ -193,26 +193,42 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
         reqQuery = reqQuery.eq("empresa", empresaId);
       }
       
-      const { data: reqData } = await reqQuery;
+      const [{ data: reqData }, { data: repoData }, { data: empresasData }, { data: tiposData }, { data: deptData }] = await Promise.all([
+        reqQuery,
+        supabase.from("reposiciones").select("id, estado, created_at, fecha_autorizacion, fecha_pago"),
+        supabase.from("catalogo_empresas").select("id, nombre").eq("activo", true),
+        supabase.from("catalogo_tipos_requisicion").select("id, nombre").eq("activo", true),
+        supabase.from("catalogo_departamentos").select("id, nombre").eq("activo", true),
+      ]);
 
-      // Fetch reposiciones - filter via solicitado_por users of the empresa
-      // Reposiciones don't have empresa field, so we fetch all visible ones
-      const { data: repoData } = await supabase
-        .from("reposiciones")
-        .select("id, estado, created_at, fecha_autorizacion, fecha_pago");
+      // Build lookup maps
+      if (empresasData) {
+        const map: Record<string, string> = {};
+        empresasData.forEach((e) => { map[e.id] = e.nombre; });
+        setEmpresasMap(map);
+      }
+      if (tiposData) {
+        const map: Record<string, string> = {};
+        tiposData.forEach((t) => { map[t.id] = t.nombre; });
+        setTiposMap(map);
+      }
+      if (deptData) {
+        const map: Record<string, string> = {};
+        deptData.forEach((d) => { map[d.id] = d.nombre; });
+        setDepartamentosMap(map);
+      }
 
       if (reqData) {
-        setRequisiciones(reqData);
-        calculateTimeStats(reqData);
-        calculateStatusDistribution(reqData);
+        setRequisiciones(reqData as RequisicionStats[]);
+        calculateTimeStats(reqData as RequisicionStats[]);
+        calculateStatusDistribution(reqData as RequisicionStats[]);
       }
       if (repoData) {
         setReposiciones(repoData);
       }
 
-      // Calculate volume - will be handled by useEffect
       if (reqData && repoData) {
-        calculateVolumeByPeriod(reqData, repoData, volumePeriod, customDateRange);
+        calculateVolumeByPeriod(reqData as RequisicionStats[], repoData, volumePeriod, customDateRange);
       }
     } catch (error) {
       console.error("Error fetching statistics:", error);
