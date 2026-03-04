@@ -175,7 +175,7 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
       // Fetch requisiciones with timestamps, filtered by empresa if provided
       let reqQuery = supabase
         .from("requisiciones")
-        .select("id, estado, created_at, fecha_autorizacion_real, fecha_licitacion, fecha_pedido_colocado, fecha_pedido_autorizado, fecha_pago, tipo_requisicion, empresa")
+        .select("id, estado, created_at, updated_at, fecha_autorizacion_real, fecha_licitacion, fecha_pedido_colocado, fecha_pedido_autorizado, fecha_pago, tipo_requisicion, empresa, departamento_solicitante, datos_proveedor, presupuesto_aproximado, monto_total_compra")
         .is("deleted_at", null);
       
       if (empresaId) {
