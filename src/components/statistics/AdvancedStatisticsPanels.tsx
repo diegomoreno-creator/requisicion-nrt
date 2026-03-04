@@ -56,33 +56,57 @@ export const GastoMensualEmpresaPanel = ({
   requisiciones: ExtendedRequisicion[];
   empresasMap: Record<string, string>;
 }) => {
+  const [showAll, setShowAll] = useState(false);
+  const TOP_N = 5;
+
   const data = useMemo(() => {
+    // Aggregate total per empresa first to find top N
+    const totalByEmpresa: Record<string, number> = {};
     const byMonth: Record<string, Record<string, number>> = {};
-    const empresaSet = new Set<string>();
+    const monthOrder: { key: string; date: Date }[] = [];
 
     requisiciones.forEach((r) => {
       if (!r.empresa) return;
       const monto = r.monto_total_compra || r.presupuesto_aproximado || 0;
       if (monto <= 0) return;
-      const month = format(new Date(r.created_at), "MMM ''yy", { locale: es });
       const empresaName = empresasMap[r.empresa] || r.empresa;
-      empresaSet.add(empresaName);
-      if (!byMonth[month]) byMonth[month] = {};
-      byMonth[month][empresaName] = (byMonth[month][empresaName] || 0) + monto;
+      totalByEmpresa[empresaName] = (totalByEmpresa[empresaName] || 0) + monto;
+
+      const d = new Date(r.created_at);
+      const monthKey = format(d, "yyyy-MM");
+      const monthLabel = format(d, "MMM ''yy", { locale: es });
+      if (!byMonth[monthKey]) {
+        byMonth[monthKey] = {};
+        monthOrder.push({ key: monthKey, date: d });
+      }
+      byMonth[monthKey][empresaName] = (byMonth[monthKey][empresaName] || 0) + monto;
     });
 
-    const sortedMonths = Object.keys(byMonth).sort((a, b) => {
-      // Sort chronologically
-      const reqA = requisiciones.find(r => format(new Date(r.created_at), "MMM ''yy", { locale: es }) === a);
-      const reqB = requisiciones.find(r => format(new Date(r.created_at), "MMM ''yy", { locale: es }) === b);
-      return new Date(reqA?.created_at || 0).getTime() - new Date(reqB?.created_at || 0).getTime();
+    // Sort empresas by total descending
+    const sorted = Object.entries(totalByEmpresa).sort((a, b) => b[1] - a[1]);
+    const topEmpresas = showAll ? sorted.map(([n]) => n) : sorted.slice(0, TOP_N).map(([n]) => n);
+    const hasOtros = !showAll && sorted.length > TOP_N;
+
+    // Deduplicate and sort months
+    const uniqueMonths = Array.from(new Map(monthOrder.map(m => [m.key, m])).values())
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    const chartData = uniqueMonths.map(({ key }) => {
+      const entry: Record<string, any> = { month: format(new Date(key + "-01"), "MMM ''yy", { locale: es }) };
+      topEmpresas.forEach((emp) => { entry[emp] = byMonth[key]?.[emp] || 0; });
+      if (hasOtros) {
+        const otrosTotal = Object.entries(byMonth[key] || {})
+          .filter(([name]) => !topEmpresas.includes(name))
+          .reduce((sum, [, v]) => sum + v, 0);
+        entry["Otros"] = otrosTotal;
+      }
+      return entry;
     });
 
-    return {
-      chartData: sortedMonths.map((month) => ({ month, ...byMonth[month] })),
-      empresas: Array.from(empresaSet),
-    };
-  }, [requisiciones, empresasMap]);
+    const displayEmpresas = hasOtros ? [...topEmpresas, "Otros"] : topEmpresas;
+
+    return { chartData, empresas: displayEmpresas, allEmpresas: sorted, totalCount: sorted.length };
+  }, [requisiciones, empresasMap, showAll]);
 
   if (data.chartData.length === 0) {
     return (
@@ -102,12 +126,22 @@ export const GastoMensualEmpresaPanel = ({
   return (
     <Card className="border-border bg-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-          <Building2 className="w-4 h-4" /> Gasto Mensual por Empresa
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Building2 className="w-4 h-4" /> Gasto Mensual por Empresa
+          </CardTitle>
+          {data.totalCount > TOP_N && (
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="text-xs text-primary hover:underline"
+            >
+              {showAll ? `Mostrar Top ${TOP_N}` : `Ver todas (${data.totalCount})`}
+            </button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={280}>
           <BarChart data={data.chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={11} />
@@ -116,12 +150,35 @@ export const GastoMensualEmpresaPanel = ({
               contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
               formatter={(value: number) => [formatCurrency(value), ""]}
             />
-            <Legend />
+            <Legend wrapperStyle={{ fontSize: "11px" }} />
             {data.empresas.map((emp, i) => (
-              <Bar key={emp} dataKey={emp} fill={CHART_COLORS[i % CHART_COLORS.length]} stackId="a" radius={i === data.empresas.length - 1 ? [4, 4, 0, 0] : undefined} />
+              <Bar
+                key={emp}
+                dataKey={emp}
+                fill={emp === "Otros" ? "hsl(var(--muted-foreground))" : CHART_COLORS[i % CHART_COLORS.length]}
+                stackId="a"
+                radius={i === data.empresas.length - 1 ? [4, 4, 0, 0] : undefined}
+              />
             ))}
           </BarChart>
         </ResponsiveContainer>
+        {/* Mini ranking table */}
+        <div className="mt-4 max-h-[140px] overflow-y-auto">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+            {data.allEmpresas.slice(0, showAll ? undefined : 8).map(([name, total], i) => (
+              <div key={name} className="flex items-center justify-between text-xs py-0.5 border-b border-border/30">
+                <span className="flex items-center gap-1.5 truncate">
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+                  />
+                  <span className="text-foreground truncate">{name}</span>
+                </span>
+                <span className="text-muted-foreground font-medium ml-2 whitespace-nowrap">{formatCurrency(total)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
