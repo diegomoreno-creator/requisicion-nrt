@@ -340,7 +340,7 @@ export const ResumenAprobacionPanel = ({ requisiciones }: { requisiciones: Exten
   const colors = ["hsl(142, 71%, 45%)", "hsl(0, 84%, 60%)", "hsl(220, 9%, 46%)", "hsl(45, 93%, 47%)"];
 
   return (
-    <Card className="border-border bg-card">
+    <Card className="border-border bg-card h-fit">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           Requisiciones: Aprobadas vs Rechazadas
