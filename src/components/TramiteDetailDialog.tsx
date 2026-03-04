@@ -2164,7 +2164,34 @@ const TramiteDetailDialog = ({
                     {requisicion.datos_proveedor && (
                       <div className="md:col-span-3">
                         <p className="text-muted-foreground text-sm">Datos del Proveedor:</p>
-                        <p className="text-foreground whitespace-pre-wrap">{requisicion.datos_proveedor}</p>
+                        {(() => {
+                          try {
+                            const parsed = JSON.parse(requisicion.datos_proveedor);
+                            if (Array.isArray(parsed)) {
+                              return (
+                                <div className="space-y-2 mt-1">
+                                  {parsed.map((sp: { id: string; justificacion: string }, idx: number) => {
+                                    const prov = proveedores.find(p => p.id === sp.id);
+                                    return (
+                                      <div key={idx} className="bg-muted/50 rounded-md p-2">
+                                        <p className="text-foreground font-medium text-sm">
+                                          {prov?.nombre || "Proveedor desconocido"}
+                                          {prov?.rfc && <span className="text-muted-foreground ml-2">({prov.rfc})</span>}
+                                        </p>
+                                        {sp.justificacion && (
+                                          <p className="text-muted-foreground text-xs mt-1 whitespace-pre-wrap break-words">
+                                            Justificación: {sp.justificacion}
+                                          </p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            }
+                          } catch { /* legacy text format */ }
+                          return <p className="text-foreground whitespace-pre-wrap break-words">{requisicion.datos_proveedor}</p>;
+                        })()}
                       </div>
                     )}
                     {requisicion.datos_banco && (
