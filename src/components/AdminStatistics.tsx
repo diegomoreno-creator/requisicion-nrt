@@ -625,14 +625,15 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
     );
   }
 
-  const totalRequisiciones = requisiciones.length;
-  const totalReposiciones = reposiciones.length;
-  const pendientes = requisiciones.filter(r => r.estado === "pendiente").length;
-  const completados = requisiciones.filter(r => r.estado === "pedido_pagado").length;
+  const totalRequisiciones = filteredRequisiciones.length;
+  const totalReposiciones = filteredReposiciones.length;
+  const pendientes = filteredRequisiciones.filter(r => r.estado === "pendiente").length;
+  const completados = filteredRequisiciones.filter(r => r.estado === "pedido_pagado").length;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
+      {/* Header with title, date filter, and export */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-6 h-6 text-primary" />
           <h2 className="text-xl font-bold text-foreground">
@@ -642,24 +643,81 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
             )}
           </h2>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Download className="w-4 h-4" />
-              Exportar
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={exportToCSV}>
-              <FileText className="w-4 h-4 mr-2" />
-              Exportar a Excel/CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportToPDF}>
-              <FileText className="w-4 h-4 mr-2" />
-              Exportar a PDF
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={volumePeriod} onValueChange={(value: VolumePeriod) => setVolumePeriod(value)}>
+            <SelectTrigger className="w-36 h-8 text-xs bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              <SelectItem value="week">Última semana</SelectItem>
+              <SelectItem value="month">Último mes</SelectItem>
+              <SelectItem value="3months">3 meses</SelectItem>
+              <SelectItem value="6months">6 meses</SelectItem>
+              <SelectItem value="year">1 año</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {volumePeriod === "custom" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "h-8 text-xs justify-start text-left font-normal",
+                    !customDateRange.from && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-3 w-3" />
+                  {customDateRange.from ? (
+                    customDateRange.to ? (
+                      <>
+                        {format(customDateRange.from, "d MMM", { locale: es })} -{" "}
+                        {format(customDateRange.to, "d MMM yy", { locale: es })}
+                      </>
+                    ) : (
+                      format(customDateRange.from, "d MMM yy", { locale: es })
+                    )
+                  ) : (
+                    "Seleccionar fechas"
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-card border-border" align="end">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={customDateRange.from}
+                  selected={{ from: customDateRange.from, to: customDateRange.to }}
+                  onSelect={(range) => setCustomDateRange({ from: range?.from, to: range?.to })}
+                  numberOfMonths={2}
+                  locale={es}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-2">
+                <Download className="w-4 h-4" />
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportToCSV}>
+                <FileText className="w-4 h-4 mr-2" />
+                Exportar a Excel/CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToPDF}>
+                <FileText className="w-4 h-4 mr-2" />
+                Exportar a PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Panel selector */}
