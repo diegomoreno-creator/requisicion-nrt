@@ -390,7 +390,7 @@ export const ResumenAprobacionPanel = ({ requisiciones }: { requisiciones: Exten
                   <Cell key={i} fill={colors[i % colors.length]} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={TOOLTIP_STYLE} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={TOOLTIP_TEXT_STYLE} labelStyle={TOOLTIP_TEXT_STYLE} />
               <Legend formatter={(value) => <span className="text-xs text-foreground">{value}</span>} />
             </PieChart>
           </ResponsiveContainer>
