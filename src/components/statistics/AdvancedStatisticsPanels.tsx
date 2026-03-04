@@ -485,13 +485,13 @@ export const SLAPanel = ({ requisiciones }: { requisiciones: ExtendedRequisicion
   }, [requisiciones, slaDays]);
 
   return (
-    <Card className="border-border bg-card">
+    <Card className="border-border bg-card h-full flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-destructive" /> Requisiciones Fuera de SLA
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col">
         <div className="flex items-center gap-2 mb-3">
           <Label className="text-xs text-muted-foreground whitespace-nowrap">SLA (días):</Label>
           <Input
