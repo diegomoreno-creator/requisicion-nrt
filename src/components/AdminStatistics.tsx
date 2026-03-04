@@ -186,17 +186,9 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
     fetchStatistics();
   }, [empresaId]);
 
-  // Recalculate volume when period or custom range changes
-  useEffect(() => {
-    if (requisiciones.length > 0 || reposiciones.length > 0) {
-      calculateVolumeByPeriod(requisiciones, reposiciones, volumePeriod, customDateRange);
-    }
-  }, [volumePeriod, customDateRange, requisiciones, reposiciones]);
-
   const fetchStatistics = async () => {
     setLoading(true);
     try {
-      // Fetch requisiciones, catalogs in parallel
       let reqQuery = supabase
         .from("requisiciones")
         .select("id, folio, asunto, estado, created_at, updated_at, fecha_autorizacion_real, fecha_licitacion, fecha_pedido_colocado, fecha_pedido_autorizado, fecha_pago, tipo_requisicion, empresa, departamento_solicitante, datos_proveedor, presupuesto_aproximado, monto_total_compra")
@@ -214,7 +206,6 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
         supabase.from("catalogo_departamentos").select("id, nombre").eq("activo", true),
       ]);
 
-      // Build lookup maps
       if (empresasData) {
         const map: Record<string, string> = {};
         empresasData.forEach((e) => { map[e.id] = e.nombre; });
@@ -231,24 +222,56 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
         setDepartamentosMap(map);
       }
 
-      if (reqData) {
-        setRequisiciones(reqData as RequisicionStats[]);
-        calculateTimeStats(reqData as RequisicionStats[]);
-        calculateStatusDistribution(reqData as RequisicionStats[]);
-      }
-      if (repoData) {
-        setReposiciones(repoData);
-      }
-
-      if (reqData && repoData) {
-        calculateVolumeByPeriod(reqData as RequisicionStats[], repoData, volumePeriod, customDateRange);
-      }
+      if (reqData) setRequisiciones(reqData as RequisicionStats[]);
+      if (repoData) setReposiciones(repoData);
     } catch (error) {
       console.error("Error fetching statistics:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  // ─── Global date filter ───
+  const getDateRange = (): { start: Date; end: Date } => {
+    const now = new Date();
+    const end = endOfDay(now);
+    switch (volumePeriod) {
+      case "week": return { start: startOfDay(subWeeks(now, 1)), end };
+      case "month": return { start: startOfDay(subMonths(now, 1)), end };
+      case "3months": return { start: startOfMonth(subMonths(now, 2)), end };
+      case "6months": return { start: startOfMonth(subMonths(now, 5)), end };
+      case "year": return { start: startOfMonth(subMonths(now, 11)), end };
+      case "custom":
+        if (customDateRange.from && customDateRange.to) {
+          return { start: startOfDay(customDateRange.from), end: endOfDay(customDateRange.to) };
+        }
+        return { start: startOfMonth(subMonths(now, 5)), end }; // fallback
+      default: return { start: startOfMonth(subMonths(now, 5)), end };
+    }
+  };
+
+  const filteredRequisiciones = useMemo(() => {
+    const { start, end } = getDateRange();
+    return requisiciones.filter(r => {
+      const d = new Date(r.created_at);
+      return d >= start && d <= end;
+    });
+  }, [requisiciones, volumePeriod, customDateRange]);
+
+  const filteredReposiciones = useMemo(() => {
+    const { start, end } = getDateRange();
+    return reposiciones.filter(r => {
+      const d = new Date(r.created_at);
+      return d >= start && d <= end;
+    });
+  }, [reposiciones, volumePeriod, customDateRange]);
+
+  // Recalculate derived stats when filtered data changes
+  useEffect(() => {
+    calculateTimeStats(filteredRequisiciones);
+    calculateStatusDistribution(filteredRequisiciones);
+    calculateVolumeByPeriod(filteredRequisiciones, filteredReposiciones, volumePeriod, customDateRange);
+  }, [filteredRequisiciones, filteredReposiciones, volumePeriod, customDateRange]);
 
   const calculateTimeStats = (data: RequisicionStats[]) => {
     // Filter completed requisitions for time analysis
