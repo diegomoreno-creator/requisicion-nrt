@@ -1042,9 +1042,10 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
+                    backgroundColor: 'hsl(var(--popover))', 
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
+                    borderRadius: '8px',
+                    color: 'hsl(var(--popover-foreground))',
                   }}
                 />
                 <Legend />
