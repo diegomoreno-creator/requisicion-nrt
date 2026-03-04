@@ -2326,7 +2326,7 @@ const TramiteDetailDialog = ({
             {(reposicion?.justificacion || requisicion?.justificacion) && (
               <div className="bg-muted/30 rounded-lg p-4">
                 <h3 className="text-primary font-semibold mb-2">Justificación</h3>
-                <p className="text-foreground">
+                <p className="text-foreground whitespace-pre-wrap break-words">
                   {reposicion?.justificacion || requisicion?.justificacion}
                 </p>
               </div>
