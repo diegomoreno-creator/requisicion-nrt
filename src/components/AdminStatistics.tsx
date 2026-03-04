@@ -484,10 +484,11 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
     
     // Summary
     csv += "RESUMEN GENERAL\n";
-    csv += `Total Requisiciones,${requisiciones.length}\n`;
-    csv += `Total Reposiciones,${reposiciones.length}\n`;
-    csv += `Pendientes,${requisiciones.filter(r => r.estado === "pendiente").length}\n`;
-    csv += `Completados,${requisiciones.filter(r => r.estado === "pedido_pagado").length}\n`;
+    csv += `Período,${periodLabels[volumePeriod]}\n`;
+    csv += `Total Requisiciones,${filteredRequisiciones.length}\n`;
+    csv += `Total Reposiciones,${filteredReposiciones.length}\n`;
+    csv += `Pendientes,${filteredRequisiciones.filter(r => r.estado === "pendiente").length}\n`;
+    csv += `Completados,${filteredRequisiciones.filter(r => r.estado === "pedido_pagado").length}\n`;
     csv += `Tiempo Promedio Total (días),${avgTotalTime}\n`;
     csv += `Cuello de Botella,${bottleneck || "Sin datos"}\n\n`;
     
