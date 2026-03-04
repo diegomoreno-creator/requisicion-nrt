@@ -162,6 +162,8 @@ export const GastoMensualEmpresaPanel = ({
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
+              itemStyle={TOOLTIP_TEXT_STYLE}
+              labelStyle={TOOLTIP_TEXT_STYLE}
               formatter={(value: number) => [formatCurrency(value), ""]}
             />
             <Legend wrapperStyle={{ fontSize: "11px" }} />
