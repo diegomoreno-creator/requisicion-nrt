@@ -157,7 +157,7 @@ export const GastoMensualEmpresaPanel = ({
             <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={11} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
             <Tooltip
-              contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
+              contentStyle={TOOLTIP_STYLE}
               formatter={(value: number) => [formatCurrency(value), ""]}
             />
             <Legend wrapperStyle={{ fontSize: "11px" }} />
