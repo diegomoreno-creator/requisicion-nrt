@@ -943,10 +943,10 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                   </Pie>
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: 'hsl(var(--popover))', 
+                      backgroundColor: 'hsl(var(--muted))', 
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
-                      color: 'hsl(var(--popover-foreground))',
+                      color: 'hsl(var(--foreground))',
                     }}
                   />
                   <Legend 
