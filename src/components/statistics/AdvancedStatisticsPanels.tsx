@@ -253,6 +253,8 @@ export const GastoDepartamentoPanel = ({
             <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} width={130} />
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
+              itemStyle={TOOLTIP_TEXT_STYLE}
+              labelStyle={TOOLTIP_TEXT_STYLE}
               formatter={(value: number) => [formatCurrency(value), "Gasto"]}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
