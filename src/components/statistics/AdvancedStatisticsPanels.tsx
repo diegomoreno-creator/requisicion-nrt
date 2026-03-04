@@ -27,6 +27,8 @@ const CHART_COLORS = generateDistinctColors(30);
 
 interface ExtendedRequisicion {
   id: string;
+  folio: string;
+  asunto: string | null;
   estado: string;
   created_at: string;
   updated_at: string;
@@ -503,9 +505,12 @@ export const SLAPanel = ({ requisiciones }: { requisiciones: ExtendedRequisicion
             {overdue.slice(0, 15).map((r) => {
               const days = differenceInDays(new Date(), new Date(r.updated_at));
               return (
-                <div key={r.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-destructive/5 border border-destructive/10">
-                  <span className="text-foreground font-medium">Req sin movimiento</span>
-                  <span className="text-destructive font-bold">{days}d sin actividad</span>
+                <div key={r.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-destructive/5 border border-destructive/10 gap-2">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-foreground font-semibold">{r.folio}</span>
+                    <span className="text-muted-foreground truncate">{r.asunto || "Sin asunto"}</span>
+                  </div>
+                  <span className="text-destructive font-bold whitespace-nowrap">{days}d</span>
                 </div>
               );
             })}
@@ -571,9 +576,12 @@ export const StalePanel = ({ requisiciones }: { requisiciones: ExtendedRequisici
             {stale.slice(0, 15).map((r) => {
               const days = differenceInDays(new Date(), new Date(r.updated_at));
               return (
-                <div key={r.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-muted/50 border border-border">
-                  <span className="text-foreground">{estadoLabel[r.estado] || r.estado}</span>
-                  <span className="text-chart-4 font-semibold">{days}d</span>
+                <div key={r.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-muted/50 border border-border gap-2">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-foreground font-semibold">{r.folio}</span>
+                    <span className="text-muted-foreground truncate">{r.asunto || "Sin asunto"} · {estadoLabel[r.estado] || r.estado}</span>
+                  </div>
+                  <span className="text-chart-4 font-semibold whitespace-nowrap">{days}d</span>
                 </div>
               );
             })}

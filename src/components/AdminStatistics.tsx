@@ -44,6 +44,8 @@ import { renderNRTHeader } from "@/lib/pdfFonts";
 
 interface RequisicionStats {
   id: string;
+  folio: string;
+  asunto: string | null;
   estado: string;
   created_at: string;
   updated_at: string;
@@ -186,7 +188,7 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
       // Fetch requisiciones, catalogs in parallel
       let reqQuery = supabase
         .from("requisiciones")
-        .select("id, estado, created_at, updated_at, fecha_autorizacion_real, fecha_licitacion, fecha_pedido_colocado, fecha_pedido_autorizado, fecha_pago, tipo_requisicion, empresa, departamento_solicitante, datos_proveedor, presupuesto_aproximado, monto_total_compra")
+        .select("id, folio, asunto, estado, created_at, updated_at, fecha_autorizacion_real, fecha_licitacion, fecha_pedido_colocado, fecha_pedido_autorizado, fecha_pago, tipo_requisicion, empresa, departamento_solicitante, datos_proveedor, presupuesto_aproximado, monto_total_compra")
         .is("deleted_at", null);
       
       if (empresaId) {
