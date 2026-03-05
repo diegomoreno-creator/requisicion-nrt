@@ -877,6 +877,219 @@ const GestionCatalogos = () => {
     );
   };
 
+  // --- Gastos catalog handlers ---
+  const openAddTipoGasto = () => {
+    setEditingTipoGasto(null);
+    setEditingCategoriaGasto(null);
+    setGastosDialogMode("tipo");
+    setFormGastoNombre("");
+    setFormGastoClave("");
+    setFormGastoActivo(true);
+    setGastosDialogOpen(true);
+  };
+
+  const openEditTipoGasto = (tipo: TipoGastoItem) => {
+    setEditingTipoGasto(tipo);
+    setEditingCategoriaGasto(null);
+    setGastosDialogMode("tipo");
+    setFormGastoNombre(tipo.nombre);
+    setFormGastoClave(tipo.clave);
+    setFormGastoActivo(tipo.activo);
+    setGastosDialogOpen(true);
+  };
+
+  const openAddCategoriaGasto = (tipoId: string) => {
+    setEditingTipoGasto(null);
+    setEditingCategoriaGasto(null);
+    setGastosDialogMode("categoria");
+    setFormGastoNombre("");
+    setFormGastoActivo(true);
+    setFormGastoTipoId(tipoId);
+    setGastosDialogOpen(true);
+  };
+
+  const openEditCategoriaGasto = (cat: CategoriaGastoItem) => {
+    setEditingTipoGasto(null);
+    setEditingCategoriaGasto(cat);
+    setGastosDialogMode("categoria");
+    setFormGastoNombre(cat.nombre);
+    setFormGastoActivo(cat.activo);
+    setFormGastoTipoId(cat.tipo_gasto_id);
+    setGastosDialogOpen(true);
+  };
+
+  const handleSaveGasto = async () => {
+    if (!formGastoNombre.trim()) {
+      toast.error("El nombre es requerido");
+      return;
+    }
+    setSavingGasto(true);
+    try {
+      if (gastosDialogMode === "tipo") {
+        if (!formGastoClave.trim()) {
+          toast.error("La clave es requerida");
+          setSavingGasto(false);
+          return;
+        }
+        if (editingTipoGasto) {
+          const { error } = await supabase
+            .from("catalogo_tipos_gasto")
+            .update({ nombre: formGastoNombre, clave: formGastoClave, activo: formGastoActivo })
+            .eq("id", editingTipoGasto.id);
+          if (error) throw error;
+          toast.success("Tipo de gasto actualizado");
+        } else {
+          const { error } = await supabase
+            .from("catalogo_tipos_gasto")
+            .insert({ nombre: formGastoNombre, clave: formGastoClave, activo: formGastoActivo, orden: tiposGasto.length + 1 });
+          if (error) throw error;
+          toast.success("Tipo de gasto agregado");
+        }
+      } else {
+        if (editingCategoriaGasto) {
+          const { error } = await supabase
+            .from("catalogo_categorias_gasto")
+            .update({ nombre: formGastoNombre, activo: formGastoActivo })
+            .eq("id", editingCategoriaGasto.id);
+          if (error) throw error;
+          toast.success("Categoría actualizada");
+        } else {
+          const cats = categoriasGasto.filter(c => c.tipo_gasto_id === formGastoTipoId);
+          const { error } = await supabase
+            .from("catalogo_categorias_gasto")
+            .insert({ nombre: formGastoNombre, tipo_gasto_id: formGastoTipoId, activo: formGastoActivo, orden: cats.length + 1 });
+          if (error) throw error;
+          toast.success("Categoría agregada");
+        }
+      }
+      setGastosDialogOpen(false);
+      fetchAllCatalogs();
+    } catch (error: any) {
+      toast.error(error.message || "Error al guardar");
+    } finally {
+      setSavingGasto(false);
+    }
+  };
+
+  const handleDeleteTipoGasto = async (id: string) => {
+    if (!confirm("¿Eliminar este tipo de gasto y todas sus categorías?")) return;
+    try {
+      const { error } = await supabase.from("catalogo_tipos_gasto").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Tipo de gasto eliminado");
+      fetchAllCatalogs();
+    } catch (error: any) {
+      toast.error(error.message || "Error al eliminar");
+    }
+  };
+
+  const handleDeleteCategoriaGasto = async (id: string) => {
+    if (!confirm("¿Eliminar esta categoría?")) return;
+    try {
+      const { error } = await supabase.from("catalogo_categorias_gasto").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Categoría eliminada");
+      fetchAllCatalogs();
+    } catch (error: any) {
+      toast.error(error.message || "Error al eliminar");
+    }
+  };
+
+  const renderGastosTab = () => (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={openAddTipoGasto} size="sm" className="bg-primary hover:bg-primary/90">
+          <Plus className="w-4 h-4 mr-2" />
+          Nuevo Tipo de Gasto
+        </Button>
+      </div>
+      {tiposGasto.length === 0 ? (
+        <div className="text-center text-muted-foreground py-8">No hay tipos de gasto</div>
+      ) : (
+        tiposGasto.map((tipo) => {
+          const isExpanded = expandedTipoGasto === tipo.id;
+          const cats = categoriasGasto.filter(c => c.tipo_gasto_id === tipo.id);
+          return (
+            <div key={tipo.id} className="rounded-md border border-border">
+              <div
+                className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50"
+                onClick={() => setExpandedTipoGasto(isExpanded ? null : tipo.id)}
+              >
+                <div className="flex items-center gap-3">
+                  {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                  <span className="font-medium text-foreground">{tipo.nombre}</span>
+                  <span className="text-xs text-muted-foreground">({tipo.clave})</span>
+                  <span className="text-xs text-muted-foreground">{cats.length} categorías</span>
+                  {!tipo.activo && <span className="text-xs text-destructive">(Inactivo)</span>}
+                </div>
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <Switch checked={tipo.activo} onCheckedChange={async () => {
+                    await supabase.from("catalogo_tipos_gasto").update({ activo: !tipo.activo }).eq("id", tipo.id);
+                    fetchAllCatalogs();
+                  }} />
+                  <Button variant="ghost" size="icon" onClick={() => openEditTipoGasto(tipo)} className="text-muted-foreground hover:text-foreground">
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteTipoGasto(tipo.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              {isExpanded && (
+                <div className="border-t border-border">
+                  <div className="p-3 flex justify-end">
+                    <Button onClick={() => openAddCategoriaGasto(tipo.id)} size="sm" variant="outline" className="border-border">
+                      <Plus className="w-3 h-3 mr-1" />
+                      Agregar Categoría
+                    </Button>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border hover:bg-transparent">
+                        <TableHead className="text-muted-foreground">Categoría</TableHead>
+                        <TableHead className="text-muted-foreground w-24">Activo</TableHead>
+                        <TableHead className="text-muted-foreground w-24 text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {cats.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center text-muted-foreground py-4">Sin categorías</TableCell>
+                        </TableRow>
+                      ) : (
+                        cats.map((cat) => (
+                          <TableRow key={cat.id} className="border-border">
+                            <TableCell className="text-foreground">{cat.nombre}</TableCell>
+                            <TableCell>
+                              <Switch checked={cat.activo} onCheckedChange={async () => {
+                                await supabase.from("catalogo_categorias_gasto").update({ activo: !cat.activo }).eq("id", cat.id);
+                                fetchAllCatalogs();
+                              }} />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="icon" onClick={() => openEditCategoriaGasto(cat)} className="text-muted-foreground hover:text-foreground">
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteCategoriaGasto(cat.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
@@ -902,15 +1115,17 @@ const GestionCatalogos = () => {
                 </p>
               </div>
             </div>
-            <Button onClick={openAddDialog} className="bg-primary hover:bg-primary/90">
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar
-            </Button>
+            {activeTab !== "gastos" && (
+              <Button onClick={openAddDialog} className="bg-primary hover:bg-primary/90">
+                <Plus className="w-4 h-4 mr-2" />
+                Agregar
+              </Button>
+            )}
           </CardHeader>
 
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className={cn("grid mb-6 bg-muted", isSuperadmin ? "grid-cols-6" : "grid-cols-3")}>
+              <TabsList className={cn("grid mb-6 bg-muted", isSuperadmin ? "grid-cols-7" : "grid-cols-3")}>
                 {isSuperadmin && (
                   <TabsTrigger value="tipos" className="data-[state=active]:bg-background">
                     <Palette className="w-4 h-4 mr-2" />
@@ -934,6 +1149,12 @@ const GestionCatalogos = () => {
                 {isSuperadmin && (
                   <TabsTrigger value="sucursales" className="data-[state=active]:bg-background">
                     Sucursales
+                  </TabsTrigger>
+                )}
+                {isSuperadmin && (
+                  <TabsTrigger value="gastos" className="data-[state=active]:bg-background">
+                    <Receipt className="w-4 h-4 mr-2" />
+                    Gastos
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -960,6 +1181,11 @@ const GestionCatalogos = () => {
               {isSuperadmin && (
                 <TabsContent value="sucursales">
                   {renderTable(sucursales)}
+                </TabsContent>
+              )}
+              {isSuperadmin && (
+                <TabsContent value="gastos">
+                  {renderGastosTab()}
                 </TabsContent>
               )}
             </Tabs>
@@ -1124,6 +1350,78 @@ const GestionCatalogos = () => {
               className="bg-primary hover:bg-primary/90"
             >
               {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Gastos Add/Edit Dialog */}
+      <Dialog open={gastosDialogOpen} onOpenChange={setGastosDialogOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              {gastosDialogMode === "tipo"
+                ? (editingTipoGasto ? "Editar Tipo de Gasto" : "Nuevo Tipo de Gasto")
+                : (editingCategoriaGasto ? "Editar Categoría" : "Nueva Categoría")}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {gastosDialogMode === "tipo"
+                ? "Los tipos de gasto agrupan las categorías disponibles en las partidas de requisición."
+                : `Categoría dentro de: ${tiposGasto.find(t => t.id === formGastoTipoId)?.nombre || ""}`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-foreground">Nombre *</Label>
+              <Input
+                value={formGastoNombre}
+                onChange={(e) => setFormGastoNombre(e.target.value)}
+                className="bg-input border-border"
+                placeholder={gastosDialogMode === "tipo" ? "Ej: Administrativo" : "Ej: Papelería y consumibles"}
+              />
+            </div>
+
+            {gastosDialogMode === "tipo" && (
+              <div className="space-y-2">
+                <Label className="text-foreground">Clave *</Label>
+                <Input
+                  value={formGastoClave}
+                  onChange={(e) => setFormGastoClave(e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''))}
+                  className="bg-input border-border"
+                  placeholder="Ej: administrativo"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Identificador único (solo letras minúsculas, números y guiones bajos).
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center space-x-3">
+              <Switch
+                id="gasto-activo"
+                checked={formGastoActivo}
+                onCheckedChange={setFormGastoActivo}
+              />
+              <Label htmlFor="gasto-activo" className="text-foreground cursor-pointer">
+                Activo
+              </Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGastosDialogOpen(false)} className="border-border">
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveGasto} disabled={savingGasto} className="bg-primary hover:bg-primary/90">
+              {savingGasto ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Guardando...
