@@ -12,8 +12,8 @@ export interface AutorizadorEntry {
   autorizador_nombre?: string;
 }
 
-// Budget threshold for automatic multi-auth (MXN)
-export const MULTI_AUTH_BUDGET_THRESHOLD = 50000;
+// Budget threshold for automatic multi-auth (MXN) — triggers when amount > 49999 (i.e. >= 50000)
+export const MULTI_AUTH_BUDGET_THRESHOLD = 49999;
 
 /**
  * Hook to fetch the configured forced authorizer IDs from the database.
