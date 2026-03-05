@@ -40,10 +40,29 @@ import {
   Trash2, 
   Loader2,
   Palette,
-  Building2
+  Building2,
+  Receipt,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+interface TipoGastoItem {
+  id: string;
+  nombre: string;
+  clave: string;
+  orden: number;
+  activo: boolean;
+}
+
+interface CategoriaGastoItem {
+  id: string;
+  tipo_gasto_id: string;
+  nombre: string;
+  orden: number;
+  activo: boolean;
+}
 
 interface CatalogoItem {
   id: string;
