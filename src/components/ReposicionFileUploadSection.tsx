@@ -190,7 +190,7 @@ const ReposicionFileUploadSection = ({
           <Input
             type="file"
             multiple
-            accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx"
+            accept="*/*"
             onChange={handleFileUpload}
             disabled={isUploading}
             className="hidden"
@@ -215,7 +215,7 @@ const ReposicionFileUploadSection = ({
             )}
           </Label>
           <span className="text-xs text-muted-foreground">
-            PDF, imágenes, Word, Excel (máx. 10MB)
+            Todos los formatos (máx. 10MB)
           </span>
         </div>
       )}
