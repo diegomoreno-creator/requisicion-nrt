@@ -215,7 +215,7 @@ const ReposicionFileUploadSection = ({
             )}
           </Label>
           <span className="text-xs text-muted-foreground">
-            PDF, imágenes, Word, Excel (máx. 10MB)
+            Todos los formatos (máx. 10MB)
           </span>
         </div>
       )}
