@@ -9,6 +9,20 @@ export interface TipoRequisicion {
   activo: boolean;
 }
 
+export interface TipoGasto {
+  id: string;
+  nombre: string;
+  clave: string;
+  activo: boolean;
+}
+
+export interface CategoriaGasto {
+  id: string;
+  tipo_gasto_id: string;
+  nombre: string;
+  activo: boolean;
+}
+
 export interface CatalogoSimple {
   id: string;
   nombre: string;
@@ -49,6 +63,8 @@ export const useCatalogos = () => {
   const [sucursales, setSucursales] = useState<CatalogoSimple[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [tiposGasto, setTiposGasto] = useState<TipoGasto[]>([]);
+  const [categoriasGasto, setCategoriasGasto] = useState<CategoriaGasto[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -77,7 +93,7 @@ export const useCatalogos = () => {
 
   const fetchCatalogos = async () => {
     try {
-      const [tiposRes, unidadesRes, empresasRes, sucursalesRes, departamentosRes, proveedoresRes] = await Promise.all([
+      const [tiposRes, unidadesRes, empresasRes, sucursalesRes, departamentosRes, proveedoresRes, tiposGastoRes, categoriasGastoRes] = await Promise.all([
         supabase
           .from("catalogo_tipos_requisicion")
           .select("id, nombre, color_class, color_hsl, activo")
@@ -108,6 +124,16 @@ export const useCatalogos = () => {
           .select("id, nombre, rfc, razon_social, actividad, correo, empresa_id, activo")
           .eq("activo", true)
           .order("orden"),
+        supabase
+          .from("catalogo_tipos_gasto")
+          .select("id, nombre, clave, activo")
+          .eq("activo", true)
+          .order("orden"),
+        supabase
+          .from("catalogo_categorias_gasto")
+          .select("id, tipo_gasto_id, nombre, activo")
+          .eq("activo", true)
+          .order("orden"),
       ]);
 
       if (tiposRes.data) setTiposRequisicion(tiposRes.data);
@@ -116,6 +142,8 @@ export const useCatalogos = () => {
       if (sucursalesRes.data) setSucursales(sucursalesRes.data);
       if (departamentosRes.data) setDepartamentos(departamentosRes.data);
       if (proveedoresRes.data) setProveedores(proveedoresRes.data as Proveedor[]);
+      if (tiposGastoRes.data) setTiposGasto(tiposGastoRes.data as TipoGasto[]);
+      if (categoriasGastoRes.data) setCategoriasGasto(categoriasGastoRes.data as CategoriaGasto[]);
     } catch (error) {
       console.error("Error fetching catalogos:", error);
     } finally {
@@ -153,6 +181,21 @@ export const useCatalogos = () => {
     return proveedores.filter(p => p.empresa_id === empresaId);
   };
 
+  // Get categorías de gasto filtered by tipo de gasto clave
+  const getCategoriasByTipoGastoClave = (clave: string): CategoriaGasto[] => {
+    const tipo = tiposGasto.find(t => t.clave === clave);
+    if (!tipo) return [];
+    return categoriasGasto.filter(c => c.tipo_gasto_id === tipo.id);
+  };
+
+  // Build a map like the old hardcoded one: { clave: string[] }
+  const categoriasGastoMap: Record<string, string[]> = tiposGasto.reduce((acc, tipo) => {
+    acc[tipo.clave] = categoriasGasto
+      .filter(c => c.tipo_gasto_id === tipo.id)
+      .map(c => c.nombre);
+    return acc;
+  }, {} as Record<string, string[]>);
+
   return {
     tiposRequisicion,
     unidadesNegocio,
@@ -160,6 +203,8 @@ export const useCatalogos = () => {
     sucursales,
     departamentos,
     proveedores,
+    tiposGasto,
+    categoriasGasto,
     loading,
     getTipoColor,
     getTipoColorClass,
@@ -167,6 +212,8 @@ export const useCatalogos = () => {
     getUnidadesByEmpresa,
     getDepartamentosByEmpresa,
     getProveedoresByEmpresa,
+    getCategoriasByTipoGastoClave,
+    categoriasGastoMap,
     refetch: fetchCatalogos,
   };
 };

@@ -38,6 +38,41 @@ export type Database = {
         }
         Relationships: []
       }
+      catalogo_categorias_gasto: {
+        Row: {
+          activo: boolean | null
+          created_at: string
+          id: string
+          nombre: string
+          orden: number | null
+          tipo_gasto_id: string
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number | null
+          tipo_gasto_id: string
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number | null
+          tipo_gasto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_categorias_gasto_tipo_gasto_id_fkey"
+            columns: ["tipo_gasto_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo_tipos_gasto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalogo_departamentos: {
         Row: {
           activo: boolean | null
@@ -167,6 +202,33 @@ export type Database = {
         }
         Update: {
           activo?: boolean | null
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number | null
+        }
+        Relationships: []
+      }
+      catalogo_tipos_gasto: {
+        Row: {
+          activo: boolean | null
+          clave: string
+          created_at: string
+          id: string
+          nombre: string
+          orden: number | null
+        }
+        Insert: {
+          activo?: boolean | null
+          clave: string
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number | null
+        }
+        Update: {
+          activo?: boolean | null
+          clave?: string
           created_at?: string
           id?: string
           nombre?: string
