@@ -9,6 +9,20 @@ export interface TipoRequisicion {
   activo: boolean;
 }
 
+export interface TipoGasto {
+  id: string;
+  nombre: string;
+  clave: string;
+  activo: boolean;
+}
+
+export interface CategoriaGasto {
+  id: string;
+  tipo_gasto_id: string;
+  nombre: string;
+  activo: boolean;
+}
+
 export interface CatalogoSimple {
   id: string;
   nombre: string;
