@@ -63,6 +63,8 @@ export const useCatalogos = () => {
   const [sucursales, setSucursales] = useState<CatalogoSimple[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [tiposGasto, setTiposGasto] = useState<TipoGasto[]>([]);
+  const [categoriasGasto, setCategoriasGasto] = useState<CategoriaGasto[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
