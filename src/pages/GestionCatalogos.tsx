@@ -220,13 +220,15 @@ const GestionCatalogos = () => {
   const fetchAllCatalogs = async () => {
     setLoading(true);
     try {
-      const [tiposRes, unidadesRes, empresasRes, sucursalesRes, departamentosRes, proveedoresRes] = await Promise.all([
+      const [tiposRes, unidadesRes, empresasRes, sucursalesRes, departamentosRes, proveedoresRes, tiposGastoRes, categoriasGastoRes] = await Promise.all([
         supabase.from("catalogo_tipos_requisicion").select("*").order("orden"),
         supabase.from("catalogo_unidades_negocio").select("*").order("orden"),
         supabase.from("catalogo_empresas").select("*").order("orden"),
         supabase.from("catalogo_sucursales").select("*").order("orden"),
         supabase.from("catalogo_departamentos").select("*").order("orden"),
         supabase.from("catalogo_proveedores").select("*").order("orden"),
+        supabase.from("catalogo_tipos_gasto").select("*").order("orden"),
+        supabase.from("catalogo_categorias_gasto").select("*").order("orden"),
       ]);
 
       if (tiposRes.data) setTiposRequisicion(tiposRes.data);
@@ -235,6 +237,8 @@ const GestionCatalogos = () => {
       if (sucursalesRes.data) setSucursales(sucursalesRes.data);
       if (departamentosRes.data) setDepartamentos(departamentosRes.data);
       if (proveedoresRes.data) setProveedores(proveedoresRes.data);
+      if (tiposGastoRes.data) setTiposGasto(tiposGastoRes.data as TipoGastoItem[]);
+      if (categoriasGastoRes.data) setCategoriasGasto(categoriasGastoRes.data as CategoriaGastoItem[]);
     } catch (error) {
       console.error("Error fetching catalogs:", error);
       toast.error("Error al cargar catálogos");
