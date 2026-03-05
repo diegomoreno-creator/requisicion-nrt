@@ -62,66 +62,7 @@ interface Partida {
   sucursal: string;
 }
 
-// Categorías de gasto por tipo
-const categoriasGasto: Record<string, string[]> = {
-  administrativo: [
-    "Arreglos, festejos y festividades",
-    "Arrendamiento de equipo de oficina",
-    "Asesorías, cursos y capacitación no técnica",
-    "Papelería y consumibles",
-    "Cuotas y suscripciones",
-    "Gastos de oficina",
-    "Impuestos y derechos",
-    "Licenciamiento administrativo",
-    "Servicios y renta de línea",
-    "Mantenimiento y conservación",
-    "Servicios y líneas de celular",
-    "Pagos trámites administrativos",
-    "Préstamos",
-    "Productos de limpieza",
-    "Renta de oficinas",
-    "Seguros y pólizas",
-    "Uniformes",
-    "Viáticos",
-  ],
-  operativo: [
-    "Arrendamiento de espacio o infraestructura",
-    "Capacitación técnica",
-    "CFE, fuentes, postería",
-    "Comisiones de operación",
-    "Consultoría técnica",
-    "Coubicación",
-    "Desarrollo de software",
-    "Equipo para la operación",
-    "Equipos terminales",
-    "Gastos relacionados con equipo de transporte",
-    "Herramientas",
-    "Licenciamiento operativo",
-    "Material de instalación",
-    "Operación de canal/radio",
-    "Otros gastos operativos",
-    "Pagos a ei!",
-    "Pagos a Optifibra",
-    "Publicidad",
-    "Señales",
-    "Servicios de internet",
-    "Soporte técnico, Hosting",
-    "Starlink",
-  ],
-  proyecto_inversion: [
-    "Celulares",
-    "Construcción",
-    "Equipo de cómputo",
-    "Equipo de oficina",
-    "Equipo de transporte",
-    "Fibra óptica",
-    "Infraestructura de red",
-    "Licencias de software",
-    "Maquinaria y equipo",
-    "Mobiliario",
-    "Otros activos fijos",
-  ],
-};
+// tiposGasto y categoriasGasto ahora se cargan dinámicamente desde useCatalogos
 
 interface UserOption {
   user_id: string;
