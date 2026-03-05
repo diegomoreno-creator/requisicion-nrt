@@ -93,7 +93,7 @@ export const useCatalogos = () => {
 
   const fetchCatalogos = async () => {
     try {
-      const [tiposRes, unidadesRes, empresasRes, sucursalesRes, departamentosRes, proveedoresRes] = await Promise.all([
+      const [tiposRes, unidadesRes, empresasRes, sucursalesRes, departamentosRes, proveedoresRes, tiposGastoRes, categoriasGastoRes] = await Promise.all([
         supabase
           .from("catalogo_tipos_requisicion")
           .select("id, nombre, color_class, color_hsl, activo")
@@ -124,6 +124,16 @@ export const useCatalogos = () => {
           .select("id, nombre, rfc, razon_social, actividad, correo, empresa_id, activo")
           .eq("activo", true)
           .order("orden"),
+        supabase
+          .from("catalogo_tipos_gasto")
+          .select("id, nombre, clave, activo")
+          .eq("activo", true)
+          .order("orden"),
+        supabase
+          .from("catalogo_categorias_gasto")
+          .select("id, tipo_gasto_id, nombre, activo")
+          .eq("activo", true)
+          .order("orden"),
       ]);
 
       if (tiposRes.data) setTiposRequisicion(tiposRes.data);
@@ -132,6 +142,8 @@ export const useCatalogos = () => {
       if (sucursalesRes.data) setSucursales(sucursalesRes.data);
       if (departamentosRes.data) setDepartamentos(departamentosRes.data);
       if (proveedoresRes.data) setProveedores(proveedoresRes.data as Proveedor[]);
+      if (tiposGastoRes.data) setTiposGasto(tiposGastoRes.data as TipoGasto[]);
+      if (categoriasGastoRes.data) setCategoriasGasto(categoriasGastoRes.data as CategoriaGasto[]);
     } catch (error) {
       console.error("Error fetching catalogos:", error);
     } finally {
