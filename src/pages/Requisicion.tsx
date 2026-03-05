@@ -1062,7 +1062,7 @@ const Requisicion = () => {
                                 <SelectValue placeholder={partida.tipo_gasto ? "Seleccionar categoría" : "Primero seleccione tipo"} />
                               </SelectTrigger>
                               <SelectContent className="bg-card border-border max-h-60">
-                                {partida.tipo_gasto && categoriasGasto[partida.tipo_gasto]?.map((cat) => (
+                                {partida.tipo_gasto && categoriasGastoMap[partida.tipo_gasto]?.map((cat) => (
                                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                                 ))}
                               </SelectContent>
