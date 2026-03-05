@@ -1044,9 +1044,9 @@ const Requisicion = () => {
                                 <SelectValue placeholder="Seleccionar" />
                               </SelectTrigger>
                               <SelectContent className="bg-card border-border">
-                                <SelectItem value="administrativo">Administrativo</SelectItem>
-                                <SelectItem value="operativo">Operativo</SelectItem>
-                                <SelectItem value="proyecto_inversion">Proyecto/Inversión</SelectItem>
+                                {tiposGasto.map((tipo) => (
+                                  <SelectItem key={tipo.clave} value={tipo.clave}>{tipo.nombre}</SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </TableCell>
