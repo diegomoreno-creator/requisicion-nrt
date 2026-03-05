@@ -140,6 +140,8 @@ const Requisicion = () => {
     tiposRequisicion, 
     empresas, 
     sucursales, 
+    tiposGasto,
+    categoriasGastoMap,
     getUnidadesByEmpresa,
     getProveedoresByEmpresa,
     loading: catalogosLoading 
