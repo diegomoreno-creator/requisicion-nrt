@@ -115,6 +115,8 @@ const GestionCatalogos = () => {
   const [sucursales, setSucursales] = useState<CatalogoItem[]>([]);
   const [departamentos, setDepartamentos] = useState<CatalogoItem[]>([]);
   const [proveedores, setProveedores] = useState<CatalogoItem[]>([]);
+  const [tiposGasto, setTiposGasto] = useState<TipoGastoItem[]>([]);
+  const [categoriasGasto, setCategoriasGasto] = useState<CategoriaGastoItem[]>([]);
   
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
