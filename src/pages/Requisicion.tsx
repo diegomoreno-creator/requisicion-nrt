@@ -897,7 +897,7 @@ const Requisicion = () => {
                 {requiresMultiAuth ? (
                   <div className="space-y-2">
                     <Label className="text-foreground">
-                      Autorizadores (mínimo {FORCED_AUTHORIZER_IDS.length + 1} — presupuesto &gt; $50,000) <span className="text-destructive">*</span>
+                      Autorizadores (presupuesto &ge; $50,000) <span className="text-destructive">*</span>
                     </Label>
                     <div className="bg-input border border-border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
                       {autorizadores
@@ -920,7 +920,6 @@ const Requisicion = () => {
                     {selectedAutorizadores.length > 0 && (
                       <p className="text-xs text-muted-foreground">
                         {selectedAutorizadores.length} autorizador{selectedAutorizadores.length !== 1 ? "es" : ""} seleccionado{selectedAutorizadores.length !== 1 ? "s" : ""}
-                        {selectedAutorizadores.length < (FORCED_AUTHORIZER_IDS.length + 1) && ` — se requieren mínimo ${FORCED_AUTHORIZER_IDS.length + 1}`}
                       </p>
                     )}
                   </div>
