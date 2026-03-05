@@ -181,6 +181,21 @@ export const useCatalogos = () => {
     return proveedores.filter(p => p.empresa_id === empresaId);
   };
 
+  // Get categorías de gasto filtered by tipo de gasto clave
+  const getCategoriasByTipoGastoClave = (clave: string): CategoriaGasto[] => {
+    const tipo = tiposGasto.find(t => t.clave === clave);
+    if (!tipo) return [];
+    return categoriasGasto.filter(c => c.tipo_gasto_id === tipo.id);
+  };
+
+  // Build a map like the old hardcoded one: { clave: string[] }
+  const categoriasGastoMap: Record<string, string[]> = tiposGasto.reduce((acc, tipo) => {
+    acc[tipo.clave] = categoriasGasto
+      .filter(c => c.tipo_gasto_id === tipo.id)
+      .map(c => c.nombre);
+    return acc;
+  }, {} as Record<string, string[]>);
+
   return {
     tiposRequisicion,
     unidadesNegocio,
@@ -188,6 +203,8 @@ export const useCatalogos = () => {
     sucursales,
     departamentos,
     proveedores,
+    tiposGasto,
+    categoriasGasto,
     loading,
     getTipoColor,
     getTipoColorClass,
@@ -195,6 +212,8 @@ export const useCatalogos = () => {
     getUnidadesByEmpresa,
     getDepartamentosByEmpresa,
     getProveedoresByEmpresa,
+    getCategoriasByTipoGastoClave,
+    categoriasGastoMap,
     refetch: fetchCatalogos,
   };
 };
