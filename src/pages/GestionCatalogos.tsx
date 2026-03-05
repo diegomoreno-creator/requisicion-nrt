@@ -131,6 +131,18 @@ const GestionCatalogos = () => {
   const [formActividad, setFormActividad] = useState<string>("");
   const [formCorreo, setFormCorreo] = useState<string>("");
 
+  // Gastos catalog state
+  const [gastosDialogOpen, setGastosDialogOpen] = useState(false);
+  const [editingTipoGasto, setEditingTipoGasto] = useState<TipoGastoItem | null>(null);
+  const [editingCategoriaGasto, setEditingCategoriaGasto] = useState<CategoriaGastoItem | null>(null);
+  const [gastosDialogMode, setGastosDialogMode] = useState<"tipo" | "categoria">("tipo");
+  const [formGastoNombre, setFormGastoNombre] = useState("");
+  const [formGastoClave, setFormGastoClave] = useState("");
+  const [formGastoActivo, setFormGastoActivo] = useState(true);
+  const [formGastoTipoId, setFormGastoTipoId] = useState("");
+  const [expandedTipoGasto, setExpandedTipoGasto] = useState<string | null>(null);
+  const [savingGasto, setSavingGasto] = useState(false);
+
   // Drag-to-scroll for proveedores tables
   const dragState = useRef({ isDown: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0, el: null as HTMLElement | null });
 
