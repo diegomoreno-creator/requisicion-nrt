@@ -152,19 +152,17 @@ const Requisicion = () => {
   // Auto-populate forced authorizers when budget exceeds threshold
   useEffect(() => {
     if (isBudgetTriggered) {
-      // Ensure forced authorizers + selected authorizer are included
       setSelectedAutorizadores(prev => {
-        const forced = [...FORCED_AUTHORIZER_IDS];
-        // Add the currently selected single authorizer if set
-        if (autorizadorId && !forced.includes(autorizadorId)) {
-          forced.unshift(autorizadorId);
-        }
-        // Preserve any manually added authorizers
-        const merged = [...new Set([...forced, ...prev])];
+        // Filter out forced authorizers that are the same as the primary authorizer
+        const forced = FORCED_AUTHORIZER_IDS.filter(id => id !== autorizadorId);
+        // Add the currently selected single authorizer first if set
+        const base = autorizadorId ? [autorizadorId] : [];
+        // Merge: primary + forced (excluding primary) + any previously added
+        const merged = [...new Set([...base, ...forced, ...prev])];
         return merged;
       });
     }
-  }, [isBudgetTriggered, autorizadorId]);
+  }, [isBudgetTriggered, autorizadorId, FORCED_AUTHORIZER_IDS]);
 
   // Reset multi-auth when no longer required
   useEffect(() => {

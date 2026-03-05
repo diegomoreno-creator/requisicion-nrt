@@ -122,7 +122,7 @@ const AutorizadoresPresupuestoConfig = () => {
       <CardHeader>
         <CardTitle className="text-foreground flex items-center gap-2 text-base">
           <ShieldCheck className="w-5 h-5 text-primary" />
-          Autorizadores de Presupuesto Alto (&gt; ${MULTI_AUTH_BUDGET_THRESHOLD.toLocaleString()} MXN)
+          Autorizadores de Presupuesto Alto (&ge; $50,000 MXN)
         </CardTitle>
         <p className="text-muted-foreground text-sm">
           Estos usuarios serán asignados automáticamente como autorizadores adicionales cuando el presupuesto de una requisición supere el umbral configurado.
