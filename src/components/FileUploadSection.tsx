@@ -191,7 +191,7 @@ const FileUploadSection = ({
           <Input
             type="file"
             multiple
-            accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx"
+            accept="*/*"
             onChange={handleFileUpload}
             disabled={isUploading}
             className="hidden"
