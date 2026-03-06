@@ -196,7 +196,7 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
     try {
       let reqQuery = supabase
         .from("requisiciones")
-        .select("id, folio, asunto, estado, created_at, updated_at, fecha_autorizacion_real, fecha_licitacion, fecha_pedido_colocado, fecha_pedido_autorizado, fecha_pago, tipo_requisicion, empresa, departamento_solicitante, datos_proveedor, presupuesto_aproximado, monto_total_compra")
+        .select("id, folio, asunto, estado, created_at, updated_at, fecha_autorizacion_real, fecha_licitacion, fecha_pedido_colocado, fecha_pedido_autorizado, fecha_pago, tipo_requisicion, empresa, departamento_solicitante, datos_proveedor, presupuesto_aproximado, monto_total_compra, tipo_pedido, credito_pagado, fecha_pago_credito")
         .is("deleted_at", null);
       
       if (empresaId) {
