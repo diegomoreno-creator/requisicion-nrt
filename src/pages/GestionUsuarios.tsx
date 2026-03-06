@@ -82,6 +82,7 @@ const roleLabels: Record<AppRole, string> = {
   contabilidad1: "Contabilidad",
   contabilidad_gastos: "Gastos",
   contabilidad_ingresos: "Ingresos",
+  almacen: "Almacén",
 };
 
 const roleColors: Record<AppRole, string> = {
@@ -97,6 +98,7 @@ const roleColors: Record<AppRole, string> = {
   contabilidad1: "bg-indigo-600 text-white",
   contabilidad_gastos: "bg-rose-600 text-white",
   contabilidad_ingresos: "bg-emerald-600 text-white",
+  almacen: "bg-amber-600 text-white",
 };
 
 const GestionUsuarios = () => {
