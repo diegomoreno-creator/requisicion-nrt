@@ -16,8 +16,10 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, Loader2, Package, PackageCheck, Plus, Upload, X, Eye } from "lucide-react";
+import { ArrowLeft, Loader2, Package, PackageCheck, Plus, Upload, X, Eye, FileSignature, Download } from "lucide-react";
 import FilePreviewModal from "@/components/FilePreviewModal";
+import CartaResponsivaForm from "@/components/CartaResponsivaForm";
+import { generateCartaResponsivaPDF } from "@/lib/cartaResponsivaPdf";
 
 interface RequisicionPagada {
   id: string;
