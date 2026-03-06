@@ -60,11 +60,12 @@ interface UserWithRoles {
   departamento: string | null;
 }
 
-const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'revision', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo', 'contabilidad1', 'contabilidad_gastos', 'contabilidad_ingresos'];
+const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'revision', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo', 'contabilidad1', 'contabilidad_gastos', 'contabilidad_ingresos', 'almacen'];
 
 // Role groupings for UI
 const compraPagoRoles: AppRole[] = ['admin', 'autorizador', 'revision', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo'];
 const contabilidadRoles: AppRole[] = ['contabilidad_gastos', 'contabilidad_ingresos'];
+const almacenRoles: AppRole[] = ['almacen'];
 // Roles that non-superadmin admins can assign
 const adminAllowedRoles: AppRole[] = ['solicitador', 'revision', 'autorizador'];
 
