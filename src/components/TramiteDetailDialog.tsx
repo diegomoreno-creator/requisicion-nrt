@@ -1343,6 +1343,33 @@ const TramiteDetailDialog = ({
     }
   };
 
+  // Tesoreria: mark credit as paid
+  const handlePayCredito = async () => {
+    if (!tramiteId || !user) return;
+    setActionLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ 
+          credito_pagado: true,
+          credito_pagado_por: user.id,
+          fecha_pago_credito: new Date().toISOString()
+        } as any)
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Pago a crédito registrado exitosamente");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error marking credit as paid:", error);
+      toast.error("Error al registrar pago a crédito");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Autorizador: Accept presupuestos rejection decision (clear rejection and keep at pedido_colocado for presupuestos to review again)
   const handleAcceptPresupuestosRejection = async () => {
     if (!tramiteId || !user) return;
