@@ -333,10 +333,12 @@ const Almacen = () => {
 
   const filteredRequisiciones = requisiciones.filter(r => {
     const term = searchTerm.toLowerCase();
+    if (!term) return true;
     return r.folio.toLowerCase().includes(term) || 
       (r.asunto || "").toLowerCase().includes(term) ||
       (r.empresa || "").toLowerCase().includes(term) ||
-      (solicitanteNames[r.solicitado_por] || "").toLowerCase().includes(term);
+      (solicitanteNames[r.solicitado_por] || "").toLowerCase().includes(term) ||
+      (r.partidas_texto || "").toLowerCase().includes(term);
   });
 
   if (authLoading || loading) {
