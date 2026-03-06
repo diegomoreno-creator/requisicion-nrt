@@ -662,6 +662,15 @@ const TramiteDetailDialog = ({
     return requisicion.estado === "pedido_autorizado" && (isTesoreria || isSuperadmin);
   };
 
+  // Tesoreria: can mark credit payment as completed when pedido_pagado + credito + not yet paid
+  const canPayCredito = () => {
+    if (!requisicion || !user) return false;
+    return requisicion.estado === "pedido_pagado" && 
+           requisicion.tipo_pedido === "credito" && 
+           !requisicion.credito_pagado &&
+           (isTesoreria || isSuperadmin);
+  };
+
   // Solicitador can delete their own pending requisitions
   // Superadmins can permanently delete any tramite regardless of status
   const canDelete = () => {
