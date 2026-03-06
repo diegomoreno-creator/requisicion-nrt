@@ -1019,10 +1019,8 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
           </div>
         </DialogContent>
       </Dialog>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
+
 
       {/* Charts Row */}
       {(visiblePanels.has("tiempo_etapa") || visiblePanels.has("distribucion")) && (
