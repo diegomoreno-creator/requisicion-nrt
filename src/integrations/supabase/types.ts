@@ -905,9 +905,11 @@ export type Database = {
           created_at: string
           descripcion: string | null
           fecha_necesidad: string | null
+          foto_reposicion_url: string | null
           id: string
           modelo_parte: string | null
           numero_partida: number
+          observaciones_reposicion: string | null
           requisicion_id: string
           sucursal: string | null
           tipo_gasto: string | null
@@ -921,9 +923,11 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           fecha_necesidad?: string | null
+          foto_reposicion_url?: string | null
           id?: string
           modelo_parte?: string | null
           numero_partida: number
+          observaciones_reposicion?: string | null
           requisicion_id: string
           sucursal?: string | null
           tipo_gasto?: string | null
@@ -937,9 +941,11 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           fecha_necesidad?: string | null
+          foto_reposicion_url?: string | null
           id?: string
           modelo_parte?: string | null
           numero_partida?: number
+          observaciones_reposicion?: string | null
           requisicion_id?: string
           sucursal?: string | null
           tipo_gasto?: string | null
