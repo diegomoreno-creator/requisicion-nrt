@@ -39,6 +39,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMultiAuth, isBudgetMultiAuth } from "@/hooks/useMultiAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { renderNRTHeader } from "@/lib/pdfFonts";
@@ -298,6 +299,7 @@ const TramiteDetailDialog = ({
   const [montoTotalCompra, setMontoTotalCompra] = useState("");
   const [monedaCompra, setMonedaCompra] = useState("MXN");
   const [tipoPedido, setTipoPedido] = useState("ordinario");
+  const [esPedidoAlmacen, setEsPedidoAlmacen] = useState(false);
   const [previewFile, setPreviewFile] = useState<ArchivoAdjunto | null>(null);
   const [showPayConfirm, setShowPayConfirm] = useState(false);
   const [paymentFiles, setPaymentFiles] = useState<File[]>([]);
@@ -1200,7 +1202,8 @@ const TramiteDetailDialog = ({
           fecha_pedido_colocado: new Date().toISOString(),
           monto_total_compra: monto,
           moneda_compra: monedaCompra,
-          tipo_pedido: tipoPedido
+          tipo_pedido: tipoPedido,
+          es_pedido_almacen: esPedidoAlmacen
         } as any)
         .eq("id", tramiteId);
 
@@ -2883,6 +2886,16 @@ const TramiteDetailDialog = ({
                       <option value="ordinario">Ordinario</option>
                       <option value="credito">Crédito</option>
                     </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="esPedidoAlmacen"
+                      checked={esPedidoAlmacen}
+                      onCheckedChange={(checked) => setEsPedidoAlmacen(checked === true)}
+                    />
+                    <Label htmlFor="esPedidoAlmacen" className="text-sm whitespace-nowrap cursor-pointer">
+                      Pedido de Almacén
+                    </Label>
                   </div>
                   <Button
                     className="bg-purple-600 hover:bg-purple-700"

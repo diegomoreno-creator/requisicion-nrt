@@ -1,0 +1,1 @@
+ALTER TABLE public.requisiciones ADD COLUMN es_pedido_almacen boolean NOT NULL DEFAULT false;

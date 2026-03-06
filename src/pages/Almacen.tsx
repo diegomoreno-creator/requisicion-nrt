@@ -102,8 +102,9 @@ const Almacen = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("requisiciones")
-      .select("id, folio, asunto, empresa, fecha_pago, monto_total_compra, presupuesto_aproximado, solicitado_por, estado")
+      .select("id, folio, asunto, empresa, fecha_pago, monto_total_compra, presupuesto_aproximado, solicitado_por, estado, es_pedido_almacen")
       .in("estado", ["pedido_pagado", "en_almacen"])
+      .eq("es_pedido_almacen", true)
       .is("deleted_at", null)
       .order("fecha_pago", { ascending: false });
 
