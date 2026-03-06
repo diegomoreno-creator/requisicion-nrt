@@ -2133,6 +2133,14 @@ const TramiteDetailDialog = ({
                         </p>
                       </div>
                     )}
+                    {(requisicion as any).tipo_pedido && (
+                      <div>
+                        <p className="text-muted-foreground text-sm">Tipo de Pedido:</p>
+                        <Badge variant={(requisicion as any).tipo_pedido === 'credito' ? 'destructive' : 'secondary'}>
+                          {(requisicion as any).tipo_pedido === 'credito' ? 'Crédito' : 'Ordinario'}
+                        </Badge>
+                      </div>
+                    )}
                     <div>
                       <p className="text-muted-foreground text-sm">Proyecto:</p>
                       <p className="text-foreground">
