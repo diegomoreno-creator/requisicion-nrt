@@ -13,6 +13,7 @@ import {
   SLAPanel,
   StalePanel,
   TendenciaGastoPanel,
+  TipoPedidoPanel,
 } from "@/components/statistics/AdvancedStatisticsPanels";
 import { Label } from "@/components/ui/label";
 import { 
