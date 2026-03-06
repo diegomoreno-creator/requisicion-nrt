@@ -293,10 +293,13 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
       "Autorizado → Licitación": [],
       "Licitación → Pedido": [],
       "Pedido → Autorizado": [],
-      "Autorizado → Pagado": [],
+      "Autorizado → Pagado (Normal)": [],
+      "Autorizado → Pagado (Crédito)": [],
     };
 
     completed.forEach(r => {
+      const isCredito = r.tipo_pedido === "credito";
+
       if (r.fecha_autorizacion_real && r.created_at) {
         const hours = differenceInHours(new Date(r.fecha_autorizacion_real), new Date(r.created_at));
         if (hours > 0) stagesTimes["Pendiente → Autorizado"].push(hours);
@@ -315,7 +318,13 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
       }
       if (r.fecha_pago && r.fecha_pedido_autorizado) {
         const hours = differenceInHours(new Date(r.fecha_pago), new Date(r.fecha_pedido_autorizado));
-        if (hours > 0) stagesTimes["Autorizado → Pagado"].push(hours);
+        if (hours > 0) {
+          if (isCredito) {
+            stagesTimes["Autorizado → Pagado (Crédito)"].push(hours);
+          } else {
+            stagesTimes["Autorizado → Pagado (Normal)"].push(hours);
+          }
+        }
       }
     });
 
