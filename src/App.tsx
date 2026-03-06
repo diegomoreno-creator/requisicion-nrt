@@ -157,6 +157,14 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/almacen" 
+              element={
+                <ProtectedRoute requiresRole="almacen">
+                  <Almacen />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/install" element={<Install />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />

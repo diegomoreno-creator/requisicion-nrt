@@ -662,10 +662,8 @@ const Almacen = () => {
       {previewFile && (
         <FilePreviewModal
           open={!!previewFile}
-          onClose={() => setPreviewFile(null)}
-          fileUrl={previewFile.file_url}
-          fileName={previewFile.file_name}
-          fileType={previewFile.file_type}
+          onOpenChange={() => setPreviewFile(null)}
+          file={previewFile}
         />
       )}
     </div>
