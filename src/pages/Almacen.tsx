@@ -29,6 +29,7 @@ interface RequisicionPagada {
   presupuesto_aproximado: number | null;
   solicitado_por: string;
   estado: string;
+  partidas_texto?: string;
 }
 
 interface Partida {
@@ -103,7 +104,6 @@ const Almacen = () => {
     const { data, error } = await supabase
       .from("requisiciones")
       .select("id, folio, asunto, empresa, fecha_pago, monto_total_compra, presupuesto_aproximado, solicitado_por, estado, es_pedido_almacen")
-      .in("estado", ["pedido_pagado", "en_almacen"])
       .eq("es_pedido_almacen", true)
       .is("deleted_at", null)
       .order("fecha_pago", { ascending: false });
@@ -112,15 +112,38 @@ const Almacen = () => {
       toast.error("Error al cargar requisiciones");
       console.error(error);
     } else {
-      setRequisiciones(data || []);
+      const reqs = data || [];
+      
       // Fetch solicitante names
-      const userIds = [...new Set((data || []).map(r => r.solicitado_por))];
+      const userIds = [...new Set(reqs.map(r => r.solicitado_por))];
       const names: Record<string, string> = {};
       await Promise.all(userIds.map(async (uid) => {
         const { data: nameData } = await supabase.rpc('get_profile_name', { _user_id: uid });
         if (nameData) names[uid] = nameData;
       }));
       setSolicitanteNames(names);
+
+      // Fetch partidas descriptions for search
+      if (reqs.length > 0) {
+        const reqIds = reqs.map(r => r.id);
+        const { data: partidasData } = await supabase
+          .from("requisicion_partidas")
+          .select("requisicion_id, descripcion")
+          .in("requisicion_id", reqIds);
+        
+        const partidasMap: Record<string, string> = {};
+        (partidasData || []).forEach(p => {
+          const existing = partidasMap[p.requisicion_id] || "";
+          partidasMap[p.requisicion_id] = existing + " " + (p.descripcion || "");
+        });
+
+        setRequisiciones(reqs.map(r => ({
+          ...r,
+          partidas_texto: partidasMap[r.id] || ""
+        })));
+      } else {
+        setRequisiciones([]);
+      }
     }
     setLoading(false);
   };
@@ -310,10 +333,12 @@ const Almacen = () => {
 
   const filteredRequisiciones = requisiciones.filter(r => {
     const term = searchTerm.toLowerCase();
+    if (!term) return true;
     return r.folio.toLowerCase().includes(term) || 
       (r.asunto || "").toLowerCase().includes(term) ||
       (r.empresa || "").toLowerCase().includes(term) ||
-      (solicitanteNames[r.solicitado_por] || "").toLowerCase().includes(term);
+      (solicitanteNames[r.solicitado_por] || "").toLowerCase().includes(term) ||
+      (r.partidas_texto || "").toLowerCase().includes(term);
   });
 
   if (authLoading || loading) {
@@ -343,10 +368,10 @@ const Almacen = () => {
         {/* Search */}
         <div className="mb-6">
           <Input
-            placeholder="Buscar por folio, asunto, empresa o solicitante..."
+            placeholder="Buscar por folio, solicitante, asunto, empresa o contenido del pedido..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-md"
+            className="max-w-lg"
           />
         </div>
 
