@@ -374,7 +374,6 @@ const Almacen = () => {
             className="max-w-lg"
           />
         </div>
-        </div>
 
         {/* Requisiciones list */}
         <div className="grid gap-4">
