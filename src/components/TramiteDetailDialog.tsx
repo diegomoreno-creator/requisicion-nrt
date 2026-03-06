@@ -2886,6 +2886,16 @@ const TramiteDetailDialog = ({
                       <option value="credito">Crédito</option>
                     </select>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="esPedidoAlmacen"
+                      checked={esPedidoAlmacen}
+                      onCheckedChange={(checked) => setEsPedidoAlmacen(checked === true)}
+                    />
+                    <Label htmlFor="esPedidoAlmacen" className="text-sm whitespace-nowrap cursor-pointer">
+                      Pedido de Almacén
+                    </Label>
+                  </div>
                   <Button
                     className="bg-purple-600 hover:bg-purple-700"
                     onClick={handleMoveToPedidoColocado}
