@@ -1166,6 +1166,22 @@ const Requisicion = () => {
                             </Popover>
                           </TableCell>
                           <TableCell>
+                            <Select
+                              value={partida.tipo_material}
+                              onValueChange={(value) =>
+                                updatePartida(partida.id, "tipo_material", value)
+                              }
+                            >
+                              <SelectTrigger className="bg-input border-border w-32">
+                                <SelectValue placeholder="Seleccionar" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-card border-border z-50">
+                                <SelectItem value="nuevo">Nuevo</SelectItem>
+                                <SelectItem value="reposicion">Reposición</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
                             <Button
                               type="button"
                               variant="ghost"
