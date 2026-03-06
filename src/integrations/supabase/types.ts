@@ -911,6 +911,7 @@ export type Database = {
           requisicion_id: string
           sucursal: string | null
           tipo_gasto: string | null
+          tipo_material: string | null
           unidad_medida: string | null
         }
         Insert: {
@@ -926,6 +927,7 @@ export type Database = {
           requisicion_id: string
           sucursal?: string | null
           tipo_gasto?: string | null
+          tipo_material?: string | null
           unidad_medida?: string | null
         }
         Update: {
@@ -941,6 +943,7 @@ export type Database = {
           requisicion_id?: string
           sucursal?: string | null
           tipo_gasto?: string | null
+          tipo_material?: string | null
           unidad_medida?: string | null
         }
         Relationships: [
