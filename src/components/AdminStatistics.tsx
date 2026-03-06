@@ -150,6 +150,8 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
   const [departamentosMap, setDepartamentosMap] = useState<Record<string, string>>({});
   const [monthlyVolume, setMonthlyVolume] = useState<{ month: string; requisiciones: number; reposiciones: number }[]>([]);
   const [avgTotalTime, setAvgTotalTime] = useState<number>(0);
+  const [stageDialogOpen, setStageDialogOpen] = useState(false);
+  const [stageDialogTitle, setStageDialogTitle] = useState("");
   const [bottleneck, setBottleneck] = useState<string>("");
   const [timeUnit, setTimeUnit] = useState<TimeUnit>("hours");
   const [volumePeriod, setVolumePeriod] = useState<VolumePeriod>("6months");
