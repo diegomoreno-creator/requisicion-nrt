@@ -438,6 +438,7 @@ const TramiteDetailDialog = ({
         setTextoCompras("");
         setMontoTotalCompra(req.monto_total_compra?.toString() || "");
         setMonedaCompra((req as any).moneda_compra || "MXN");
+        setTipoPedido((req as any).tipo_pedido || "ordinario");
         
         // Fetch texto compras historial
         const { data: historialData } = await supabase
