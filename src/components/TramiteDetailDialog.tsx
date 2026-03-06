@@ -2916,6 +2916,15 @@ const TramiteDetailDialog = ({
                   Marcar como Pagado
                 </Button>
               )}
+              {canPayCredito() && (
+                <Button
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={handlePayCredito}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? "Procesando..." : "Pedido pagado a crédito"}
+                </Button>
+              )}
               {canHandlePresupuestosRejection() && (
                 <>
                   <Button
