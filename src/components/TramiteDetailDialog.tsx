@@ -2356,13 +2356,12 @@ const TramiteDetailDialog = ({
                     </TableBody>
                   </Table>
                 </div>
-              </div>
+                </div>
 
-              {/* Detalles de reposición */}
-              {partidas.some((p: any) => p.tipo_material === "reposicion" && (p.foto_reposicion_url || p.observaciones_reposicion)) && (
-                <div className="bg-muted/30 rounded-lg p-4">
-                  <h3 className="text-primary font-semibold mb-4">Detalles de Reposición</h3>
-                  <div className="space-y-4">
+                {/* Detalles de reposición */}
+                {partidas.some((p: any) => p.tipo_material === "reposicion" && (p.foto_reposicion_url || p.observaciones_reposicion)) && (
+                  <div className="mt-4 space-y-3">
+                    <h4 className="text-sm font-semibold text-foreground">Detalles de Reposición</h4>
                     {partidas.filter((p: any) => p.tipo_material === "reposicion").map((partida: any) => (
                       <div key={partida.id} className="border border-border rounded-lg p-3 space-y-2">
                         <p className="text-sm font-medium">Partida {partida.numero_partida}: {partida.descripcion || "-"}</p>
@@ -2388,8 +2387,9 @@ const TramiteDetailDialog = ({
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            )}
 
             {/* Archivos Adjuntos */}
             {archivosAdjuntos.length > 0 && (
