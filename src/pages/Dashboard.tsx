@@ -178,6 +178,9 @@ const Dashboard = () => {
   const hasContabilidadIngresos = hasRole('contabilidad_ingresos') || isSuperadmin;
   const hasContabilidadAccess = hasContabilidadGastos || hasContabilidadIngresos;
 
+  // Check if user has almacen access
+  const hasAlmacenAccess = hasRole('almacen') || isSuperadmin;
+
   const menuItems = [
     {
       title: "Requisición",
