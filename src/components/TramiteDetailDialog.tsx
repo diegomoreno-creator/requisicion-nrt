@@ -2332,6 +2332,7 @@ const TramiteDetailDialog = ({
                         <TableHead className="text-muted-foreground">Unidad</TableHead>
                         <TableHead className="text-muted-foreground">Modelo/Parte</TableHead>
                         <TableHead className="text-muted-foreground">Costo Est.</TableHead>
+                        <TableHead className="text-muted-foreground">Tipo Material</TableHead>
                         <TableHead className="text-muted-foreground">Fecha Necesidad</TableHead>
                       </TableRow>
                     </TableHeader>
