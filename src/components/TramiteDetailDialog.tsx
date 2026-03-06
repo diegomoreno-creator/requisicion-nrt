@@ -2780,7 +2780,7 @@ const TramiteDetailDialog = ({
                 </Button>
               )}
               {canMoveToPedidoColocado() && (
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Label htmlFor="montoTotal" className="text-sm whitespace-nowrap">Monto Total:</Label>
                     <select
@@ -2801,6 +2801,17 @@ const TramiteDetailDialog = ({
                       min="0"
                       step="0.01"
                     />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm whitespace-nowrap">Tipo Pedido:</Label>
+                    <select
+                      value={tipoPedido}
+                      onChange={(e) => setTipoPedido(e.target.value)}
+                      className="h-10 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                    >
+                      <option value="ordinario">Ordinario</option>
+                      <option value="credito">Crédito</option>
+                    </select>
                   </div>
                   <Button
                     className="bg-purple-600 hover:bg-purple-700"
