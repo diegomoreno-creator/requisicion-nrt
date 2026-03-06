@@ -2348,6 +2348,7 @@ const TramiteDetailDialog = ({
                           <TableCell>{partida.unidad_medida || "-"}</TableCell>
                           <TableCell>{partida.modelo_parte || "-"}</TableCell>
                           <TableCell>{partida.costo_estimado ? formatCurrency(partida.costo_estimado) : "-"}</TableCell>
+                          <TableCell className="capitalize">{(partida as any).tipo_material === "reposicion" ? "Reposición" : (partida as any).tipo_material || "-"}</TableCell>
                           <TableCell>{formatDate(partida.fecha_necesidad)}</TableCell>
                         </TableRow>
                       ))}
