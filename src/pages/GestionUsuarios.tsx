@@ -641,7 +641,31 @@ const GestionUsuarios = () => {
                   </div>
                     )}
 
-                  {/* Empresa */}
+                    {/* Almacén Section (only for superadmins) */}
+                    {isSuperadmin && (
+                    <div className="p-3 rounded-md border border-border">
+                      <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Almacén</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {almacenRoles.map(role => (
+                          <div key={role} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`new-${role}`}
+                              checked={newUserRoles.includes(role)}
+                              onCheckedChange={() => toggleRole(role, newUserRoles, setNewUserRoles)}
+                            />
+                            <label
+                              htmlFor={`new-${role}`}
+                              className="text-sm text-foreground cursor-pointer"
+                            >
+                              {roleLabels[role]}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    )}
+
+
                   <div className="space-y-2">
                     <Label className="text-foreground flex items-center gap-1">
                       <Building2 className="w-4 h-4" />
