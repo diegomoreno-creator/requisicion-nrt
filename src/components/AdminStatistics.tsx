@@ -60,6 +60,9 @@ interface RequisicionStats {
   datos_proveedor: string | null;
   presupuesto_aproximado: number | null;
   monto_total_compra: number | null;
+  tipo_pedido: string | null;
+  credito_pagado: boolean | null;
+  fecha_pago_credito: string | null;
 }
 
 interface TimeStats {
