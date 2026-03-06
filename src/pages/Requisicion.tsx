@@ -391,6 +391,8 @@ const Requisicion = () => {
       costo_estimado: null,
       sucursal: "",
       tipo_material: "",
+      observaciones_reposicion: "",
+      foto_reposicion_url: "",
     };
     setPartidas([...partidas, newPartida]);
   };
