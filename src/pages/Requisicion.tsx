@@ -60,6 +60,7 @@ interface Partida {
   categoria_gasto: string;
   costo_estimado: number | null;
   sucursal: string;
+  tipo_material: string;
 }
 
 // tiposGasto y categoriasGasto ahora se cargan dinámicamente desde useCatalogos
