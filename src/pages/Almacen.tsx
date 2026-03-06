@@ -555,19 +555,98 @@ const Almacen = () => {
                 </div>
               )}
 
-              {/* Register new entry button */}
-              {selectedReq.estado === "pedido_pagado" && (
-                <Button onClick={openEntradaForm} className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Registrar Entrada de Material
-                </Button>
-              )}
-              {selectedReq.estado === "en_almacen" && (
-                <div className="text-center py-4">
-                  <PackageCheck className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-                  <p className="text-sm text-emerald-400 font-medium">Material completamente recibido</p>
+              {/* Entregas de Resguardo (Cartas Responsivas) */}
+              {entregasResguardo.length > 0 && (
+                <div className="mb-6">
+                  <Separator className="my-4" />
+                  <h3 className="font-semibold text-foreground mb-3">
+                    <FileSignature className="h-4 w-4 inline mr-1" />
+                    Cartas Responsivas ({entregasResguardo.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {entregasResguardo.map((entrega: any) => (
+                      <Card key={entrega.id} className="border-border">
+                        <CardContent className="p-3 space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="text-sm font-medium text-foreground">
+                                Entregado a: {entrega.recibido_por_nombre}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(entrega.created_at), "d/MMM/yy HH:mm", { locale: es })}
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const items = entregaItems[entrega.id] || [];
+                                generateCartaResponsivaPDF({
+                                  folioOrdenCompra: entrega.folio_orden_compra,
+                                  fechaOrdenCompra: entrega.fecha_orden_compra,
+                                  periodoSupervision: entrega.periodo_supervision || "",
+                                  ubicacion: entrega.ubicacion || "",
+                                  entregadoPorNombre: receiverNames[entrega.entregado_por] || userName || "",
+                                  recibidoPorNombre: entrega.recibido_por_nombre,
+                                  recibidoPorFecha: entrega.recibido_por_fecha,
+                                  firmaUrl: entrega.firma_recibido_url,
+                                  notas: entrega.notas || "",
+                                  items: items.map((i: any) => ({
+                                    cantidad: i.cantidad,
+                                    descripcion: i.descripcion,
+                                    numero_serie: i.numero_serie,
+                                  })),
+                                });
+                              }}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              PDF
+                            </Button>
+                          </div>
+                          {(entregaItems[entrega.id] || []).map((item: any) => (
+                            <p key={item.id} className="text-xs text-muted-foreground">
+                              • {item.cantidad}x {item.descripcion} (Serie: {item.numero_serie})
+                            </p>
+                          ))}
+                          {entrega.notas && (
+                            <p className="text-xs text-muted-foreground italic">Nota: {entrega.notas}</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
               )}
+
+              {/* Action buttons */}
+              <Separator className="my-4" />
+              <div className="space-y-3">
+                {/* Register new entry button */}
+                {selectedReq.estado === "pedido_pagado" && (
+                  <Button onClick={openEntradaForm} className="w-full">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Registrar Entrada de Material
+                  </Button>
+                )}
+
+                {/* Carta Responsiva button - available when material is received */}
+                {selectedReq.estado === "en_almacen" && (
+                  <>
+                    <div className="text-center py-2">
+                      <PackageCheck className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+                      <p className="text-sm text-emerald-400 font-medium">Material completamente recibido</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setShowCartaResponsiva(true)}
+                    >
+                      <FileSignature className="h-4 w-4 mr-2" />
+                      Generar Carta Responsiva de Resguardo
+                    </Button>
+                  </>
+                )}
+              </div>
             </ScrollArea>
           </DialogContent>
         </Dialog>
