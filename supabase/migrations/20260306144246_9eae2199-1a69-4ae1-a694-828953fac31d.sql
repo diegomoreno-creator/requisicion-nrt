@@ -1,0 +1,1 @@
+ALTER TABLE public.requisiciones ADD COLUMN tipo_pedido text DEFAULT 'ordinario';
