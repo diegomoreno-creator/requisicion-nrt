@@ -80,6 +80,7 @@ const Almacen = () => {
   const [showCartaResponsiva, setShowCartaResponsiva] = useState(false);
   const [entregasResguardo, setEntregasResguardo] = useState<any[]>([]);
   const [entregaItems, setEntregaItems] = useState<Record<string, any[]>>({});
+  const [currentUserName, setCurrentUserName] = useState("");
 
   // Form state
   const [ubicacionAlmacen, setUbicacionAlmacen] = useState("");
