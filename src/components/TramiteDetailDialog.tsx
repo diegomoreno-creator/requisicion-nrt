@@ -288,6 +288,7 @@ const TramiteDetailDialog = ({
   }>>([]);
   const [montoTotalCompra, setMontoTotalCompra] = useState("");
   const [monedaCompra, setMonedaCompra] = useState("MXN");
+  const [tipoPedido, setTipoPedido] = useState("ordinario");
   const [previewFile, setPreviewFile] = useState<ArchivoAdjunto | null>(null);
   const [showPayConfirm, setShowPayConfirm] = useState(false);
   const [paymentFiles, setPaymentFiles] = useState<File[]>([]);
@@ -437,6 +438,7 @@ const TramiteDetailDialog = ({
         setTextoCompras("");
         setMontoTotalCompra(req.monto_total_compra?.toString() || "");
         setMonedaCompra((req as any).moneda_compra || "MXN");
+        setTipoPedido((req as any).tipo_pedido || "ordinario");
         
         // Fetch texto compras historial
         const { data: historialData } = await supabase
@@ -1179,7 +1181,8 @@ const TramiteDetailDialog = ({
           pedido_colocado_por: user.id,
           fecha_pedido_colocado: new Date().toISOString(),
           monto_total_compra: monto,
-          moneda_compra: monedaCompra
+          moneda_compra: monedaCompra,
+          tipo_pedido: tipoPedido
         } as any)
         .eq("id", tramiteId);
 
@@ -1383,6 +1386,7 @@ const TramiteDetailDialog = ({
            fecha_pedido_colocado: null,
            monto_total_compra: null,
            moneda_compra: null,
+           tipo_pedido: null,
            licitado_por: null,
           fecha_licitacion: null,
           autorizado_por: null,
@@ -2129,6 +2133,14 @@ const TramiteDetailDialog = ({
                         </p>
                       </div>
                     )}
+                    {(requisicion as any).tipo_pedido && (
+                      <div>
+                        <p className="text-muted-foreground text-sm">Tipo de Pedido:</p>
+                        <Badge variant={(requisicion as any).tipo_pedido === 'credito' ? 'destructive' : 'secondary'}>
+                          {(requisicion as any).tipo_pedido === 'credito' ? 'Crédito' : 'Ordinario'}
+                        </Badge>
+                      </div>
+                    )}
                     <div>
                       <p className="text-muted-foreground text-sm">Proyecto:</p>
                       <p className="text-foreground">
@@ -2777,7 +2789,7 @@ const TramiteDetailDialog = ({
                 </Button>
               )}
               {canMoveToPedidoColocado() && (
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Label htmlFor="montoTotal" className="text-sm whitespace-nowrap">Monto Total:</Label>
                     <select
@@ -2798,6 +2810,17 @@ const TramiteDetailDialog = ({
                       min="0"
                       step="0.01"
                     />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm whitespace-nowrap">Tipo Pedido:</Label>
+                    <select
+                      value={tipoPedido}
+                      onChange={(e) => setTipoPedido(e.target.value)}
+                      className="h-10 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                    >
+                      <option value="ordinario">Ordinario</option>
+                      <option value="credito">Crédito</option>
+                    </select>
                   </div>
                   <Button
                     className="bg-purple-600 hover:bg-purple-700"

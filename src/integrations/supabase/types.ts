@@ -908,6 +908,7 @@ export type Database = {
           texto_compras: string | null
           texto_compras_editado_at: string | null
           texto_compras_editado_por: string | null
+          tipo_pedido: string | null
           tipo_requisicion: string | null
           un_division_gasto: string | null
           unidad_negocio: string | null
@@ -962,6 +963,7 @@ export type Database = {
           texto_compras?: string | null
           texto_compras_editado_at?: string | null
           texto_compras_editado_por?: string | null
+          tipo_pedido?: string | null
           tipo_requisicion?: string | null
           un_division_gasto?: string | null
           unidad_negocio?: string | null
@@ -1016,6 +1018,7 @@ export type Database = {
           texto_compras?: string | null
           texto_compras_editado_at?: string | null
           texto_compras_editado_por?: string | null
+          tipo_pedido?: string | null
           tipo_requisicion?: string | null
           un_division_gasto?: string | null
           unidad_negocio?: string | null
