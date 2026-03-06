@@ -56,6 +56,7 @@ const roleLabels: Record<string, string> = {
   inactivo: "Inactivo",
   contabilidad_gastos: "Contabilidad Gastos",
   contabilidad_ingresos: "Contabilidad Ingresos",
+  almacen: "Almacén",
 };
 
 interface ProfileData {

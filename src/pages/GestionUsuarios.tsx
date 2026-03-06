@@ -60,11 +60,12 @@ interface UserWithRoles {
   departamento: string | null;
 }
 
-const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'revision', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo', 'contabilidad1', 'contabilidad_gastos', 'contabilidad_ingresos'];
+const allRoles: AppRole[] = ['superadmin', 'admin', 'autorizador', 'revision', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo', 'contabilidad1', 'contabilidad_gastos', 'contabilidad_ingresos', 'almacen'];
 
 // Role groupings for UI
 const compraPagoRoles: AppRole[] = ['admin', 'autorizador', 'revision', 'comprador', 'presupuestos', 'tesoreria', 'solicitador', 'inactivo'];
 const contabilidadRoles: AppRole[] = ['contabilidad_gastos', 'contabilidad_ingresos'];
+const almacenRoles: AppRole[] = ['almacen'];
 // Roles that non-superadmin admins can assign
 const adminAllowedRoles: AppRole[] = ['solicitador', 'revision', 'autorizador'];
 
@@ -81,6 +82,7 @@ const roleLabels: Record<AppRole, string> = {
   contabilidad1: "Contabilidad",
   contabilidad_gastos: "Gastos",
   contabilidad_ingresos: "Ingresos",
+  almacen: "Almacén",
 };
 
 const roleColors: Record<AppRole, string> = {
@@ -96,6 +98,7 @@ const roleColors: Record<AppRole, string> = {
   contabilidad1: "bg-indigo-600 text-white",
   contabilidad_gastos: "bg-rose-600 text-white",
   contabilidad_ingresos: "bg-emerald-600 text-white",
+  almacen: "bg-amber-600 text-white",
 };
 
 const GestionUsuarios = () => {
@@ -638,7 +641,31 @@ const GestionUsuarios = () => {
                   </div>
                     )}
 
-                  {/* Empresa */}
+                    {/* Almacén Section (only for superadmins) */}
+                    {isSuperadmin && (
+                    <div className="p-3 rounded-md border border-border">
+                      <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Almacén</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {almacenRoles.map(role => (
+                          <div key={role} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`new-${role}`}
+                              checked={newUserRoles.includes(role)}
+                              onCheckedChange={() => toggleRole(role, newUserRoles, setNewUserRoles)}
+                            />
+                            <label
+                              htmlFor={`new-${role}`}
+                              className="text-sm text-foreground cursor-pointer"
+                            >
+                              {roleLabels[role]}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    )}
+
+
                   <div className="space-y-2">
                     <Label className="text-foreground flex items-center gap-1">
                       <Building2 className="w-4 h-4" />
@@ -1057,9 +1084,33 @@ const GestionUsuarios = () => {
                 </div>
               </div>
               )}
+
+              {/* Almacén Section (only for superadmins) */}
+              {isSuperadmin && (
+              <div className="p-3 rounded-md border border-border">
+                <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Almacén</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {almacenRoles.map(role => (
+                    <div key={role} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-${role}`}
+                        checked={editRoles.includes(role)}
+                        onCheckedChange={() => toggleRole(role, editRoles, setEditRoles)}
+                      />
+                      <label
+                        htmlFor={`edit-${role}`}
+                        className="text-sm text-foreground cursor-pointer"
+                      >
+                        {roleLabels[role]}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              )}
             </div>
 
-            {/* Empresa */}
+
             <div className="space-y-2">
               <Label className="text-foreground flex items-center gap-1">
                 <Building2 className="w-4 h-4" />
