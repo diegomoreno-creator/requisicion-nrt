@@ -459,6 +459,9 @@ const Requisicion = () => {
       if (partida.costo_estimado === null || partida.costo_estimado === undefined || partida.costo_estimado <= 0) {
         partidasErrors.push(`Partida ${partidaNum}: Costo estimado`);
       }
+      if (!partida.tipo_material) {
+        partidasErrors.push(`Partida ${partidaNum}: Tipo de material`);
+      }
     });
 
     if (requiredErrors.length > 0 || partidasErrors.length > 0) {
