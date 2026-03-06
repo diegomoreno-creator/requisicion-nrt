@@ -61,6 +61,8 @@ interface Partida {
   costo_estimado: number | null;
   sucursal: string;
   tipo_material: string;
+  observaciones_reposicion: string;
+  foto_reposicion_url: string;
 }
 
 // tiposGasto y categoriasGasto ahora se cargan dinámicamente desde useCatalogos
