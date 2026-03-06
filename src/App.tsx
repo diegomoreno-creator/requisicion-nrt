@@ -18,6 +18,7 @@ import BulkCreateUsers from "./pages/BulkCreateUsers";
 import Notificaciones from "./pages/Notificaciones";
 import Estadisticas from "./pages/Estadisticas";
 import ContabilidadGastos from "./pages/ContabilidadGastos";
+import Almacen from "./pages/Almacen";
 import Install from "./pages/Install";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -153,6 +154,14 @@ const App = () => (
               element={
                 <ProtectedRoute requiresRole="contabilidad_gastos">
                   <ContabilidadGastos />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/almacen" 
+              element={
+                <ProtectedRoute requiresRole="almacen">
+                  <Almacen />
                 </ProtectedRoute>
               } 
             />

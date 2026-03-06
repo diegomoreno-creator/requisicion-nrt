@@ -170,6 +170,7 @@ const timelineStepsBase = [
   { key: "pedido_colocado", label: "Pedido\nColocado" },
   { key: "pedido_autorizado", label: "Pedido\nAutorizado" },
   { key: "pedido_pagado", label: "Pedido\nPagado" },
+  { key: "en_almacen", label: "En\nAlmacén" },
 ];
 
 const timelineStepsWithRevision = [
@@ -180,6 +181,7 @@ const timelineStepsWithRevision = [
   { key: "pedido_colocado", label: "Pedido\nColocado" },
   { key: "pedido_autorizado", label: "Pedido\nAutorizado" },
   { key: "pedido_pagado", label: "Pedido\nPagado" },
+  { key: "en_almacen", label: "En\nAlmacén" },
 ];
 
 const getStepIndex = (estado: string, steps: typeof timelineStepsBase): number => {
@@ -209,6 +211,8 @@ const getStepTimestamp = (
         return requisicion.fecha_pedido_autorizado;
       case "pedido_pagado":
         return requisicion.fecha_pago;
+      case "en_almacen":
+        return (requisicion as any).fecha_almacen || null;
       default:
         return null;
     }
