@@ -2854,56 +2854,62 @@ const TramiteDetailDialog = ({
                 </Button>
               )}
               {canMoveToPedidoColocado() && (
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="montoTotal" className="text-sm whitespace-nowrap">Monto Total:</Label>
-                    <select
-                      value={monedaCompra}
-                      onChange={(e) => setMonedaCompra(e.target.value)}
-                      className="h-10 rounded-md border border-input bg-background px-2 py-1 text-sm"
+                <div className="space-y-3 w-full rounded-lg border border-border bg-muted/30 p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="montoTotal" className="text-xs text-muted-foreground font-medium">Monto Total</Label>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={monedaCompra}
+                          onChange={(e) => setMonedaCompra(e.target.value)}
+                          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                        >
+                          <option value="MXN">MXN</option>
+                          <option value="USD">USD</option>
+                        </select>
+                        <Input
+                          id="montoTotal"
+                          type="number"
+                          placeholder="0.00"
+                          value={montoTotalCompra}
+                          onChange={(e) => setMontoTotalCompra(e.target.value)}
+                          className="flex-1"
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground font-medium">Tipo Pedido</Label>
+                      <select
+                        value={tipoPedido}
+                        onChange={(e) => setTipoPedido(e.target.value)}
+                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="ordinario">Ordinario</option>
+                        <option value="credito">Crédito</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="esPedidoAlmacen"
+                        checked={esPedidoAlmacen}
+                        onCheckedChange={(checked) => setEsPedidoAlmacen(checked === true)}
+                      />
+                      <Label htmlFor="esPedidoAlmacen" className="text-sm cursor-pointer">
+                        Pedido de Almacén
+                      </Label>
+                    </div>
+                    <Button
+                      className="bg-purple-600 hover:bg-purple-700"
+                      onClick={handleMoveToPedidoColocado}
+                      disabled={actionLoading || !montoTotalCompra}
                     >
-                      <option value="MXN">MXN</option>
-                      <option value="USD">USD</option>
-                    </select>
-                    <Input
-                      id="montoTotal"
-                      type="number"
-                      placeholder="0.00"
-                      value={montoTotalCompra}
-                      onChange={(e) => setMontoTotalCompra(e.target.value)}
-                      className="w-32"
-                      min="0"
-                      step="0.01"
-                    />
+                      Colocar Pedido
+                    </Button>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm whitespace-nowrap">Tipo Pedido:</Label>
-                    <select
-                      value={tipoPedido}
-                      onChange={(e) => setTipoPedido(e.target.value)}
-                      className="h-10 rounded-md border border-input bg-background px-3 py-1 text-sm"
-                    >
-                      <option value="ordinario">Ordinario</option>
-                      <option value="credito">Crédito</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="esPedidoAlmacen"
-                      checked={esPedidoAlmacen}
-                      onCheckedChange={(checked) => setEsPedidoAlmacen(checked === true)}
-                    />
-                    <Label htmlFor="esPedidoAlmacen" className="text-sm whitespace-nowrap cursor-pointer">
-                      Pedido de Almacén
-                    </Label>
-                  </div>
-                  <Button
-                    className="bg-purple-600 hover:bg-purple-700"
-                    onClick={handleMoveToPedidoColocado}
-                    disabled={actionLoading || !montoTotalCompra}
-                  >
-                    Colocar Pedido
-                  </Button>
                 </div>
               )}
               {canRejectByPresupuestos() && (
