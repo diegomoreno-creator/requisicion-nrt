@@ -77,6 +77,9 @@ const Almacen = () => {
   const [receiverNames, setReceiverNames] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [previewFile, setPreviewFile] = useState<{ file_name: string; file_url: string; file_type?: string } | null>(null);
+  const [showCartaResponsiva, setShowCartaResponsiva] = useState(false);
+  const [entregasResguardo, setEntregasResguardo] = useState<any[]>([]);
+  const [entregaItems, setEntregaItems] = useState<Record<string, any[]>>({});
 
   // Form state
   const [ubicacionAlmacen, setUbicacionAlmacen] = useState("");
