@@ -326,6 +326,8 @@ const Requisicion = () => {
           costo_estimado: (p as any).costo_estimado ?? null,
           sucursal: (p as any).sucursal || "",
           tipo_material: (p as any).tipo_material || "",
+          observaciones_reposicion: (p as any).observaciones_reposicion || "",
+          foto_reposicion_url: (p as any).foto_reposicion_url || "",
         })));
       }
 
