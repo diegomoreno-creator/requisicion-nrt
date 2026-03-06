@@ -102,7 +102,15 @@ const Almacen = () => {
   }, [authLoading, hasAccess]);
 
   useEffect(() => {
-    if (hasAccess) fetchRequisiciones();
+    if (hasAccess) {
+      fetchRequisiciones();
+      // Fetch current user name
+      if (user) {
+        supabase.rpc('get_profile_name', { _user_id: user.id }).then(({ data }) => {
+          if (data) setCurrentUserName(data);
+        });
+      }
+    }
   }, [hasAccess]);
 
   const fetchRequisiciones = async () => {
