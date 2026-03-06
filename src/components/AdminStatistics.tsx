@@ -1127,6 +1127,10 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
         </div>
       )}
 
+      {visiblePanels.has("tipo_pedido") && (
+        <TipoPedidoPanel requisiciones={filteredRequisiciones} />
+      )}
+
       {visiblePanels.has("tendencia_gasto") && (
         <TendenciaGastoPanel requisiciones={filteredRequisiciones} empresasMap={empresasMap} />
       )}
