@@ -515,6 +515,97 @@ export type Database = {
           },
         ]
       }
+      entrega_resguardo_items: {
+        Row: {
+          cantidad: number
+          created_at: string
+          descripcion: string
+          entrega_resguardo_id: string
+          id: string
+          numero_serie: string
+        }
+        Insert: {
+          cantidad?: number
+          created_at?: string
+          descripcion: string
+          entrega_resguardo_id: string
+          id?: string
+          numero_serie: string
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          descripcion?: string
+          entrega_resguardo_id?: string
+          id?: string
+          numero_serie?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entrega_resguardo_items_entrega_resguardo_id_fkey"
+            columns: ["entrega_resguardo_id"]
+            isOneToOne: false
+            referencedRelation: "entregas_resguardo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entregas_resguardo: {
+        Row: {
+          created_at: string
+          entregado_por: string
+          fecha_orden_compra: string | null
+          firma_recibido_url: string | null
+          folio_orden_compra: string
+          id: string
+          notas: string | null
+          periodo_supervision: string | null
+          recibido_por_fecha: string
+          recibido_por_nombre: string
+          requisicion_id: string
+          ubicacion: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entregado_por: string
+          fecha_orden_compra?: string | null
+          firma_recibido_url?: string | null
+          folio_orden_compra: string
+          id?: string
+          notas?: string | null
+          periodo_supervision?: string | null
+          recibido_por_fecha?: string
+          recibido_por_nombre: string
+          requisicion_id: string
+          ubicacion?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entregado_por?: string
+          fecha_orden_compra?: string | null
+          firma_recibido_url?: string | null
+          folio_orden_compra?: string
+          id?: string
+          notas?: string | null
+          periodo_supervision?: string | null
+          recibido_por_fecha?: string
+          recibido_por_nombre?: string
+          requisicion_id?: string
+          ubicacion?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregas_resguardo_requisicion_id_fkey"
+            columns: ["requisicion_id"]
+            isOneToOne: false
+            referencedRelation: "requisiciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folio_sequences: {
         Row: {
           created_at: string
