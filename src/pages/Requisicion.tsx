@@ -32,7 +32,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ArrowLeft, Plus, Trash2, CalendarIcon, Loader2, X, Check, ChevronsUpDown, Search } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, CalendarIcon, Loader2, X, Check, ChevronsUpDown, Search, Upload, ImageIcon } from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -61,6 +61,8 @@ interface Partida {
   costo_estimado: number | null;
   sucursal: string;
   tipo_material: string;
+  observaciones_reposicion: string;
+  foto_reposicion_url: string;
 }
 
 // tiposGasto y categoriasGasto ahora se cargan dinámicamente desde useCatalogos
@@ -143,6 +145,8 @@ const Requisicion = () => {
       costo_estimado: null,
       sucursal: "",
       tipo_material: "",
+      observaciones_reposicion: "",
+      foto_reposicion_url: "",
     },
   ]);
 
@@ -322,6 +326,8 @@ const Requisicion = () => {
           costo_estimado: (p as any).costo_estimado ?? null,
           sucursal: (p as any).sucursal || "",
           tipo_material: (p as any).tipo_material || "",
+          observaciones_reposicion: (p as any).observaciones_reposicion || "",
+          foto_reposicion_url: (p as any).foto_reposicion_url || "",
         })));
       }
 
@@ -385,6 +391,8 @@ const Requisicion = () => {
       costo_estimado: null,
       sucursal: "",
       tipo_material: "",
+      observaciones_reposicion: "",
+      foto_reposicion_url: "",
     };
     setPartidas([...partidas, newPartida]);
   };
@@ -407,6 +415,10 @@ const Requisicion = () => {
         // Si cambia el tipo_gasto, limpiar la categoria_gasto
         if (field === "tipo_gasto" && p.tipo_gasto !== value) {
           return { ...p, [field]: value, categoria_gasto: "" };
+        }
+        // Si cambia tipo_material a algo diferente de reposición, limpiar campos de reposición
+        if (field === "tipo_material" && value !== "reposicion") {
+          return { ...p, [field]: value, observaciones_reposicion: "", foto_reposicion_url: "" };
         }
         return { ...p, [field]: value };
       })
@@ -461,6 +473,14 @@ const Requisicion = () => {
       }
       if (!partida.tipo_material) {
         partidasErrors.push(`Partida ${partidaNum}: Tipo de material`);
+      }
+      if (partida.tipo_material === "reposicion") {
+        if (!partida.foto_reposicion_url) {
+          partidasErrors.push(`Partida ${partidaNum}: Fotografía de evidencia (reposición)`);
+        }
+        if (!partida.observaciones_reposicion.trim()) {
+          partidasErrors.push(`Partida ${partidaNum}: Observaciones de reposición`);
+        }
       }
     });
 
@@ -529,6 +549,8 @@ const Requisicion = () => {
           costo_estimado: p.costo_estimado,
           sucursal: p.sucursal || null,
           tipo_material: p.tipo_material || null,
+          observaciones_reposicion: p.tipo_material === "reposicion" ? p.observaciones_reposicion || null : null,
+          foto_reposicion_url: p.tipo_material === "reposicion" ? p.foto_reposicion_url || null : null,
         }));
 
         const { error: partidasError } = await supabaseAuthed
@@ -716,6 +738,8 @@ const Requisicion = () => {
           costo_estimado: p.costo_estimado,
           sucursal: p.sucursal || null,
           tipo_material: p.tipo_material || null,
+          observaciones_reposicion: p.tipo_material === "reposicion" ? p.observaciones_reposicion || null : null,
+          foto_reposicion_url: p.tipo_material === "reposicion" ? p.foto_reposicion_url || null : null,
         }));
 
         const { error: partidasError } = await supabaseAuthed
@@ -1197,6 +1221,102 @@ const Requisicion = () => {
                     </TableBody>
                   </Table>
                 </div>
+
+                {/* Reposición details for partidas marked as reposición */}
+                {partidas.some(p => p.tipo_material === "reposicion") && (
+                  <div className="space-y-3">
+                    <Label className="text-foreground text-base font-semibold">Detalles de Reposición</Label>
+                    {partidas.filter(p => p.tipo_material === "reposicion").map((partida) => (
+                      <Card key={partida.id} className="border-border">
+                        <CardContent className="p-4 space-y-3">
+                          <p className="text-sm font-medium text-foreground">
+                            Partida {partida.numero_partida}: {partida.descripcion || "(sin descripción)"}
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-foreground text-sm">
+                                Fotografía del artículo anterior <span className="text-destructive">*</span>
+                              </Label>
+                              {partida.foto_reposicion_url ? (
+                                <div className="relative inline-block">
+                                  <img
+                                    src={partida.foto_reposicion_url}
+                                    alt="Evidencia de reposición"
+                                    className="max-h-40 rounded-md border border-border object-cover"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute -top-2 -right-2 h-6 w-6"
+                                    onClick={() => updatePartida(partida.id, "foto_reposicion_url", "")}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    id={`foto-reposicion-${partida.id}`}
+                                    className="hidden"
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      if (file.size > 10 * 1024 * 1024) {
+                                        toast.error("La imagen excede el límite de 10MB");
+                                        return;
+                                      }
+                                      const sanitized = file.name
+                                        .normalize('NFD')
+                                        .replace(/[\u0300-\u036f]/g, '')
+                                        .replace(/[^a-zA-Z0-9._-]/g, '_');
+                                      const path = `${user?.id}/${requisicionIdForFiles}/reposicion_${partida.numero_partida}_${Date.now()}_${sanitized}`;
+                                      const { error } = await supabase.storage
+                                        .from('requisicion_archivos')
+                                        .upload(path, file);
+                                      if (error) {
+                                        toast.error("Error al subir imagen: " + error.message);
+                                        return;
+                                      }
+                                      const { data: urlData } = supabase.storage
+                                        .from('requisicion_archivos')
+                                        .getPublicUrl(path);
+                                      updatePartida(partida.id, "foto_reposicion_url", urlData.publicUrl);
+                                      toast.success("Imagen subida exitosamente");
+                                    }}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => document.getElementById(`foto-reposicion-${partida.id}`)?.click()}
+                                    className="border-dashed border-2 border-muted-foreground/30 hover:border-primary"
+                                  >
+                                    <ImageIcon className="w-4 h-4 mr-2" />
+                                    Subir fotografía
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-foreground text-sm">
+                                Observaciones / Explicación <span className="text-destructive">*</span>
+                              </Label>
+                              <Textarea
+                                value={partida.observaciones_reposicion}
+                                onChange={(e) => updatePartida(partida.id, "observaciones_reposicion", e.target.value)}
+                                placeholder="Describa el motivo de la reposición y el estado del artículo anterior..."
+                                className="bg-input border-border min-h-[100px]"
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex justify-end">
                   <Button
                     type="button"
