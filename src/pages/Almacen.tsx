@@ -104,7 +104,6 @@ const Almacen = () => {
     const { data, error } = await supabase
       .from("requisiciones")
       .select("id, folio, asunto, empresa, fecha_pago, monto_total_compra, presupuesto_aproximado, solicitado_por, estado, es_pedido_almacen")
-      .in("estado", ["pedido_pagado", "en_almacen"])
       .eq("es_pedido_almacen", true)
       .is("deleted_at", null)
       .order("fecha_pago", { ascending: false });
@@ -113,15 +112,38 @@ const Almacen = () => {
       toast.error("Error al cargar requisiciones");
       console.error(error);
     } else {
-      setRequisiciones(data || []);
+      const reqs = data || [];
+      
       // Fetch solicitante names
-      const userIds = [...new Set((data || []).map(r => r.solicitado_por))];
+      const userIds = [...new Set(reqs.map(r => r.solicitado_por))];
       const names: Record<string, string> = {};
       await Promise.all(userIds.map(async (uid) => {
         const { data: nameData } = await supabase.rpc('get_profile_name', { _user_id: uid });
         if (nameData) names[uid] = nameData;
       }));
       setSolicitanteNames(names);
+
+      // Fetch partidas descriptions for search
+      if (reqs.length > 0) {
+        const reqIds = reqs.map(r => r.id);
+        const { data: partidasData } = await supabase
+          .from("requisicion_partidas")
+          .select("requisicion_id, descripcion")
+          .in("requisicion_id", reqIds);
+        
+        const partidasMap: Record<string, string> = {};
+        (partidasData || []).forEach(p => {
+          const existing = partidasMap[p.requisicion_id] || "";
+          partidasMap[p.requisicion_id] = existing + " " + (p.descripcion || "");
+        });
+
+        setRequisiciones(reqs.map(r => ({
+          ...r,
+          partidas_texto: partidasMap[r.id] || ""
+        })));
+      } else {
+        setRequisiciones([]);
+      }
     }
     setLoading(false);
   };
