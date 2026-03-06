@@ -685,3 +685,164 @@ export const TendenciaGastoPanel = ({
     </Card>
   );
 };
+
+// ─── Métricas por Tipo de Pedido (Ordinario vs Crédito) ───
+export const TipoPedidoPanel = ({ requisiciones }: { requisiciones: ExtendedRequisicion[] }) => {
+  const stats = useMemo(() => {
+    // Only consider requisitions that have reached pedido_colocado or beyond
+    const withOrder = requisiciones.filter((r) =>
+      ["pedido_colocado", "pedido_autorizado", "pedido_pagado", "completado"].includes(r.estado)
+      || r.fecha_pedido_colocado
+    );
+
+    const ordinarios = withOrder.filter((r) => !r.tipo_pedido || r.tipo_pedido === "ordinario");
+    const creditos = withOrder.filter((r) => r.tipo_pedido === "credito");
+
+    const calcAvgDays = (items: ExtendedRequisicion[], fromKey: keyof ExtendedRequisicion, toKey: keyof ExtendedRequisicion) => {
+      const times = items
+        .filter((r) => r[fromKey] && r[toKey])
+        .map((r) => {
+          const from = new Date(r[fromKey] as string);
+          const to = new Date(r[toKey] as string);
+          return differenceInDays(to, from);
+        })
+        .filter((d) => d >= 0);
+      if (times.length === 0) return null;
+      return Math.round((times.reduce((a, b) => a + b, 0) / times.length) * 10) / 10;
+    };
+
+    const calcTotalTime = (items: ExtendedRequisicion[]) => {
+      const times = items
+        .filter((r) => r.fecha_pago && r.created_at)
+        .map((r) => differenceInDays(new Date(r.fecha_pago!), new Date(r.created_at)))
+        .filter((d) => d >= 0);
+      if (times.length === 0) return null;
+      return Math.round((times.reduce((a, b) => a + b, 0) / times.length) * 10) / 10;
+    };
+
+    const creditoPendientes = creditos.filter((r) => r.estado === "pedido_pagado" && !r.credito_pagado).length;
+    const creditoPagados = creditos.filter((r) => r.credito_pagado).length;
+
+    return {
+      ordinarios: {
+        total: ordinarios.length,
+        avgTotal: calcTotalTime(ordinarios),
+        avgCreacion_Autorizacion: calcAvgDays(ordinarios, "created_at", "fecha_autorizacion_real"),
+        avgAutorizacion_Pedido: calcAvgDays(ordinarios, "fecha_autorizacion_real", "fecha_pedido_colocado"),
+        avgPedido_Pago: calcAvgDays(ordinarios, "fecha_pedido_colocado", "fecha_pago"),
+      },
+      creditos: {
+        total: creditos.length,
+        pendientesPago: creditoPendientes,
+        pagados: creditoPagados,
+        avgTotal: calcTotalTime(creditos),
+        avgCreacion_Autorizacion: calcAvgDays(creditos, "created_at", "fecha_autorizacion_real"),
+        avgAutorizacion_Pedido: calcAvgDays(creditos, "fecha_autorizacion_real", "fecha_pedido_colocado"),
+        avgPedido_Pago: calcAvgDays(creditos, "fecha_pedido_colocado", "fecha_pago"),
+        avgPago_CreditoPagado: (() => {
+          const times = creditos
+            .filter((r) => r.fecha_pago && r.fecha_pago_credito)
+            .map((r) => differenceInDays(new Date(r.fecha_pago_credito!), new Date(r.fecha_pago!)))
+            .filter((d) => d >= 0);
+          if (times.length === 0) return null;
+          return Math.round((times.reduce((a, b) => a + b, 0) / times.length) * 10) / 10;
+        })(),
+      },
+    };
+  }, [requisiciones]);
+
+  const pieData = [
+    { name: "Ordinarios", value: stats.ordinarios.total },
+    { name: "Crédito", value: stats.creditos.total },
+  ].filter((d) => d.value > 0);
+
+  const pieColors = ["hsl(217, 91%, 60%)", "hsl(25, 95%, 53%)"];
+
+  const MetricRow = ({ label, value }: { label: string; value: number | null }) => (
+    <div className="flex items-center justify-between text-xs py-1 border-b border-border/30">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold text-foreground">{value !== null ? `${value} días` : "—"}</span>
+    </div>
+  );
+
+  return (
+    <Card className="border-border bg-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <Tag className="w-4 h-4" /> Métricas por Tipo de Pedido
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {pieData.length === 0 ? (
+          <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+            Sin pedidos colocados en el período
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Distribution chart */}
+            <div className="flex items-center gap-6">
+              <ResponsiveContainer width="40%" height={140}>
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={3} dataKey="value">
+                    {pieData.map((_, i) => (
+                      <Cell key={i} fill={pieColors[i]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={TOOLTIP_TEXT_STYLE} labelStyle={TOOLTIP_TEXT_STYLE} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: pieColors[0] }} />
+                  <span className="text-sm text-foreground font-medium">Ordinarios: {stats.ordinarios.total}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: pieColors[1] }} />
+                  <span className="text-sm text-foreground font-medium">Crédito: {stats.creditos.total}</span>
+                </div>
+                {stats.creditos.pendientesPago > 0 && (
+                  <div className="text-xs text-destructive font-medium mt-1">
+                    ⚠ {stats.creditos.pendientesPago} pendiente(s) de pago a crédito
+                  </div>
+                )}
+                {stats.creditos.pagados > 0 && (
+                  <div className="text-xs text-chart-3 font-medium">
+                    ✓ {stats.creditos.pagados} crédito(s) pagado(s)
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Side-by-side metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Ordinarios */}
+              <div className="p-3 rounded-lg border border-border bg-muted/20">
+                <p className="text-xs font-bold text-foreground mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pieColors[0] }} />
+                  Pedidos Ordinarios
+                </p>
+                <MetricRow label="Tiempo promedio total" value={stats.ordinarios.avgTotal} />
+                <MetricRow label="Creación → Autorización" value={stats.ordinarios.avgCreacion_Autorizacion} />
+                <MetricRow label="Autorización → Pedido" value={stats.ordinarios.avgAutorizacion_Pedido} />
+                <MetricRow label="Pedido → Pago" value={stats.ordinarios.avgPedido_Pago} />
+              </div>
+
+              {/* Crédito */}
+              <div className="p-3 rounded-lg border border-primary/30 bg-primary/5">
+                <p className="text-xs font-bold text-foreground mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pieColors[1] }} />
+                  Pedidos a Crédito (30 días)
+                </p>
+                <MetricRow label="Tiempo promedio total" value={stats.creditos.avgTotal} />
+                <MetricRow label="Creación → Autorización" value={stats.creditos.avgCreacion_Autorizacion} />
+                <MetricRow label="Autorización → Pedido" value={stats.creditos.avgAutorizacion_Pedido} />
+                <MetricRow label="Pedido → Pago inicial" value={stats.creditos.avgPedido_Pago} />
+                <MetricRow label="Pago → Pago crédito" value={stats.creditos.avgPago_CreditoPagado} />
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
