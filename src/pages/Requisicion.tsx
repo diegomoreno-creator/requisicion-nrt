@@ -715,6 +715,7 @@ const Requisicion = () => {
           categoria_gasto: p.categoria_gasto || null,
           costo_estimado: p.costo_estimado,
           sucursal: p.sucursal || null,
+          tipo_material: p.tipo_material || null,
         }));
 
         const { error: partidasError } = await supabaseAuthed
