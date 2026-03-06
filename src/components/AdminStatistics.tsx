@@ -76,6 +76,12 @@ interface TimeStats {
   count: number;
 }
 
+interface StageRequisicion {
+  folio: string;
+  asunto: string | null;
+  hours: number;
+}
+
 type TimeUnit = "minutes" | "hours" | "days";
 type VolumePeriod = "week" | "month" | "3months" | "6months" | "year" | "custom";
 
