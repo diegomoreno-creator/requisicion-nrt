@@ -734,6 +734,8 @@ const Requisicion = () => {
           costo_estimado: p.costo_estimado,
           sucursal: p.sucursal || null,
           tipo_material: p.tipo_material || null,
+          observaciones_reposicion: p.tipo_material === "reposicion" ? p.observaciones_reposicion || null : null,
+          foto_reposicion_url: p.tipo_material === "reposicion" ? p.foto_reposicion_url || null : null,
         }));
 
         const { error: partidasError } = await supabaseAuthed
