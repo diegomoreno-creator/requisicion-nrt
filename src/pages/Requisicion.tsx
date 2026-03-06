@@ -60,6 +60,7 @@ interface Partida {
   categoria_gasto: string;
   costo_estimado: number | null;
   sucursal: string;
+  tipo_material: string;
 }
 
 // tiposGasto y categoriasGasto ahora se cargan dinámicamente desde useCatalogos
@@ -141,6 +142,7 @@ const Requisicion = () => {
       categoria_gasto: "",
       costo_estimado: null,
       sucursal: "",
+      tipo_material: "",
     },
   ]);
 
@@ -319,6 +321,7 @@ const Requisicion = () => {
           categoria_gasto: p.categoria_gasto || "",
           costo_estimado: (p as any).costo_estimado ?? null,
           sucursal: (p as any).sucursal || "",
+          tipo_material: (p as any).tipo_material || "",
         })));
       }
 
@@ -381,6 +384,7 @@ const Requisicion = () => {
       categoria_gasto: "",
       costo_estimado: null,
       sucursal: "",
+      tipo_material: "",
     };
     setPartidas([...partidas, newPartida]);
   };
@@ -455,6 +459,9 @@ const Requisicion = () => {
       if (partida.costo_estimado === null || partida.costo_estimado === undefined || partida.costo_estimado <= 0) {
         partidasErrors.push(`Partida ${partidaNum}: Costo estimado`);
       }
+      if (!partida.tipo_material) {
+        partidasErrors.push(`Partida ${partidaNum}: Tipo de material`);
+      }
     });
 
     if (requiredErrors.length > 0 || partidasErrors.length > 0) {
@@ -521,6 +528,7 @@ const Requisicion = () => {
           categoria_gasto: p.categoria_gasto || null,
           costo_estimado: p.costo_estimado,
           sucursal: p.sucursal || null,
+          tipo_material: p.tipo_material || null,
         }));
 
         const { error: partidasError } = await supabaseAuthed
@@ -707,6 +715,7 @@ const Requisicion = () => {
           categoria_gasto: p.categoria_gasto || null,
           costo_estimado: p.costo_estimado,
           sucursal: p.sucursal || null,
+          tipo_material: p.tipo_material || null,
         }));
 
         const { error: partidasError } = await supabaseAuthed
@@ -998,6 +1007,7 @@ const Requisicion = () => {
                         <TableHead className="text-muted-foreground w-24">Cantidad <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground w-32">Costo Estimado <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground w-40">Fecha de Necesidad</TableHead>
+                        <TableHead className="text-muted-foreground w-36">Tipo Material <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground w-12"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1154,6 +1164,22 @@ const Requisicion = () => {
                                 />
                               </PopoverContent>
                             </Popover>
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={partida.tipo_material}
+                              onValueChange={(value) =>
+                                updatePartida(partida.id, "tipo_material", value)
+                              }
+                            >
+                              <SelectTrigger className="bg-input border-border w-32">
+                                <SelectValue placeholder="Seleccionar" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-card border-border z-50">
+                                <SelectItem value="nuevo">Nuevo</SelectItem>
+                                <SelectItem value="reposicion">Reposición</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             <Button

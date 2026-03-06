@@ -1,0 +1,1 @@
+ALTER TABLE public.requisicion_partidas ADD COLUMN tipo_material text;

@@ -1701,7 +1701,7 @@ const TramiteDetailDialog = ({
 
       autoTable(doc, {
         startY: yPosition,
-        head: [["#", "Sucursal", "Descripción", "Tipo Gasto", "Categoría", "Cantidad", "Unidad", "Costo Est.", "Fecha Necesidad"]],
+        head: [["#", "Sucursal", "Descripción", "Tipo Gasto", "Categoría", "Cantidad", "Unidad", "Costo Est.", "Tipo Material", "Fecha Necesidad"]],
         body: partidas.map((partida) => [
           partida.numero_partida.toString(),
           partida.sucursal || "-",
@@ -1711,6 +1711,7 @@ const TramiteDetailDialog = ({
           partida.cantidad?.toString() || "-",
           partida.unidad_medida || "-",
           partida.costo_estimado ? formatCurrency(partida.costo_estimado) : "-",
+          (partida as any).tipo_material === "reposicion" ? "Reposición" : (partida as any).tipo_material === "nuevo" ? "Nuevo" : "-",
           formatDate(partida.fecha_necesidad),
         ]),
         styles: { fontSize: 8 },
@@ -2332,6 +2333,7 @@ const TramiteDetailDialog = ({
                         <TableHead className="text-muted-foreground">Unidad</TableHead>
                         <TableHead className="text-muted-foreground">Modelo/Parte</TableHead>
                         <TableHead className="text-muted-foreground">Costo Est.</TableHead>
+                        <TableHead className="text-muted-foreground">Tipo Material</TableHead>
                         <TableHead className="text-muted-foreground">Fecha Necesidad</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -2347,6 +2349,7 @@ const TramiteDetailDialog = ({
                           <TableCell>{partida.unidad_medida || "-"}</TableCell>
                           <TableCell>{partida.modelo_parte || "-"}</TableCell>
                           <TableCell>{partida.costo_estimado ? formatCurrency(partida.costo_estimado) : "-"}</TableCell>
+                          <TableCell className="capitalize">{(partida as any).tipo_material === "reposicion" ? "Reposición" : (partida as any).tipo_material || "-"}</TableCell>
                           <TableCell>{formatDate(partida.fecha_necesidad)}</TableCell>
                         </TableRow>
                       ))}
