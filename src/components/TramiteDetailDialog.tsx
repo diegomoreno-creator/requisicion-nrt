@@ -2357,6 +2357,39 @@ const TramiteDetailDialog = ({
                   </Table>
                 </div>
               </div>
+
+              {/* Detalles de reposición */}
+              {partidas.some((p: any) => p.tipo_material === "reposicion" && (p.foto_reposicion_url || p.observaciones_reposicion)) && (
+                <div className="bg-muted/30 rounded-lg p-4">
+                  <h3 className="text-primary font-semibold mb-4">Detalles de Reposición</h3>
+                  <div className="space-y-4">
+                    {partidas.filter((p: any) => p.tipo_material === "reposicion").map((partida: any) => (
+                      <div key={partida.id} className="border border-border rounded-lg p-3 space-y-2">
+                        <p className="text-sm font-medium">Partida {partida.numero_partida}: {partida.descripcion || "-"}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {partida.foto_reposicion_url && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Fotografía de evidencia</p>
+                              <img
+                                src={partida.foto_reposicion_url}
+                                alt="Evidencia reposición"
+                                className="max-h-48 rounded-md border border-border object-cover cursor-pointer"
+                                onClick={() => window.open(partida.foto_reposicion_url, '_blank')}
+                              />
+                            </div>
+                          )}
+                          {partida.observaciones_reposicion && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Observaciones</p>
+                              <p className="text-sm whitespace-pre-wrap break-words">{partida.observaciones_reposicion}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             )}
 
             {/* Archivos Adjuntos */}
