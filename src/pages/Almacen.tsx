@@ -194,6 +194,31 @@ const Almacen = () => {
     } else {
       setEntradasPartidasPrevias([]);
     }
+
+    // Fetch entregas de resguardo
+    const { data: entregasData } = await supabase
+      .from("entregas_resguardo" as any)
+      .select("*")
+      .eq("requisicion_id", req.id)
+      .order("created_at", { ascending: false });
+    setEntregasResguardo((entregasData as any[]) || []);
+
+    // Fetch items for each entrega
+    if (entregasData && entregasData.length > 0) {
+      const entregaIds = (entregasData as any[]).map((e: any) => e.id);
+      const { data: itemsData } = await supabase
+        .from("entrega_resguardo_items" as any)
+        .select("*")
+        .in("entrega_resguardo_id", entregaIds);
+      const itemsMap: Record<string, any[]> = {};
+      (itemsData as any[] || []).forEach((item: any) => {
+        if (!itemsMap[item.entrega_resguardo_id]) itemsMap[item.entrega_resguardo_id] = [];
+        itemsMap[item.entrega_resguardo_id].push(item);
+      });
+      setEntregaItems(itemsMap);
+    } else {
+      setEntregaItems({});
+    }
   };
 
   const getCantidadRecibidaTotal = (partidaId: string): number => {
