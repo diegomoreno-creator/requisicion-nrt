@@ -321,6 +321,7 @@ const Requisicion = () => {
           categoria_gasto: p.categoria_gasto || "",
           costo_estimado: (p as any).costo_estimado ?? null,
           sucursal: (p as any).sucursal || "",
+          tipo_material: (p as any).tipo_material || "",
         })));
       }
 
