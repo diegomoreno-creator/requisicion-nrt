@@ -135,6 +135,7 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
   const [loading, setLoading] = useState(true);
   const [requisiciones, setRequisiciones] = useState<RequisicionStats[]>([]);
   const [reposiciones, setReposiciones] = useState<any[]>([]);
+  const [stageRequisiciones, setStageRequisiciones] = useState<Record<string, StageRequisicion[]>>({});
   const [timeStats, setTimeStats] = useState<TimeStats[]>([]);
   const [statusDistribution, setStatusDistribution] = useState<{ name: string; value: number }[]>([]);
   const [empresasMap, setEmpresasMap] = useState<Record<string, string>>({});
