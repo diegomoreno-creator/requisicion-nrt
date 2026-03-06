@@ -416,6 +416,10 @@ const Requisicion = () => {
         if (field === "tipo_gasto" && p.tipo_gasto !== value) {
           return { ...p, [field]: value, categoria_gasto: "" };
         }
+        // Si cambia tipo_material a algo diferente de reposición, limpiar campos de reposición
+        if (field === "tipo_material" && value !== "reposicion") {
+          return { ...p, [field]: value, observaciones_reposicion: "", foto_reposicion_url: "" };
+        }
         return { ...p, [field]: value };
       })
     );
