@@ -595,7 +595,7 @@ const Almacen = () => {
                                   fechaOrdenCompra: entrega.fecha_orden_compra,
                                   periodoSupervision: entrega.periodo_supervision || "",
                                   ubicacion: entrega.ubicacion || "",
-                                  entregadoPorNombre: receiverNames[entrega.entregado_por] || userName || "",
+                                  entregadoPorNombre: receiverNames[entrega.entregado_por] || currentUserName || "",
                                   recibidoPorNombre: entrega.recibido_por_nombre,
                                   recibidoPorFecha: entrega.recibido_por_fecha,
                                   firmaUrl: entrega.firma_recibido_url,
