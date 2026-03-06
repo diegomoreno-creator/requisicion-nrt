@@ -2174,12 +2174,29 @@ const TramiteDetailDialog = ({
                         </p>
                       </div>
                     )}
-                    {(requisicion as any).tipo_pedido && (
+                    {requisicion.tipo_pedido && (
                       <div>
                         <p className="text-muted-foreground text-sm">Tipo de Pedido:</p>
-                        <Badge variant={(requisicion as any).tipo_pedido === 'credito' ? 'destructive' : 'secondary'}>
-                          {(requisicion as any).tipo_pedido === 'credito' ? 'Crédito' : 'Ordinario'}
+                        <Badge variant={requisicion.tipo_pedido === 'credito' ? 'destructive' : 'secondary'}>
+                          {requisicion.tipo_pedido === 'credito' ? 'Crédito' : 'Ordinario'}
                         </Badge>
+                      </div>
+                    )}
+                    {/* Credit payment status */}
+                    {requisicion.tipo_pedido === 'credito' && requisicion.estado === 'pedido_pagado' && (
+                      <div>
+                        <p className="text-muted-foreground text-sm">Estado Crédito:</p>
+                        {requisicion.credito_pagado ? (
+                          <Badge className="bg-emerald-600 text-white">Crédito Pagado</Badge>
+                        ) : (
+                          <Badge variant="destructive">Pendiente de pago a crédito</Badge>
+                        )}
+                      </div>
+                    )}
+                    {requisicion.fecha_pago_credito && (
+                      <div>
+                        <p className="text-muted-foreground text-sm">Fecha Pago Crédito:</p>
+                        <p className="text-foreground">{formatTimestamp(requisicion.fecha_pago_credito)}</p>
                       </div>
                     )}
                     <div>
