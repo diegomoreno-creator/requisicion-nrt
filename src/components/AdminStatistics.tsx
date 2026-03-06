@@ -303,37 +303,46 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
       "Autorizado → Pagado (Normal)": [],
       "Autorizado → Pagado (Crédito)": [],
     };
+    const stageReqs: Record<string, StageRequisicion[]> = {};
+    Object.keys(stagesTimes).forEach(k => { stageReqs[k] = []; });
+
+    const pushStage = (stage: string, hours: number, r: RequisicionStats) => {
+      stagesTimes[stage].push(hours);
+      stageReqs[stage].push({ folio: r.folio, asunto: r.asunto, hours });
+    };
 
     completed.forEach(r => {
       const isCredito = r.tipo_pedido === "credito";
 
       if (r.fecha_autorizacion_real && r.created_at) {
         const hours = differenceInHours(new Date(r.fecha_autorizacion_real), new Date(r.created_at));
-        if (hours > 0) stagesTimes["Pendiente → Autorizado"].push(hours);
+        if (hours > 0) pushStage("Pendiente → Autorizado", hours, r);
       }
       if (r.fecha_licitacion && r.fecha_autorizacion_real) {
         const hours = differenceInHours(new Date(r.fecha_licitacion), new Date(r.fecha_autorizacion_real));
-        if (hours > 0) stagesTimes["Autorizado → Licitación"].push(hours);
+        if (hours > 0) pushStage("Autorizado → Licitación", hours, r);
       }
       if (r.fecha_pedido_colocado && r.fecha_licitacion) {
         const hours = differenceInHours(new Date(r.fecha_pedido_colocado), new Date(r.fecha_licitacion));
-        if (hours > 0) stagesTimes["Licitación → Pedido"].push(hours);
+        if (hours > 0) pushStage("Licitación → Pedido", hours, r);
       }
       if (r.fecha_pedido_autorizado && r.fecha_pedido_colocado) {
         const hours = differenceInHours(new Date(r.fecha_pedido_autorizado), new Date(r.fecha_pedido_colocado));
-        if (hours > 0) stagesTimes["Pedido → Autorizado"].push(hours);
+        if (hours > 0) pushStage("Pedido → Autorizado", hours, r);
       }
       if (r.fecha_pago && r.fecha_pedido_autorizado) {
         const hours = differenceInHours(new Date(r.fecha_pago), new Date(r.fecha_pedido_autorizado));
         if (hours > 0) {
           if (isCredito) {
-            stagesTimes["Autorizado → Pagado (Crédito)"].push(hours);
+            pushStage("Autorizado → Pagado (Crédito)", hours, r);
           } else {
-            stagesTimes["Autorizado → Pagado (Normal)"].push(hours);
+            pushStage("Autorizado → Pagado (Normal)", hours, r);
           }
         }
       }
     });
+
+    setStageRequisiciones(stageReqs);
 
     const stats: TimeStats[] = Object.entries(stagesTimes)
       .filter(([_, times]) => times.length > 0)
