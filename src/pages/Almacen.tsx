@@ -368,11 +368,12 @@ const Almacen = () => {
         {/* Search */}
         <div className="mb-6">
           <Input
-            placeholder="Buscar por folio, asunto, empresa o solicitante..."
+            placeholder="Buscar por folio, solicitante, asunto, empresa o contenido del pedido..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-md"
+            className="max-w-lg"
           />
+        </div>
         </div>
 
         {/* Requisiciones list */}
