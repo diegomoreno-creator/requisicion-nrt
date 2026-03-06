@@ -2390,7 +2390,6 @@ const TramiteDetailDialog = ({
                   </div>
                 </div>
               )}
-            )}
 
             {/* Archivos Adjuntos */}
             {archivosAdjuntos.length > 0 && (
