@@ -332,6 +332,28 @@ const Dashboard = () => {
             </Card>
           ))}
 
+          {/* Almacén Card */}
+          {hasAlmacenAccess && (
+            <Card
+              className="border-border bg-card transition-colors cursor-pointer group hover:border-primary/50"
+              onClick={() => navigate("/almacen")}
+            >
+              <CardContent className="p-6 flex items-start justify-between">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                    Almacén
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    Registra entradas de material contra órdenes de compra.
+                  </p>
+                </div>
+                <div className="text-primary">
+                  <Warehouse className="w-6 h-6" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Contabilidad Card with sub-buttons */}
           {hasContabilidadAccess && (
             <Card className="border-border bg-card md:col-span-2">
