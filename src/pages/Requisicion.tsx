@@ -1007,6 +1007,7 @@ const Requisicion = () => {
                         <TableHead className="text-muted-foreground w-24">Cantidad <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground w-32">Costo Estimado <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground w-40">Fecha de Necesidad</TableHead>
+                        <TableHead className="text-muted-foreground w-36">Tipo Material <span className="text-destructive">*</span></TableHead>
                         <TableHead className="text-muted-foreground w-12"></TableHead>
                       </TableRow>
                     </TableHeader>
