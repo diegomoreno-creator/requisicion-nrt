@@ -142,6 +142,7 @@ const Requisicion = () => {
       categoria_gasto: "",
       costo_estimado: null,
       sucursal: "",
+      tipo_material: "",
     },
   ]);
 
