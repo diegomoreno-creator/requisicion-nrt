@@ -32,7 +32,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ArrowLeft, Plus, Trash2, CalendarIcon, Loader2, X, Check, ChevronsUpDown, Search } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, CalendarIcon, Loader2, X, Check, ChevronsUpDown, Search, Upload, ImageIcon } from "lucide-react";
 import {
   Command,
   CommandEmpty,
