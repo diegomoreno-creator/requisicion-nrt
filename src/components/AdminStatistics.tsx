@@ -158,6 +158,7 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
     { key: "tiempo_etapa", label: "Tiempo Promedio por Etapa" },
     { key: "distribucion", label: "Distribución por Estado" },
     { key: "volumen", label: "Volumen de Trámites" },
+    { key: "tipo_pedido", label: "Métricas por Tipo de Pedido" },
     { key: "gasto_empresa", label: "Gasto Mensual por Empresa" },
     { key: "gasto_depto", label: "Gasto por Departamento" },
     { key: "gasto_proveedor", label: "Gasto por Proveedor" },
