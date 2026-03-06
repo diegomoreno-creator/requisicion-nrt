@@ -470,6 +470,14 @@ const Requisicion = () => {
       if (!partida.tipo_material) {
         partidasErrors.push(`Partida ${partidaNum}: Tipo de material`);
       }
+      if (partida.tipo_material === "reposicion") {
+        if (!partida.foto_reposicion_url) {
+          partidasErrors.push(`Partida ${partidaNum}: Fotografía de evidencia (reposición)`);
+        }
+        if (!partida.observaciones_reposicion.trim()) {
+          partidasErrors.push(`Partida ${partidaNum}: Observaciones de reposición`);
+        }
+      }
     });
 
     if (requiredErrors.length > 0 || partidasErrors.length > 0) {
