@@ -49,6 +49,14 @@ interface ExtendedRequisicion {
   tipo_requisicion: string | null;
   presupuesto_aproximado: number | null;
   monto_total_compra: number | null;
+  tipo_pedido?: string | null;
+  credito_pagado?: boolean | null;
+  fecha_pago_credito?: string | null;
+  fecha_autorizacion_real?: string | null;
+  fecha_licitacion?: string | null;
+  fecha_pedido_colocado?: string | null;
+  fecha_pedido_autorizado?: string | null;
+  fecha_pago?: string | null;
 }
 
 interface AdvancedStatisticsPanelsProps {
