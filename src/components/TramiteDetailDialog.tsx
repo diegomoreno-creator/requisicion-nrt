@@ -2356,7 +2356,6 @@ const TramiteDetailDialog = ({
                     </TableBody>
                   </Table>
                 </div>
-                </div>
 
                 {/* Detalles de reposición */}
                 {partidas.some((p: any) => p.tipo_material === "reposicion" && (p.foto_reposicion_url || p.observaciones_reposicion)) && (
