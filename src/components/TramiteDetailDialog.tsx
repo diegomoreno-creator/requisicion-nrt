@@ -1386,6 +1386,7 @@ const TramiteDetailDialog = ({
            fecha_pedido_colocado: null,
            monto_total_compra: null,
            moneda_compra: null,
+           tipo_pedido: null,
            licitado_por: null,
           fecha_licitacion: null,
           autorizado_por: null,
