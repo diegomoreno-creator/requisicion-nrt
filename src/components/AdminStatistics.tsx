@@ -969,9 +969,56 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                       <span className="text-muted-foreground">Muestra:</span>
                       <span className="text-muted-foreground">{stat.count} trámites</span>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full mt-2 h-7 text-xs gap-1 text-primary hover:text-primary"
+                      onClick={() => {
+                        setStageDialogTitle(stat.stage);
+                        setStageDialogOpen(true);
+                      }}
+                    >
+                      <Eye className="w-3 h-3" />
+                      Ver trámites
+                    </Button>
                   </div>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Stage Requisiciones Dialog */}
+      <Dialog open={stageDialogOpen} onOpenChange={setStageDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              Trámites en etapa: {stageDialogTitle}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+            {(stageRequisiciones[stageDialogTitle] || [])
+              .sort((a, b) => b.hours - a.hours)
+              .map((item, i) => (
+                <div key={i} className="flex items-center justify-between text-xs p-2 rounded bg-muted/40 border border-border/50 gap-2">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-foreground font-semibold">{item.folio}</span>
+                    <span className="text-muted-foreground truncate">{item.asunto || "Sin asunto"}</span>
+                  </div>
+                  <span className="text-foreground font-medium whitespace-nowrap">
+                    {item.hours < 24 
+                      ? `${item.hours}h` 
+                      : `${Math.round(item.hours / 24 * 10) / 10}d`}
+                  </span>
+                </div>
+              ))}
+            {(!stageRequisiciones[stageDialogTitle] || stageRequisiciones[stageDialogTitle].length === 0) && (
+              <p className="text-sm text-muted-foreground text-center py-4">Sin trámites en esta etapa</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
             </div>
           </CardContent>
         </Card>
