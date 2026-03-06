@@ -29,6 +29,7 @@ interface RequisicionPagada {
   presupuesto_aproximado: number | null;
   solicitado_por: string;
   estado: string;
+  partidas_texto?: string;
 }
 
 interface Partida {
