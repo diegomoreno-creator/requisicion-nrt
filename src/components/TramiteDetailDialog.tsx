@@ -96,6 +96,11 @@ interface RequisicionDetail {
   fecha_pedido_colocado: string | null;
   fecha_pedido_autorizado: string | null;
   fecha_pago: string | null;
+  // Credit payment fields
+  tipo_pedido: string | null;
+  credito_pagado: boolean | null;
+  credito_pagado_por: string | null;
+  fecha_pago_credito: string | null;
 }
 
 interface ReposicionDetail {
