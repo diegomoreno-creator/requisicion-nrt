@@ -382,6 +382,139 @@ export type Database = {
         }
         Relationships: []
       }
+      entrada_almacen_archivos: {
+        Row: {
+          created_at: string
+          entrada_almacen_id: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          entrada_almacen_id: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          entrada_almacen_id?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entrada_almacen_archivos_entrada_almacen_id_fkey"
+            columns: ["entrada_almacen_id"]
+            isOneToOne: false
+            referencedRelation: "entradas_almacen"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entrada_almacen_partidas: {
+        Row: {
+          cantidad_recibida: number
+          created_at: string
+          entrada_almacen_id: string
+          id: string
+          observaciones: string | null
+          partida_id: string
+        }
+        Insert: {
+          cantidad_recibida?: number
+          created_at?: string
+          entrada_almacen_id: string
+          id?: string
+          observaciones?: string | null
+          partida_id: string
+        }
+        Update: {
+          cantidad_recibida?: number
+          created_at?: string
+          entrada_almacen_id?: string
+          id?: string
+          observaciones?: string | null
+          partida_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entrada_almacen_partidas_entrada_almacen_id_fkey"
+            columns: ["entrada_almacen_id"]
+            isOneToOne: false
+            referencedRelation: "entradas_almacen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrada_almacen_partidas_partida_id_fkey"
+            columns: ["partida_id"]
+            isOneToOne: false
+            referencedRelation: "requisicion_partidas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entradas_almacen: {
+        Row: {
+          condicion_material: string | null
+          created_at: string
+          fecha_recepcion: string
+          id: string
+          numero_guia: string | null
+          numero_remision: string | null
+          observaciones: string | null
+          recibido_por: string
+          requisicion_id: string
+          ubicacion_almacen: string | null
+          updated_at: string
+        }
+        Insert: {
+          condicion_material?: string | null
+          created_at?: string
+          fecha_recepcion?: string
+          id?: string
+          numero_guia?: string | null
+          numero_remision?: string | null
+          observaciones?: string | null
+          recibido_por: string
+          requisicion_id: string
+          ubicacion_almacen?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condicion_material?: string | null
+          created_at?: string
+          fecha_recepcion?: string
+          id?: string
+          numero_guia?: string | null
+          numero_remision?: string | null
+          observaciones?: string | null
+          recibido_por?: string
+          requisicion_id?: string
+          ubicacion_almacen?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entradas_almacen_requisicion_id_fkey"
+            columns: ["requisicion_id"]
+            isOneToOne: false
+            referencedRelation: "requisiciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folio_sequences: {
         Row: {
           created_at: string
@@ -860,6 +993,7 @@ export type Database = {
       }
       requisiciones: {
         Row: {
+          almacen_recibido_por: string | null
           apuntes_compras: string | null
           apuntes_licitacion: string | null
           apuntes_presupuesto: string | null
@@ -876,6 +1010,7 @@ export type Database = {
           departamento_solicitante: string | null
           empresa: string | null
           estado: Database["public"]["Enums"]["requisition_status"] | null
+          fecha_almacen: string | null
           fecha_autorizacion: string | null
           fecha_autorizacion_real: string | null
           fecha_licitacion: string | null
@@ -918,6 +1053,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          almacen_recibido_por?: string | null
           apuntes_compras?: string | null
           apuntes_licitacion?: string | null
           apuntes_presupuesto?: string | null
@@ -934,6 +1070,7 @@ export type Database = {
           departamento_solicitante?: string | null
           empresa?: string | null
           estado?: Database["public"]["Enums"]["requisition_status"] | null
+          fecha_almacen?: string | null
           fecha_autorizacion?: string | null
           fecha_autorizacion_real?: string | null
           fecha_licitacion?: string | null
@@ -976,6 +1113,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          almacen_recibido_por?: string | null
           apuntes_compras?: string | null
           apuntes_licitacion?: string | null
           apuntes_presupuesto?: string | null
@@ -992,6 +1130,7 @@ export type Database = {
           departamento_solicitante?: string | null
           empresa?: string | null
           estado?: Database["public"]["Enums"]["requisition_status"] | null
+          fecha_almacen?: string | null
           fecha_autorizacion?: string | null
           fecha_autorizacion_real?: string | null
           fecha_licitacion?: string | null
@@ -1245,6 +1384,7 @@ export type Database = {
         | "pedido_colocado"
         | "pedido_autorizado"
         | "pedido_pagado"
+        | "en_almacen"
         | "cancelado"
     }
     CompositeTypes: {
@@ -1399,6 +1539,7 @@ export const Constants = {
         "pedido_colocado",
         "pedido_autorizado",
         "pedido_pagado",
+        "en_almacen",
         "cancelado",
       ],
     },
