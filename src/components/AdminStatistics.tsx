@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, TrendingUp, Clock, AlertTriangle, CheckCircle, FileText, DollarSign, Users, BarChart3, Zap, Timer, ArrowDown, ArrowUp, Download, Settings2 } from "lucide-react";
+import { Loader2, TrendingUp, Clock, AlertTriangle, CheckCircle, FileText, DollarSign, Users, BarChart3, Zap, Timer, ArrowDown, ArrowUp, Download, Settings2, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   GastoMensualEmpresaPanel,
@@ -76,6 +77,12 @@ interface TimeStats {
   count: number;
 }
 
+interface StageRequisicion {
+  folio: string;
+  asunto: string | null;
+  hours: number;
+}
+
 type TimeUnit = "minutes" | "hours" | "days";
 type VolumePeriod = "week" | "month" | "3months" | "6months" | "year" | "custom";
 
@@ -135,6 +142,7 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
   const [loading, setLoading] = useState(true);
   const [requisiciones, setRequisiciones] = useState<RequisicionStats[]>([]);
   const [reposiciones, setReposiciones] = useState<any[]>([]);
+  const [stageRequisiciones, setStageRequisiciones] = useState<Record<string, StageRequisicion[]>>({});
   const [timeStats, setTimeStats] = useState<TimeStats[]>([]);
   const [statusDistribution, setStatusDistribution] = useState<{ name: string; value: number }[]>([]);
   const [empresasMap, setEmpresasMap] = useState<Record<string, string>>({});
@@ -142,6 +150,8 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
   const [departamentosMap, setDepartamentosMap] = useState<Record<string, string>>({});
   const [monthlyVolume, setMonthlyVolume] = useState<{ month: string; requisiciones: number; reposiciones: number }[]>([]);
   const [avgTotalTime, setAvgTotalTime] = useState<number>(0);
+  const [stageDialogOpen, setStageDialogOpen] = useState(false);
+  const [stageDialogTitle, setStageDialogTitle] = useState("");
   const [bottleneck, setBottleneck] = useState<string>("");
   const [timeUnit, setTimeUnit] = useState<TimeUnit>("hours");
   const [volumePeriod, setVolumePeriod] = useState<VolumePeriod>("6months");
@@ -296,37 +306,46 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
       "Autorizado → Pagado (Normal)": [],
       "Autorizado → Pagado (Crédito)": [],
     };
+    const stageReqs: Record<string, StageRequisicion[]> = {};
+    Object.keys(stagesTimes).forEach(k => { stageReqs[k] = []; });
+
+    const pushStage = (stage: string, hours: number, r: RequisicionStats) => {
+      stagesTimes[stage].push(hours);
+      stageReqs[stage].push({ folio: r.folio, asunto: r.asunto, hours });
+    };
 
     completed.forEach(r => {
       const isCredito = r.tipo_pedido === "credito";
 
       if (r.fecha_autorizacion_real && r.created_at) {
         const hours = differenceInHours(new Date(r.fecha_autorizacion_real), new Date(r.created_at));
-        if (hours > 0) stagesTimes["Pendiente → Autorizado"].push(hours);
+        if (hours > 0) pushStage("Pendiente → Autorizado", hours, r);
       }
       if (r.fecha_licitacion && r.fecha_autorizacion_real) {
         const hours = differenceInHours(new Date(r.fecha_licitacion), new Date(r.fecha_autorizacion_real));
-        if (hours > 0) stagesTimes["Autorizado → Licitación"].push(hours);
+        if (hours > 0) pushStage("Autorizado → Licitación", hours, r);
       }
       if (r.fecha_pedido_colocado && r.fecha_licitacion) {
         const hours = differenceInHours(new Date(r.fecha_pedido_colocado), new Date(r.fecha_licitacion));
-        if (hours > 0) stagesTimes["Licitación → Pedido"].push(hours);
+        if (hours > 0) pushStage("Licitación → Pedido", hours, r);
       }
       if (r.fecha_pedido_autorizado && r.fecha_pedido_colocado) {
         const hours = differenceInHours(new Date(r.fecha_pedido_autorizado), new Date(r.fecha_pedido_colocado));
-        if (hours > 0) stagesTimes["Pedido → Autorizado"].push(hours);
+        if (hours > 0) pushStage("Pedido → Autorizado", hours, r);
       }
       if (r.fecha_pago && r.fecha_pedido_autorizado) {
         const hours = differenceInHours(new Date(r.fecha_pago), new Date(r.fecha_pedido_autorizado));
         if (hours > 0) {
           if (isCredito) {
-            stagesTimes["Autorizado → Pagado (Crédito)"].push(hours);
+            pushStage("Autorizado → Pagado (Crédito)", hours, r);
           } else {
-            stagesTimes["Autorizado → Pagado (Normal)"].push(hours);
+            pushStage("Autorizado → Pagado (Normal)", hours, r);
           }
         }
       }
     });
+
+    setStageRequisiciones(stageReqs);
 
     const stats: TimeStats[] = Object.entries(stagesTimes)
       .filter(([_, times]) => times.length > 0)
@@ -950,6 +969,18 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
                       <span className="text-muted-foreground">Muestra:</span>
                       <span className="text-muted-foreground">{stat.count} trámites</span>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full mt-2 h-7 text-xs gap-1 text-primary hover:text-primary"
+                      onClick={() => {
+                        setStageDialogTitle(stat.stage);
+                        setStageDialogOpen(true);
+                      }}
+                    >
+                      <Eye className="w-3 h-3" />
+                      Ver trámites
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -957,6 +988,39 @@ const AdminStatistics = ({ empresaId, empresaNombre }: AdminStatisticsProps = {}
           </CardContent>
         </Card>
       )}
+
+      {/* Stage Requisiciones Dialog */}
+      <Dialog open={stageDialogOpen} onOpenChange={setStageDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              Trámites en etapa: {stageDialogTitle}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+            {(stageRequisiciones[stageDialogTitle] || [])
+              .sort((a, b) => b.hours - a.hours)
+              .map((item, i) => (
+                <div key={i} className="flex items-center justify-between text-xs p-2 rounded bg-muted/40 border border-border/50 gap-2">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-foreground font-semibold">{item.folio}</span>
+                    <span className="text-muted-foreground truncate">{item.asunto || "Sin asunto"}</span>
+                  </div>
+                  <span className="text-foreground font-medium whitespace-nowrap">
+                    {item.hours < 24 
+                      ? `${item.hours}h` 
+                      : `${Math.round(item.hours / 24 * 10) / 10}d`}
+                  </span>
+                </div>
+              ))}
+            {(!stageRequisiciones[stageDialogTitle] || stageRequisiciones[stageDialogTitle].length === 0) && (
+              <p className="text-sm text-muted-foreground text-center py-4">Sin trámites en esta etapa</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
 
       {/* Charts Row */}
       {(visiblePanels.has("tiempo_etapa") || visiblePanels.has("distribucion")) && (
