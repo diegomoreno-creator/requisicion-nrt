@@ -211,6 +211,8 @@ const getStepTimestamp = (
         return requisicion.fecha_pedido_autorizado;
       case "pedido_pagado":
         return requisicion.fecha_pago;
+      case "en_almacen":
+        return (requisicion as any).fecha_almacen || null;
       default:
         return null;
     }
