@@ -1009,6 +1009,7 @@ export type Database = {
           deleted_at: string | null
           departamento_solicitante: string | null
           empresa: string | null
+          es_pedido_almacen: boolean
           estado: Database["public"]["Enums"]["requisition_status"] | null
           fecha_almacen: string | null
           fecha_autorizacion: string | null
@@ -1069,6 +1070,7 @@ export type Database = {
           deleted_at?: string | null
           departamento_solicitante?: string | null
           empresa?: string | null
+          es_pedido_almacen?: boolean
           estado?: Database["public"]["Enums"]["requisition_status"] | null
           fecha_almacen?: string | null
           fecha_autorizacion?: string | null
@@ -1129,6 +1131,7 @@ export type Database = {
           deleted_at?: string | null
           departamento_solicitante?: string | null
           empresa?: string | null
+          es_pedido_almacen?: boolean
           estado?: Database["public"]["Enums"]["requisition_status"] | null
           fecha_almacen?: string | null
           fecha_autorizacion?: string | null
