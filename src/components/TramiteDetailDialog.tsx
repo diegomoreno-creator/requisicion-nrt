@@ -96,6 +96,11 @@ interface RequisicionDetail {
   fecha_pedido_colocado: string | null;
   fecha_pedido_autorizado: string | null;
   fecha_pago: string | null;
+  // Credit payment fields
+  tipo_pedido: string | null;
+  credito_pagado: boolean | null;
+  credito_pagado_por: string | null;
+  fecha_pago_credito: string | null;
 }
 
 interface ReposicionDetail {
@@ -655,6 +660,15 @@ const TramiteDetailDialog = ({
   const canPayPedido = () => {
     if (!requisicion || !user) return false;
     return requisicion.estado === "pedido_autorizado" && (isTesoreria || isSuperadmin);
+  };
+
+  // Tesoreria: can mark credit payment as completed when pedido_pagado + credito + not yet paid
+  const canPayCredito = () => {
+    if (!requisicion || !user) return false;
+    return requisicion.estado === "pedido_pagado" && 
+           requisicion.tipo_pedido === "credito" && 
+           !requisicion.credito_pagado &&
+           (isTesoreria || isSuperadmin);
   };
 
   // Solicitador can delete their own pending requisitions
@@ -1324,6 +1338,33 @@ const TramiteDetailDialog = ({
     } catch (error) {
       console.error("Error paying pedido:", error);
       toast.error("Error al marcar como pagado");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Tesoreria: mark credit as paid
+  const handlePayCredito = async () => {
+    if (!tramiteId || !user) return;
+    setActionLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("requisiciones")
+        .update({ 
+          credito_pagado: true,
+          credito_pagado_por: user.id,
+          fecha_pago_credito: new Date().toISOString()
+        } as any)
+        .eq("id", tramiteId);
+
+      if (error) throw error;
+      toast.success("Pago a crédito registrado exitosamente");
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error marking credit as paid:", error);
+      toast.error("Error al registrar pago a crédito");
     } finally {
       setActionLoading(false);
     }
@@ -2133,12 +2174,29 @@ const TramiteDetailDialog = ({
                         </p>
                       </div>
                     )}
-                    {(requisicion as any).tipo_pedido && (
+                    {requisicion.tipo_pedido && (
                       <div>
                         <p className="text-muted-foreground text-sm">Tipo de Pedido:</p>
-                        <Badge variant={(requisicion as any).tipo_pedido === 'credito' ? 'destructive' : 'secondary'}>
-                          {(requisicion as any).tipo_pedido === 'credito' ? 'Crédito' : 'Ordinario'}
+                        <Badge variant={requisicion.tipo_pedido === 'credito' ? 'destructive' : 'secondary'}>
+                          {requisicion.tipo_pedido === 'credito' ? 'Crédito' : 'Ordinario'}
                         </Badge>
+                      </div>
+                    )}
+                    {/* Credit payment status */}
+                    {requisicion.tipo_pedido === 'credito' && requisicion.estado === 'pedido_pagado' && (
+                      <div>
+                        <p className="text-muted-foreground text-sm">Estado Crédito:</p>
+                        {requisicion.credito_pagado ? (
+                          <Badge className="bg-emerald-600 text-white">Crédito Pagado</Badge>
+                        ) : (
+                          <Badge variant="destructive">Pendiente de pago a crédito</Badge>
+                        )}
+                      </div>
+                    )}
+                    {requisicion.fecha_pago_credito && (
+                      <div>
+                        <p className="text-muted-foreground text-sm">Fecha Pago Crédito:</p>
+                        <p className="text-foreground">{formatTimestamp(requisicion.fecha_pago_credito)}</p>
                       </div>
                     )}
                     <div>
@@ -2856,6 +2914,15 @@ const TramiteDetailDialog = ({
                   disabled={actionLoading}
                 >
                   Marcar como Pagado
+                </Button>
+              )}
+              {canPayCredito() && (
+                <Button
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={handlePayCredito}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? "Procesando..." : "Pedido pagado a crédito"}
                 </Button>
               )}
               {canHandlePresupuestosRejection() && (

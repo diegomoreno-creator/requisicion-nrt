@@ -868,6 +868,8 @@ export type Database = {
           autorizado_por: string | null
           autorizador_id: string | null
           created_at: string
+          credito_pagado: boolean | null
+          credito_pagado_por: string | null
           datos_banco: string | null
           datos_proveedor: string | null
           deleted_at: string | null
@@ -878,6 +880,7 @@ export type Database = {
           fecha_autorizacion_real: string | null
           fecha_licitacion: string | null
           fecha_pago: string | null
+          fecha_pago_credito: string | null
           fecha_pedido_autorizado: string | null
           fecha_pedido_colocado: string | null
           fecha_rechazo_presupuestos: string | null
@@ -923,6 +926,8 @@ export type Database = {
           autorizado_por?: string | null
           autorizador_id?: string | null
           created_at?: string
+          credito_pagado?: boolean | null
+          credito_pagado_por?: string | null
           datos_banco?: string | null
           datos_proveedor?: string | null
           deleted_at?: string | null
@@ -933,6 +938,7 @@ export type Database = {
           fecha_autorizacion_real?: string | null
           fecha_licitacion?: string | null
           fecha_pago?: string | null
+          fecha_pago_credito?: string | null
           fecha_pedido_autorizado?: string | null
           fecha_pedido_colocado?: string | null
           fecha_rechazo_presupuestos?: string | null
@@ -978,6 +984,8 @@ export type Database = {
           autorizado_por?: string | null
           autorizador_id?: string | null
           created_at?: string
+          credito_pagado?: boolean | null
+          credito_pagado_por?: string | null
           datos_banco?: string | null
           datos_proveedor?: string | null
           deleted_at?: string | null
@@ -988,6 +996,7 @@ export type Database = {
           fecha_autorizacion_real?: string | null
           fecha_licitacion?: string | null
           fecha_pago?: string | null
+          fecha_pago_credito?: string | null
           fecha_pedido_autorizado?: string | null
           fecha_pedido_colocado?: string | null
           fecha_rechazo_presupuestos?: string | null
