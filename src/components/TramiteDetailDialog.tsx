@@ -1181,7 +1181,8 @@ const TramiteDetailDialog = ({
           pedido_colocado_por: user.id,
           fecha_pedido_colocado: new Date().toISOString(),
           monto_total_compra: monto,
-          moneda_compra: monedaCompra
+          moneda_compra: monedaCompra,
+          tipo_pedido: tipoPedido
         } as any)
         .eq("id", tramiteId);
 
