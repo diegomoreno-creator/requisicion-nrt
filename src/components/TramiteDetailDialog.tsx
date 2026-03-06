@@ -39,6 +39,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMultiAuth, isBudgetMultiAuth } from "@/hooks/useMultiAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { renderNRTHeader } from "@/lib/pdfFonts";
