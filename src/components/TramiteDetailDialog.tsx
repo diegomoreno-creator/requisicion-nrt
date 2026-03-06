@@ -288,6 +288,7 @@ const TramiteDetailDialog = ({
   }>>([]);
   const [montoTotalCompra, setMontoTotalCompra] = useState("");
   const [monedaCompra, setMonedaCompra] = useState("MXN");
+  const [tipoPedido, setTipoPedido] = useState("ordinario");
   const [previewFile, setPreviewFile] = useState<ArchivoAdjunto | null>(null);
   const [showPayConfirm, setShowPayConfirm] = useState(false);
   const [paymentFiles, setPaymentFiles] = useState<File[]>([]);
