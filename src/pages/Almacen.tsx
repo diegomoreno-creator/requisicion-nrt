@@ -810,6 +810,20 @@ const Almacen = () => {
           file={previewFile}
         />
       )}
+
+      {/* Carta Responsiva Form */}
+      {selectedReq && (
+        <CartaResponsivaForm
+          open={showCartaResponsiva}
+          onOpenChange={setShowCartaResponsiva}
+          requisicionId={selectedReq.id}
+          folioOrdenCompra={selectedReq.folio}
+          fechaOrdenCompra={selectedReq.fecha_pago}
+          userId={user?.id || ""}
+          userName={currentUserName}
+          onSuccess={() => openReqDetail(selectedReq)}
+        />
+      )}
     </div>
   );
 };
