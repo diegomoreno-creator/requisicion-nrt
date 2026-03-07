@@ -39,7 +39,8 @@ import {
   TrendingUp,
   Lock,
   Menu,
-  Warehouse
+  Warehouse,
+  PackageCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -332,23 +333,40 @@ const Dashboard = () => {
             </Card>
           ))}
 
-          {/* Almacén Card */}
+          {/* Almacén Card with sub-buttons */}
           {hasAlmacenAccess && (
-            <Card
-              className="border-border bg-card transition-colors cursor-pointer group hover:border-primary/50"
-              onClick={() => navigate("/almacen")}
-            >
-              <CardContent className="p-6 flex items-start justify-between">
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+            <Card className="border-border bg-card">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Warehouse className="w-6 h-6 text-primary" />
+                  <h3 className="text-lg font-semibold text-foreground">
                     Almacén
                   </h3>
-                  <p className="text-muted-foreground text-sm">
-                    Registra entradas de material contra órdenes de compra.
-                  </p>
                 </div>
-                <div className="text-primary">
-                  <Warehouse className="w-6 h-6" />
+                <p className="text-muted-foreground text-sm mb-4">
+                  Gestión de entradas de material y entregas de resguardo.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => navigate("/almacen")}
+                    className="flex items-center gap-3 p-4 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-accent cursor-pointer transition-colors"
+                  >
+                    <FolderSearch className="w-5 h-5 text-primary" />
+                    <div className="text-left">
+                      <p className="font-medium text-foreground text-sm">Ver Trámites</p>
+                      <p className="text-xs text-muted-foreground">Consulta órdenes de compra</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => navigate("/almacen?action=ingreso")}
+                    className="flex items-center gap-3 p-4 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-accent cursor-pointer transition-colors"
+                  >
+                    <PackageCheck className="w-5 h-5 text-primary" />
+                    <div className="text-left">
+                      <p className="font-medium text-foreground text-sm">Registrar Ingreso</p>
+                      <p className="text-xs text-muted-foreground">Ingreso de artículos al almacén</p>
+                    </div>
+                  </button>
                 </div>
               </CardContent>
             </Card>
