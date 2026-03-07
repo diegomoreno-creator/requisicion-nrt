@@ -39,7 +39,8 @@ import {
   TrendingUp,
   Lock,
   Menu,
-  Warehouse
+  Warehouse,
+  PackageCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
